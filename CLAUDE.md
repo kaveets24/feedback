@@ -325,7 +325,7 @@ Keep the PR description current as more commits land on the branch. Work outside
 - [ ] docker-compose with Postgres, Redis, MinIO _(Postgres + Redis done; S3 stand-in pending, MinIO no longer publishes free images)_
 - [x] `packages/db` with Drizzle set up, first migration (users, profiles), seed script
 - [x] Env validation, structured logging, health check endpoint
-- [ ] CI running lint, typecheck, tests _(workflow written; not yet run on GitHub)_
+- [x] CI running lint, typecheck, tests (with a Postgres service)
 - [ ] Auth wired end to end: sign in on web, API verifies JWT, `GET /v1/me` works _(code done and tested with a fake AuthPort; needs a manual sign-in with real Clerk keys)_
 - [ ] Invite-only gate: new users are `pending`; the API rejects everything except `GET /v1/me` for non-approved users; web shows a waiting screen; an admin can approve or reject (see "Invite-only access" in section 6) _(code done; routes opt out with `config: { allowUnapproved: true }`; needs the manual check)_
 - **Done when:** a fresh clone can run `pnpm i && pnpm services:up && pnpm db:migrate && pnpm dev` and sign in locally.
