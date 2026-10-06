@@ -321,15 +321,17 @@ These apply from Phase 1 on.
 
 Work **one phase at a time**. Do not start a phase until the previous one's checklist is complete and I've confirmed. At the start of each phase, propose a short task breakdown for approval.
 
-**One branch and one PR per phase.** Each phase is built on its own branch off `main`, named `phase-<n>-<slug>` (e.g. `phase-0-foundation`, `phase-2-upload-playback`). Never commit phase work directly to `main`; it only changes by merging a reviewed PR. When the phase's work is ready, push the branch and open a PR whose description covers:
+**Feature branches with detailed PRs.** All work, phase or not, happens on a short-lived feature branch off `main` and lands through a reviewed PR. Never commit directly to `main`.
 
-- **Summary:** what the phase delivers and why
-- **What changed:** grouped by area (db, api, web, tooling, docs), noting new dependencies and why
-- **Decisions:** anything that differs from this file or the approved plan, and new ADRs
-- **How to test:** exact `pnpm` commands and manual steps
-- **Checklist:** the phase's definition-of-done items, ticked or marked with what's left
-
-Keep the PR description current as more commits land on the branch. Work outside a phase (small fixes, docs) uses its own short-lived branch and PR too.
+- **A phase is usually several PRs.** Each PR is one coherent slice that works on its own (for example: the upload endpoint, then the worker job, then the player). Because every merge to `main` deploys to staging, each PR must leave `main` working. Keep unfinished user-facing features hidden (an unlinked route or a flag) rather than holding them back on a long-lived branch.
+- **Name branches `<type>/<slug>`**, using the conventional-commit type (e.g. `feat/presigned-uploads`, `fix/me-route-gate`, `docs/staging-phase`). Keep them short-lived and up to date with `main`.
+- **Every PR has a detailed description** covering:
+  - **Summary:** what it delivers and why, and which phase it belongs to
+  - **What changed:** grouped by area (db, api, web, tooling, docs), noting new dependencies and why
+  - **Decisions:** anything that differs from this file or the approved plan, and new ADRs
+  - **How to test:** exact `pnpm` commands and manual steps
+  - **Checklist:** the phase's definition-of-done items this PR completes or moves forward, and what's left
+- Keep the PR description current as more commits land on the branch.
 
 ### Phase 0: Foundation
 
@@ -438,7 +440,7 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 
 - **Plan before coding** on anything non-trivial: summarize the approach and affected files, then wait for a go-ahead.
 - Make **small, reviewable changes**. Prefer several focused PRs/commits over one giant one.
-- **Each phase gets its own branch and PR** with a full description (see section 11). Never commit to `main` directly.
+- **Work on feature branches**, one PR per coherent change, each with a detailed description (see section 11). Never commit to `main` directly.
 - **Schema and authz first.** Show me migrations and `canAccess` changes before building UI on top of them.
 - **No styling yet.** Web pages are plain semantic HTML until I ask for styling (see "Visual style" in section 9).
 - **Every developer command is a root `package.json` script** (see section 4). Add the script when you add the need.
