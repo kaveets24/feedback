@@ -18,7 +18,7 @@ Feedback launches as an **invite-only** service. Anyone can sign up, but a new a
 | [pnpm](https://pnpm.io)                                                                               | 12                | `npm i -g pnpm` (Node 26 no longer ships corepack)                  |
 | [Docker Desktop](https://www.docker.com/products/docker-desktop/) or [OrbStack](https://orbstack.dev) | latest            | Open the app once so the `docker` CLI is on your `PATH`             |
 
-From Phase 1 onward you'll also need **ffmpeg** for the audio worker: `brew install ffmpeg`.
+From Phase 2 onward you'll also need **ffmpeg** for the audio worker: `brew install ffmpeg`.
 
 ### Run it locally
 
@@ -76,7 +76,7 @@ Before opening a PR: `pnpm lint && pnpm typecheck && pnpm test` must pass. CI ru
 apps/
   web/        Next.js (App Router) + Tailwind
   api/        Fastify HTTP API, routes under /v1
-  worker/     background jobs (audio processing, from Phase 1)
+  worker/     background jobs (audio processing, from Phase 2)
 packages/
   db/         Drizzle schema, migrations, seed, query helpers
   shared/     zod schemas and types shared by API and clients

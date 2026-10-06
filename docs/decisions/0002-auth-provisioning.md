@@ -23,5 +23,5 @@
 ## Consequences
 
 - Email changes in Clerk reach our `users` table on the user's next request, not instantly.
-- Deleting a user in Clerk doesn't delete ours; account deletion is handled in Phase 6.
-- The mobile app (Phase 7) will send the same bearer token; nothing here is web-specific.
+- Deleting a user in Clerk doesn't delete ours; account deletion is handled in Phase 7.
+- The mobile app (Phase 8) will send the same bearer token; nothing here is web-specific.

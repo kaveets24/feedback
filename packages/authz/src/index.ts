@@ -1,5 +1,5 @@
 // Pure permission logic. No I/O: callers pass already-loaded data in and get a decision back.
-// canAccess() and its exhaustive table-driven tests land in Phase 3 (see CLAUDE.md section 6).
+// canAccess() and its exhaustive table-driven tests land in Phase 4 (see CLAUDE.md section 6).
 
 export const VISIBILITIES = ['private', 'shared', 'unlisted', 'public'] as const;
 export type Visibility = (typeof VISIBILITIES)[number];

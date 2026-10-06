@@ -1,6 +1,6 @@
 # Local dev services. Start with: pnpm services:up
 # pgweb (http://localhost:8081) is a web UI for browsing the local database.
-# Object storage (S3-compatible stand-in for R2) is added in Phase 1.
+# Object storage (S3-compatible stand-in for R2) is added in Phase 2.
 services:
   postgres:
     image: postgres:16-alpine
