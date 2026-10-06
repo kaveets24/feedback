@@ -13,7 +13,10 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @demo/db db:generate",
+    "db:migrate": "pnpm --filter @demo/db db:migrate",
+    "db:seed": "pnpm --filter @demo/db db:seed"
   },
   "devDependencies": {
     "prettier": "^3.9.9",

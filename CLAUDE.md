@@ -96,7 +96,7 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 
 ## 4. Commands
 
-(Create these scripts as part of Phase 0 and keep them accurate. Not yet implemented: `db:*` (with `packages/db`), `test:e2e` (with Playwright).)
+(Create these scripts as part of Phase 0 and keep them accurate. Not yet implemented: `test:e2e` (with Playwright). DB tests use a `demo_test` database on the compose Postgres, created and migrated automatically; override with `TEST_DATABASE_URL`.)
 
 ```bash
 pnpm install
@@ -302,9 +302,9 @@ Work **one phase at a time**. Do not start a phase until the previous one's chec
 
 ### Phase 0: Foundation
 
-- [ ] Monorepo (pnpm + Turborepo), shared tsconfig/eslint, scripts from section 4 _(done except `db:*` and `test:e2e` scripts)_
+- [ ] Monorepo (pnpm + Turborepo), shared tsconfig/eslint, scripts from section 4 _(done except `test:e2e` script)_
 - [ ] docker-compose with Postgres, Redis, MinIO _(Postgres + Redis done; S3 stand-in pending, MinIO no longer publishes free images)_
-- [ ] `packages/db` with Drizzle set up, first migration (users, profiles), seed script
+- [x] `packages/db` with Drizzle set up, first migration (users, profiles), seed script
 - [x] Env validation, structured logging, health check endpoint
 - [ ] CI running lint, typecheck, tests _(workflow written; not yet run on GitHub)_
 - [ ] Auth wired end to end: sign in on web, API verifies JWT, `GET /v1/me` works
