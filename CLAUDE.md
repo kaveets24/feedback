@@ -195,7 +195,7 @@ The service starts invite only. Anyone can create an account, but it stays `pend
 
 - The approval gate lives in **our** `users.access_status`, not in the auth provider, so it survives swapping `AuthPort`.
 - The API's auth plugin checks it: non-approved users get `403` with code `ACCOUNT_PENDING` (or `ACCOUNT_REJECTED`) on every route except `GET /v1/me`, which reports their status. Anonymous access to public or link-shared resources is unaffected.
-- The web app shows a themed "you're on the list" screen to pending users.
+- The web app shows a plain "you're on the list" screen to pending users.
 - Admin approval starts as a CLI script (`pnpm admin:approve <email>` / `admin:reject`) that records `approved_at` and `approved_by`. An admin UI comes later if the queue gets big.
 - Gate tests cover pending, approved, and rejected users on a protected route and on `/v1/me`.
 
@@ -253,6 +253,8 @@ Client                API                      R2/S3              Worker
 - Keep components small, colocate styles, avoid premature abstraction.
 
 ### Visual style: Y2K / Winamp / LimeWire
+
+> **Styling is deferred.** Don't add CSS, Tailwind classes, design tokens, or themed primitives until asked. Build pages with plain semantic HTML (accessibility rules above still apply). The direction below is the future plan, not current work.
 
 The app should feel like a late-90s/early-2000s desktop music app reimagined for Gen Z and Gen Alpha: nostalgic and playful, but clean enough to use every day. It's a nod to that era, not a costume.
 
@@ -390,6 +392,7 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 - **Plan before coding** on anything non-trivial: summarize the approach and affected files, then wait for a go-ahead.
 - Make **small, reviewable changes**. Prefer several focused PRs/commits over one giant one.
 - **Schema and authz first.** Show me migrations and `canAccess` changes before building UI on top of them.
+- **No styling yet.** Web pages are plain semantic HTML until I ask for styling (see "Visual style" in section 9).
 - **Write tests with the code**, and run `pnpm lint && pnpm typecheck && pnpm test` before declaring done.
 - Don't add dependencies without saying why. Prefer well-maintained, widely used packages.
 - Don't build anything from the out-of-scope list in section 1.
