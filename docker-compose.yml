@@ -1,4 +1,5 @@
 # Local dev services. Start with: pnpm services:up
+# pgweb (http://localhost:8081) is a web UI for browsing the local database.
 # Object storage (S3-compatible stand-in for R2) is added in Phase 1.
 services:
   postgres:
@@ -25,6 +26,22 @@ services:
       - redis-data:/data
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgweb:
+    image: sosedoff/pgweb:0.17.0
+    environment:
+      PGWEB_DATABASE_URL: postgres://demo:demo@postgres:5432/demo?sslmode=disable
+    ports:
+      # Localhost only: pgweb has no auth and full database access.
+      - '127.0.0.1:8081:8081'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:8081/api/info']
       interval: 5s
       timeout: 5s
       retries: 10

@@ -54,7 +54,7 @@ Read this file fully before making changes. If something here conflicts with a r
 | Testing          | Vitest (unit/integration), Playwright (e2e), Testcontainers or docker-compose Postgres for DB tests   |
 | Lint/format      | ESLint + Prettier, `tsc --noEmit` in CI                                                               |
 | CI               | GitHub Actions                                                                                        |
-| Local dev        | docker-compose for Postgres, Redis, and MinIO (S3-compatible, stands in for R2 locally)               |
+| Local dev        | docker-compose for Postgres, Redis, pgweb (DB browser), and MinIO (S3-compatible, stands in for R2)   |
 | Hosting (later)  | Vercel (web), Fly.io or Railway (api + worker), Neon (Postgres), R2 (storage)                         |
 
 If a choice above becomes painful, propose an alternative and record it in `docs/decisions/` as a short ADR before switching.
@@ -105,7 +105,7 @@ Every command a developer needs to run (starting services, migrating, seeding, a
 ```bash
 pnpm install
 pnpm env:init                 # create .env and apps/web/.env.local from examples (never overwrites)
-pnpm services:up              # start postgres, redis in docker (object storage added in Phase 1)
+pnpm services:up              # start postgres, redis, pgweb in docker (object storage added in Phase 1)
 pnpm services:down            # stop them (services:reset also wipes their data; services:logs tails logs)
 pnpm db:migrate               # apply migrations
 pnpm db:seed                  # dev seed data
@@ -120,7 +120,7 @@ pnpm admin:approve <email> [--by <admin-email>]   # let a pending user in
 pnpm admin:reject <email>
 ```
 
-Local URLs: web http://localhost:3000, API http://localhost:4000 (`/v1/health`, `/v1/openapi.json`).
+Local URLs: web http://localhost:3000, API http://localhost:4000 (`/v1/health`, `/v1/openapi.json`), pgweb http://localhost:8081 (browses the `demo` database; its connect screen can switch to a `demo_test_*` database).
 
 Before saying a task is done: `pnpm lint && pnpm typecheck && pnpm test` must pass.
 
