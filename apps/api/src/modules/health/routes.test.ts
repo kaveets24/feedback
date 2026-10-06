@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { buildApp, type App } from '../../app.ts';
-import { loadEnv } from '../../env.ts';
+import type { App } from '../../app.ts';
+import { buildTestApp } from '../../testing/app.ts';
 
 describe('health routes', () => {
   let app: App;
 
   beforeAll(async () => {
-    app = await buildApp(loadEnv({ NODE_ENV: 'test', LOG_LEVEL: 'silent' }));
+    ({ app } = await buildTestApp());
   });
 
   afterAll(() => app.close());

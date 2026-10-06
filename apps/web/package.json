@@ -12,10 +12,12 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.9.10",
     "@demo/shared": "workspace:*",
     "next": "^16.3.8",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@demo/config": "workspace:*",

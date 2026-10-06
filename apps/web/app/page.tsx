@@ -1,10 +1,33 @@
-export default function HomePage() {
+import { SignOutButton } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
+import Link from 'next/link';
+import { serverApi } from '../lib/api';
+
+export default async function HomePage() {
+  const { isAuthenticated } = await auth();
+
+  if (!isAuthenticated) {
+    return (
+      <main>
+        <h1>Demo</h1>
+        <p>
+          Share rough song ideas, control who hears them, and collect feedback pinned to the moment.
+        </p>
+        <p>
+          <Link href="/sign-in">Sign in</Link> or <Link href="/sign-up">create an account</Link>
+        </p>
+      </main>
+    );
+  }
+
+  const me = await serverApi().getMe();
+
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-16">
-      <h1 className="text-3xl font-semibold tracking-tight">Demo</h1>
-      <p className="text-neutral-400">
-        Share rough song ideas, control who hears them, and collect feedback pinned to the moment.
-      </p>
+    <main>
+      <h1>Demo</h1>
+      <p>Signed in as {me.email}</p>
+      <p>Access status: {me.accessStatus}</p>
+      <SignOutButton />
     </main>
   );
 }

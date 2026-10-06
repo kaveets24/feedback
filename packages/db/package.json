@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -15,6 +16,7 @@
     "db:seed": "node --env-file-if-exists=../../.env src/scripts/seed.ts"
   },
   "dependencies": {
+    "@demo/shared": "workspace:*",
     "drizzle-orm": "^0.45.3",
     "postgres": "^3.4.9",
     "uuid": "^14.0.2",

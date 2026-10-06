@@ -59,6 +59,8 @@ Read this file fully before making changes. If something here conflicts with a r
 
 If a choice above becomes painful, propose an alternative and record it in `docs/decisions/` as a short ADR before switching.
 
+**Auth** (see [ADR 0002](docs/decisions/0002-auth-provisioning.md)): users are created as `pending` on their first authenticated API request; the Clerk session token carries an `email` claim. The web app reads its env from `apps/web/.env.local`, not the root `.env`.
+
 **Pinned versions** (see [ADR 0001](docs/decisions/0001-runtime-and-toolchain-versions.md)): Node 26 (`.nvmrc`), pnpm 12 (installed via `npm i -g pnpm`; Node 26 has no corepack), TypeScript 6.0 (typescript-eslint doesn't support 7 yet), ESLint 9 (eslint-config-next isn't ready for 10). API and worker have no build step: Node runs `.ts` directly via type stripping, so use only erasable TS syntax (no `enum`/`namespace`) and `.ts` extensions in relative imports.
 
 ---
@@ -98,10 +100,11 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 
 Every command a developer needs to run (starting services, migrating, seeding, admin tasks, tests) must be a script in the root `package.json`, so `pnpm <script>` is the only interface. Don't document raw `docker`, `node`, or tool commands as steps; wrap them in a script first. Keep the scripts below accurate.
 
-(Not yet implemented: `test:e2e` (with Playwright). DB tests use a `demo_test` database on the compose Postgres, created and migrated automatically; override with `TEST_DATABASE_URL`.)
+(Not yet implemented: `test:e2e` (with Playwright). DB tests use a `demo_test_<package>` database per package on the compose Postgres, created and migrated automatically by each package's vitest global setup; point `TEST_DATABASE_URL` at a different server to override.)
 
 ```bash
 pnpm install
+pnpm env:init                 # create .env and apps/web/.env.local from examples (never overwrites)
 pnpm services:up              # start postgres, redis in docker (object storage added in Phase 1)
 pnpm services:down            # stop them (services:reset also wipes their data; services:logs tails logs)
 pnpm db:migrate               # apply migrations

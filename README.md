@@ -26,12 +26,25 @@ From Phase 1 onward you'll also need **ffmpeg** for the audio worker: `brew inst
 git clone <repo-url> && cd feedback
 nvm use                      # switch to Node 26
 pnpm install
-cp .env.example .env         # defaults work for local dev
+pnpm env:init                # creates .env and apps/web/.env.local
+                             # then add your Clerk keys (see below)
 pnpm services:up             # Postgres + Redis in Docker
 pnpm db:migrate              # create tables
 pnpm db:seed                 # optional sample users
 pnpm dev                     # web + api + worker
 ```
+
+### Clerk setup (once)
+
+Sign-in uses [Clerk](https://clerk.com). In your Clerk application's dashboard:
+
+1. **API Keys:** copy the publishable key (`pk_test_…`) and secret key (`sk_test_…`).
+   - Root `.env`: set `CLERK_SECRET_KEY`.
+   - `apps/web/.env.local`: set `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`.
+2. **Sessions → Customize session token:** add `{ "email": "{{user.primary_email_address}}" }`.
+   The API reads the user's email from the token.
+
+The API and web app refuse to start if these keys are missing or malformed.
 
 Then open:
 

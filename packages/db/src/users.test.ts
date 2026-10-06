@@ -1,9 +1,9 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { resetDb, testDatabaseUrl } from '../test/db.ts';
+import { resetDb, testDatabaseUrl } from './testing.ts';
 import { createDb } from './client.ts';
 import { findUserByAuthId, findUserByEmail, setAccessStatus, upsertUserFromAuth } from './users.ts';
 
-const db = createDb(testDatabaseUrl);
+const db = createDb(testDatabaseUrl('db'));
 
 beforeEach(() => resetDb(db));
 afterAll(() => db.close());

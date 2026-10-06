@@ -6,17 +6,27 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod';
+import type { Db } from '@demo/db';
+import { registerAuth } from './auth/plugin.ts';
+import type { AuthPort } from './auth/port.ts';
 import type { Env } from './env.ts';
 import { registerErrorHandlers } from './errors.ts';
 import { loggerOptions } from './logger.ts';
 import { healthRoutes } from './modules/health/routes.ts';
+import { meRoutes } from './modules/me/routes.ts';
 
-export async function buildApp(env: Env) {
+export interface AppDeps {
+  db: Db;
+  auth: AuthPort;
+}
+
+export async function buildApp(env: Env, deps: AppDeps) {
   const app = Fastify({ logger: loggerOptions(env) }).withTypeProvider<ZodTypeProvider>();
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
   registerErrorHandlers(app);
+  registerAuth(app, deps);
 
   await app.register(swagger, {
     openapi: { info: { title: 'Demo API', version: '0.0.0' } },
@@ -26,6 +36,7 @@ export async function buildApp(env: Env) {
   await app.register(
     async (v1) => {
       await v1.register(healthRoutes);
+      await v1.register(meRoutes(deps.db));
       v1.get('/openapi.json', { schema: { hide: true } }, () => app.swagger());
     },
     { prefix: '/v1' },

@@ -27,3 +27,8 @@ export function registerErrorHandlers(app: FastifyInstance): void {
     return reply.status(status).send(body(error.code ?? 'BAD_REQUEST', error.message));
   });
 }
+
+/** An error the error handler turns into `{ error: { code, message } }` with this status. */
+export function httpError(statusCode: number, code: string, message: string): Error {
+  return Object.assign(new Error(message), { statusCode, code });
+}

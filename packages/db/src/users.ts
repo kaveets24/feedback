@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
+import type { AccessStatus } from '@demo/shared';
 import type { Db } from './client.ts';
-import { users, type AccessStatus, type User } from './schema.ts';
+import { users, type User } from './schema.ts';
 
 export async function findUserByAuthId(db: Db, authProviderId: string): Promise<User | null> {
   const [user] = await db.select().from(users).where(eq(users.authProviderId, authProviderId));

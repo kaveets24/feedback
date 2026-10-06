@@ -10,9 +10,7 @@ import {
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { v7 as uuidv7 } from 'uuid';
-
-export const ACCESS_STATUSES = ['pending', 'approved', 'rejected'] as const;
-export type AccessStatus = (typeof ACCESS_STATUSES)[number];
+import { ACCESS_STATUSES } from '@demo/shared';
 
 export const accessStatus = pgEnum('access_status', ACCESS_STATUSES);
 

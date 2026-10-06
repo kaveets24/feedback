@@ -1,6 +1,7 @@
 // Dev seed data. Safe to re-run: existing rows (matched by auth id or handle) are left alone.
+import type { AccessStatus } from '@demo/shared';
 import { createDb } from '../client.ts';
-import { profiles, users, type AccessStatus } from '../schema.ts';
+import { profiles, users } from '../schema.ts';
 import { databaseUrl } from './env.ts';
 
 const seedUsers: { handle: string; status: AccessStatus }[] = [
