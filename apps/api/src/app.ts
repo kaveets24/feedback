@@ -7,6 +7,7 @@ import {
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod';
 import type { Db } from '@demo/db';
+import { registerAccessGate } from './auth/gate.ts';
 import { registerAuth } from './auth/plugin.ts';
 import type { AuthPort } from './auth/port.ts';
 import type { Env } from './env.ts';
@@ -27,6 +28,7 @@ export async function buildApp(env: Env, deps: AppDeps) {
   app.setSerializerCompiler(serializerCompiler);
   registerErrorHandlers(app);
   registerAuth(app, deps);
+  registerAccessGate(app);
 
   await app.register(swagger, {
     openapi: { info: { title: 'Demo API', version: '0.0.0' } },
@@ -37,7 +39,9 @@ export async function buildApp(env: Env, deps: AppDeps) {
     async (v1) => {
       await v1.register(healthRoutes);
       await v1.register(meRoutes(deps.db));
-      v1.get('/openapi.json', { schema: { hide: true } }, () => app.swagger());
+      v1.get('/openapi.json', { schema: { hide: true }, config: { allowUnapproved: true } }, () =>
+        app.swagger(),
+      );
     },
     { prefix: '/v1' },
   );

@@ -116,6 +116,8 @@ pnpm lint
 pnpm typecheck
 pnpm db:generate              # generate a migration from schema changes
 pnpm format                   # prettier (CI runs format:check)
+pnpm admin:approve <email> [--by <admin-email>]   # let a pending user in
+pnpm admin:reject <email>
 ```
 
 Local URLs: web http://localhost:3000, API http://localhost:4000 (`/v1/health`, `/v1/openapi.json`).
@@ -204,6 +206,7 @@ The service starts invite only. Anyone can create an account, but it stays `pend
 - The web app shows a plain "you're on the list" screen to pending users.
 - Admin approval starts as a CLI script (`pnpm admin:approve <email>` / `admin:reject`) that records `approved_at` and `approved_by`. An admin UI comes later if the queue gets big.
 - Gate tests cover pending, approved, and rejected users on a protected route and on `/v1/me`.
+- The gate is a root `onRequest` hook (`apps/api/src/auth/gate.ts`) that runs right after auth, so it covers every route by default. A route opts out only with `config: { allowUnapproved: true }` (today: `/v1/me`, `/v1/health`, `/v1/openapi.json`).
 
 ### Testing requirement
 
@@ -313,8 +316,8 @@ Work **one phase at a time**. Do not start a phase until the previous one's chec
 - [x] `packages/db` with Drizzle set up, first migration (users, profiles), seed script
 - [x] Env validation, structured logging, health check endpoint
 - [ ] CI running lint, typecheck, tests _(workflow written; not yet run on GitHub)_
-- [ ] Auth wired end to end: sign in on web, API verifies JWT, `GET /v1/me` works
-- [ ] Invite-only gate: new users are `pending`; the API rejects everything except `GET /v1/me` for non-approved users; web shows a waiting screen; an admin can approve or reject (see "Invite-only access" in section 6)
+- [ ] Auth wired end to end: sign in on web, API verifies JWT, `GET /v1/me` works _(code done and tested with a fake AuthPort; needs a manual sign-in with real Clerk keys)_
+- [ ] Invite-only gate: new users are `pending`; the API rejects everything except `GET /v1/me` for non-approved users; web shows a waiting screen; an admin can approve or reject (see "Invite-only access" in section 6) _(code done; routes opt out with `config: { allowUnapproved: true }`; needs the manual check)_
 - **Done when:** a fresh clone can run `pnpm i && pnpm services:up && pnpm db:migrate && pnpm dev` and sign in locally.
 
 ### Phase 1: Upload and playback (vertical slice)

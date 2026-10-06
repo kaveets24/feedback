@@ -22,11 +22,33 @@ export default async function HomePage() {
 
   const me = await serverApi().getMe();
 
+  if (me.accessStatus === 'pending') {
+    return (
+      <main>
+        <h1>You&apos;re on the list</h1>
+        <p>
+          Demo is invite-only for now. Your account ({me.email}) is waiting for approval. We&apos;ll
+          let you in as soon as it&apos;s approved; check back here.
+        </p>
+        <SignOutButton />
+      </main>
+    );
+  }
+
+  if (me.accessStatus === 'rejected') {
+    return (
+      <main>
+        <h1>Account not approved</h1>
+        <p>Your account ({me.email}) wasn&apos;t approved for access.</p>
+        <SignOutButton />
+      </main>
+    );
+  }
+
   return (
     <main>
       <h1>Demo</h1>
       <p>Signed in as {me.email}</p>
-      <p>Access status: {me.accessStatus}</p>
       <SignOutButton />
     </main>
   );

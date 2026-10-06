@@ -13,7 +13,8 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=../../.env src/scripts/migrate.ts",
-    "db:seed": "node --env-file-if-exists=../../.env src/scripts/seed.ts"
+    "db:seed": "node --env-file-if-exists=../../.env src/scripts/seed.ts",
+    "admin": "node --env-file-if-exists=../../.env src/scripts/admin.ts"
   },
   "dependencies": {
     "@demo/shared": "workspace:*",

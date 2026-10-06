@@ -8,7 +8,11 @@ export function meRoutes(db: Db): FastifyPluginAsyncZod {
   return async (app) => {
     app.get(
       '/me',
-      { schema: { response: { 200: meResponseSchema, 401: errorResponseSchema } } },
+      {
+        schema: { response: { 200: meResponseSchema, 401: errorResponseSchema } },
+        // Pending and rejected users need this to learn their status.
+        config: { allowUnapproved: true },
+      },
       async (request) => {
         const { actor } = request;
         if (actor.kind === 'anonymous') throw httpError(401, 'UNAUTHENTICATED', 'Sign in required');
