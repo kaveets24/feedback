@@ -96,11 +96,14 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 
 ## 4. Commands
 
-(Create these scripts as part of Phase 0 and keep them accurate. Not yet implemented: `test:e2e` (with Playwright). DB tests use a `demo_test` database on the compose Postgres, created and migrated automatically; override with `TEST_DATABASE_URL`.)
+Every command a developer needs to run (starting services, migrating, seeding, admin tasks, tests) must be a script in the root `package.json`, so `pnpm <script>` is the only interface. Don't document raw `docker`, `node`, or tool commands as steps; wrap them in a script first. Keep the scripts below accurate.
+
+(Not yet implemented: `test:e2e` (with Playwright). DB tests use a `demo_test` database on the compose Postgres, created and migrated automatically; override with `TEST_DATABASE_URL`.)
 
 ```bash
 pnpm install
-docker compose up -d          # postgres, redis (object storage added in Phase 1)
+pnpm services:up              # start postgres, redis in docker (object storage added in Phase 1)
+pnpm services:down            # stop them (services:reset also wipes their data; services:logs tails logs)
 pnpm db:migrate               # apply migrations
 pnpm db:seed                  # dev seed data
 pnpm dev                      # run web + api + worker via turbo
@@ -309,7 +312,7 @@ Work **one phase at a time**. Do not start a phase until the previous one's chec
 - [ ] CI running lint, typecheck, tests _(workflow written; not yet run on GitHub)_
 - [ ] Auth wired end to end: sign in on web, API verifies JWT, `GET /v1/me` works
 - [ ] Invite-only gate: new users are `pending`; the API rejects everything except `GET /v1/me` for non-approved users; web shows a waiting screen; an admin can approve or reject (see "Invite-only access" in section 6)
-- **Done when:** a fresh clone can run `docker compose up -d && pnpm i && pnpm db:migrate && pnpm dev` and sign in locally.
+- **Done when:** a fresh clone can run `pnpm i && pnpm services:up && pnpm db:migrate && pnpm dev` and sign in locally.
 
 ### Phase 1: Upload and playback (vertical slice)
 
@@ -393,6 +396,7 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 - Make **small, reviewable changes**. Prefer several focused PRs/commits over one giant one.
 - **Schema and authz first.** Show me migrations and `canAccess` changes before building UI on top of them.
 - **No styling yet.** Web pages are plain semantic HTML until I ask for styling (see "Visual style" in section 9).
+- **Every developer command is a root `package.json` script** (see section 4). Add the script when you add the need.
 - **Write tests with the code**, and run `pnpm lint && pnpm typecheck && pnpm test` before declaring done.
 - Don't add dependencies without saying why. Prefer well-maintained, widely used packages.
 - Don't build anything from the out-of-scope list in section 1.

@@ -1,4 +1,4 @@
-# Local dev services. Start with: docker compose up -d
+# Local dev services. Start with: pnpm services:up
 # Object storage (S3-compatible stand-in for R2) is added in Phase 1.
 services:
   postgres:

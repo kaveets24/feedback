@@ -27,7 +27,9 @@ git clone <repo-url> && cd feedback
 nvm use                      # switch to Node 26
 pnpm install
 cp .env.example .env         # defaults work for local dev
-docker compose up -d         # Postgres + Redis
+pnpm services:up             # Postgres + Redis in Docker
+pnpm db:migrate              # create tables
+pnpm db:seed                 # optional sample users
 pnpm dev                     # web + api + worker
 ```
 
@@ -37,7 +39,7 @@ Then open:
 - **API health check:** http://localhost:4000/v1/health
 - **OpenAPI spec:** http://localhost:4000/v1/openapi.json
 
-Stop the dev servers with `Ctrl+C`, and the containers with `docker compose down` (add `-v` to wipe their data).
+Stop the dev servers with `Ctrl+C`, and the containers with `pnpm services:down` (`pnpm services:reset` also wipes their data).
 
 ## Common commands
 
@@ -47,6 +49,10 @@ pnpm lint           # ESLint across all packages
 pnpm typecheck      # tsc across all packages
 pnpm test           # Vitest across all packages
 pnpm format         # Prettier (CI runs `pnpm format:check`)
+pnpm services:up    # start Postgres + Redis (services:down, services:reset, services:logs)
+pnpm db:migrate     # apply migrations
+pnpm db:generate    # generate a migration from schema changes
+pnpm db:seed        # load dev sample data
 ```
 
 Before opening a PR: `pnpm lint && pnpm typecheck && pnpm test` must pass. CI runs the same checks.
@@ -59,6 +65,7 @@ apps/
   api/        Fastify HTTP API, routes under /v1
   worker/     background jobs (audio processing, from Phase 1)
 packages/
+  db/         Drizzle schema, migrations, seed, query helpers
   shared/     zod schemas and types shared by API and clients
   authz/      permission logic (pure functions, no I/O)
   config/     shared tsconfig and ESLint config
