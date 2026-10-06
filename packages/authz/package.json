@@ -1,5 +1,5 @@
 {
-  "name": "@demo/authz",
+  "name": "@feedback/authz",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "devDependencies": {
-    "@demo/config": "workspace:*",
+    "@feedback/config": "workspace:*",
     "@types/node": "^26.6.4",
     "eslint": "^9.39.5",
     "typescript": "~6.0.3",

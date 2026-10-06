@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { upsertUserFromAuth, type Db, type User } from '@demo/db';
+import { upsertUserFromAuth, type Db, type User } from '@feedback/db';
 import { httpError } from '../errors.ts';
 import type { AuthPort } from './port.ts';
 

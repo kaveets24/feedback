@@ -9,7 +9,7 @@ export default async function HomePage() {
   if (!isAuthenticated) {
     return (
       <main>
-        <h1>Demo</h1>
+        <h1>Feedback</h1>
         <p>
           Share rough song ideas, control who hears them, and collect feedback pinned to the moment.
         </p>
@@ -27,8 +27,8 @@ export default async function HomePage() {
       <main>
         <h1>You&apos;re on the list</h1>
         <p>
-          Demo is invite-only for now. Your account ({me.email}) is waiting for approval. We&apos;ll
-          let you in as soon as it&apos;s approved; check back here.
+          Feedback is invite-only for now. Your account ({me.email}) is waiting for approval.
+          We&apos;ll let you in as soon as it&apos;s approved; check back here.
         </p>
         <SignOutButton />
       </main>
@@ -47,7 +47,7 @@ export default async function HomePage() {
 
   return (
     <main>
-      <h1>Demo</h1>
+      <h1>Feedback</h1>
       <p>Signed in as {me.email}</p>
       <SignOutButton />
     </main>

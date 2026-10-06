@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { loadEnv } from './env.ts';
 
 const required = {
-  DATABASE_URL: 'postgres://demo:demo@localhost:5432/demo',
+  DATABASE_URL: 'postgres://feedback:feedback@localhost:5432/feedback',
   CLERK_SECRET_KEY: 'sk_test_abc',
 };
 

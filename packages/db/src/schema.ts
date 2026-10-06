@@ -10,7 +10,7 @@ import {
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { v7 as uuidv7 } from 'uuid';
-import { ACCESS_STATUSES } from '@demo/shared';
+import { ACCESS_STATUSES } from '@feedback/shared';
 
 export const accessStatus = pgEnum('access_status', ACCESS_STATUSES);
 

@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import type { AccessStatus } from '@demo/shared';
+import type { AccessStatus } from '@feedback/shared';
 import type { Db } from './client.ts';
 import { users, type User } from './schema.ts';
 

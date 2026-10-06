@@ -1,5 +1,5 @@
-import { createDb } from '@demo/db';
-import { testDatabaseUrl } from '@demo/db/testing';
+import { createDb } from '@feedback/db';
+import { testDatabaseUrl } from '@feedback/db/testing';
 import { buildApp } from '../app.ts';
 import type { AuthPort } from '../auth/port.ts';
 import { loadEnv } from '../env.ts';

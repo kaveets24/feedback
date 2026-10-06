@@ -1,5 +1,5 @@
 {
-  "name": "@demo/db",
+  "name": "@feedback/db",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -17,14 +17,14 @@
     "admin": "node --env-file-if-exists=../../.env src/scripts/admin.ts"
   },
   "dependencies": {
-    "@demo/shared": "workspace:*",
+    "@feedback/shared": "workspace:*",
     "drizzle-orm": "^0.45.3",
     "postgres": "^3.4.9",
     "uuid": "^14.0.2",
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@demo/config": "workspace:*",
+    "@feedback/config": "workspace:*",
     "@types/node": "^26.6.4",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9.39.5",

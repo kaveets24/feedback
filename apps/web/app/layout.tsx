@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Demo',
+  title: 'Feedback',
   description: 'Share unfinished music and get feedback on it.',
 };
 

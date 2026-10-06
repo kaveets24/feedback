@@ -1,4 +1,4 @@
-import { createDb } from '@demo/db';
+import { createDb } from '@feedback/db';
 import { buildApp } from './app.ts';
 import { clerkAuth } from './auth/clerk.ts';
 import { loadEnv } from './env.ts';

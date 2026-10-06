@@ -1,6 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import type { Db } from '@demo/db';
-import { errorResponseSchema, meResponseSchema } from '@demo/shared';
+import type { Db } from '@feedback/db';
+import { errorResponseSchema, meResponseSchema } from '@feedback/shared';
 import { httpError } from '../../errors.ts';
 import { getMe } from './service.ts';
 

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> Working name: **Demo** (placeholder, rename freely)
+> Name: **Feedback**
 > A social app for sharing unfinished music: upload rough song ideas, organize them into projects and playlists, control exactly who can hear them, and collect feedback pinned to specific moments in a track.
 
 Read this file fully before making changes. If something here conflicts with a request, ask before deviating. Update this file whenever a decision changes.
@@ -100,7 +100,7 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 
 Every command a developer needs to run (starting services, migrating, seeding, admin tasks, tests) must be a script in the root `package.json`, so `pnpm <script>` is the only interface. Don't document raw `docker`, `node`, or tool commands as steps; wrap them in a script first. Keep the scripts below accurate.
 
-(Not yet implemented: `test:e2e` (with Playwright). DB tests use a `demo_test_<package>` database per package on the compose Postgres, created and migrated automatically by each package's vitest global setup; point `TEST_DATABASE_URL` at a different server to override.)
+(Not yet implemented: `test:e2e` (with Playwright). DB tests use a `feedback_test_<package>` database per package on the compose Postgres, created and migrated automatically by each package's vitest global setup; point `TEST_DATABASE_URL` at a different server to override.)
 
 ```bash
 pnpm install
@@ -120,7 +120,7 @@ pnpm admin:approve <email> [--by <admin-email>]   # let a pending user in
 pnpm admin:reject <email>
 ```
 
-Local URLs: web http://localhost:3000, API http://localhost:4000 (`/v1/health`, `/v1/openapi.json`), pgweb http://localhost:8081 (browses the `demo` database; its connect screen can switch to a `demo_test_*` database).
+Local URLs: web http://localhost:3000, API http://localhost:4000 (`/v1/health`, `/v1/openapi.json`), pgweb http://localhost:8081 (browses the `feedback` database; its connect screen can switch to a `feedback_test_*` database).
 
 Before saying a task is done: `pnpm lint && pnpm typecheck && pnpm test` must pass.
 
@@ -422,7 +422,7 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 
 ## 13. Open questions (resolve before or during the relevant phase)
 
-- Final product name and handle format rules
+- Handle format rules
 - Max upload size and per-user storage quota
 - Whether tracks can be shared individually in Phase 3 or only whole projects at first
 - Email provider for invites and notification digests (Resend or Postmark)

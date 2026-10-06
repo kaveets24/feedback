@@ -1,3 +1,3 @@
-import { prepareTestDatabase } from '@demo/db/testing';
+import { prepareTestDatabase } from '@feedback/db/testing';
 
 export default () => prepareTestDatabase('api');

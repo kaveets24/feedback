@@ -1,6 +1,6 @@
 import type { FastifyError, FastifyInstance } from 'fastify';
 import { hasZodFastifySchemaValidationErrors } from 'fastify-type-provider-zod';
-import type { ErrorResponse } from '@demo/shared';
+import type { ErrorResponse } from '@feedback/shared';
 
 function body(code: string, message: string, details?: unknown): ErrorResponse {
   return { error: { code, message, ...(details !== undefined && { details }) } };

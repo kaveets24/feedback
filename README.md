@@ -1,4 +1,4 @@
-# Demo
+# Feedback
 
 > Working name. A social app for sharing unfinished music: upload rough song ideas, organize them into projects, control exactly who can hear them, and collect feedback pinned to specific moments in a track.
 
@@ -6,7 +6,7 @@
 
 ## Access: invite only
 
-Demo launches as an **invite-only** service. Anyone can sign up, but a new account stays **pending** until an admin approves it by hand. Until then, the user only sees a "you're on the list" screen and can't upload, listen, or comment. Approved users get full access. Admins can also reject accounts.
+Feedback launches as an **invite-only** service. Anyone can sign up, but a new account stays **pending** until an admin approves it by hand. Until then, the user only sees a "you're on the list" screen and can't upload, listen, or comment. Approved users get full access. Admins can also reject accounts.
 
 ## Getting started
 

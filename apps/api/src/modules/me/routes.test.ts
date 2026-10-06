@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { profiles, setAccessStatus, upsertUserFromAuth, type Db } from '@demo/db';
-import { resetDb } from '@demo/db/testing';
+import { profiles, setAccessStatus, upsertUserFromAuth, type Db } from '@feedback/db';
+import { resetDb } from '@feedback/db/testing';
 import type { App } from '../../app.ts';
 import { buildTestApp, tokenFor } from '../../testing/app.ts';
 

@@ -1,5 +1,5 @@
-import type { Db, User } from '@demo/db';
-import type { MeResponse } from '@demo/shared';
+import type { Db, User } from '@feedback/db';
+import type { MeResponse } from '@feedback/shared';
 import { findProfile } from './repo.ts';
 
 export async function getMe(db: Db, user: User): Promise<MeResponse> {

@@ -6,7 +6,7 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod';
-import type { Db } from '@demo/db';
+import type { Db } from '@feedback/db';
 import { registerAccessGate } from './auth/gate.ts';
 import { registerAuth } from './auth/plugin.ts';
 import type { AuthPort } from './auth/port.ts';
@@ -31,7 +31,7 @@ export async function buildApp(env: Env, deps: AppDeps) {
   registerAccessGate(app);
 
   await app.register(swagger, {
-    openapi: { info: { title: 'Demo API', version: '0.0.0' } },
+    openapi: { info: { title: 'Feedback API', version: '0.0.0' } },
     transform: jsonSchemaTransform,
   });
 

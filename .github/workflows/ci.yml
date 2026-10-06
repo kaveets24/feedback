@@ -12,18 +12,18 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: demo
-          POSTGRES_PASSWORD: demo
-          POSTGRES_DB: demo
+          POSTGRES_USER: feedback
+          POSTGRES_PASSWORD: feedback
+          POSTGRES_DB: feedback
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U demo -d demo"
+          --health-cmd "pg_isready -U feedback -d feedback"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgres://demo:demo@localhost:5432/demo
+      DATABASE_URL: postgres://feedback:feedback@localhost:5432/feedback
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
