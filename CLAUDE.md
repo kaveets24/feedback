@@ -309,6 +309,16 @@ The app should feel like a late-90s/early-2000s desktop music app reimagined for
 
 Work **one phase at a time**. Do not start a phase until the previous one's checklist is complete and I've confirmed. At the start of each phase, propose a short task breakdown for approval.
 
+**One branch and one PR per phase.** Each phase is built on its own branch off `main`, named `phase-<n>-<slug>` (e.g. `phase-0-foundation`, `phase-1-upload-playback`). Never commit phase work directly to `main`; it only changes by merging a reviewed PR. When the phase's work is ready, push the branch and open a PR whose description covers:
+
+- **Summary:** what the phase delivers and why
+- **What changed:** grouped by area (db, api, web, tooling, docs), noting new dependencies and why
+- **Decisions:** anything that differs from this file or the approved plan, and new ADRs
+- **How to test:** exact `pnpm` commands and manual steps
+- **Checklist:** the phase's definition-of-done items, ticked or marked with what's left
+
+Keep the PR description current as more commits land on the branch. Work outside a phase (small fixes, docs) uses its own short-lived branch and PR too.
+
 ### Phase 0: Foundation
 
 - [ ] Monorepo (pnpm + Turborepo), shared tsconfig/eslint, scripts from section 4 _(done except `test:e2e` script)_
@@ -400,6 +410,7 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 
 - **Plan before coding** on anything non-trivial: summarize the approach and affected files, then wait for a go-ahead.
 - Make **small, reviewable changes**. Prefer several focused PRs/commits over one giant one.
+- **Each phase gets its own branch and PR** with a full description (see section 11). Never commit to `main` directly.
 - **Schema and authz first.** Show me migrations and `canAccess` changes before building UI on top of them.
 - **No styling yet.** Web pages are plain semantic HTML until I ask for styling (see "Visual style" in section 9).
 - **Every developer command is a root `package.json` script** (see section 4). Add the script when you add the need.
