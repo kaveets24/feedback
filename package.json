@@ -8,6 +8,7 @@
   },
   "scripts": {
     "env:init": "node scripts/init-env.ts",
+    "image:build": "node scripts/image-build.ts",
     "services:up": "docker compose up -d --wait",
     "services:down": "docker compose down",
     "services:reset": "docker compose down -v",
