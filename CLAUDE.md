@@ -101,7 +101,7 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 
 Every command a developer needs to run (starting services, migrating, seeding, admin tasks, tests) must be a script in the root `package.json`, so `pnpm <script>` is the only interface. Don't document raw `docker`, `node`, or tool commands as steps; wrap them in a script first. Keep the scripts below accurate.
 
-(Not yet implemented: `test:e2e` (with Playwright). DB tests use a `feedback_test_<package>` database per package on the compose Postgres, created and migrated automatically by each package's vitest global setup; point `TEST_DATABASE_URL` at a different server to override.)
+(Not yet implemented: `test:e2e` (with Playwright, Phase 7). DB tests use a `feedback_test_<package>` database per package on the compose Postgres, created and migrated automatically by each package's vitest global setup; point `TEST_DATABASE_URL` at a different server to override.)
 
 ```bash
 pnpm install
@@ -335,13 +335,15 @@ Work **one phase at a time**. Do not start a phase until the previous one's chec
 
 ### Phase 0: Foundation
 
-- [ ] Monorepo (pnpm + Turborepo), shared tsconfig/eslint, scripts from section 4 _(done except `test:e2e` script)_
-- [ ] docker-compose with Postgres, Redis, MinIO _(Postgres + Redis done; S3 stand-in pending, MinIO no longer publishes free images)_
+**Complete.** Two items moved to later phases: the `test:e2e` script (Playwright) to Phase 7's e2e suite, and the S3 stand-in to Phase 2, where uploads first need it.
+
+- [x] Monorepo (pnpm + Turborepo), shared tsconfig/eslint, scripts from section 4 _(except `test:e2e`, moved to Phase 7)_
+- [x] docker-compose with Postgres, Redis, and pgweb _(S3 stand-in moved to Phase 2; MinIO no longer publishes free images)_
 - [x] `packages/db` with Drizzle set up, first migration (users, profiles), seed script
 - [x] Env validation, structured logging, health check endpoint
 - [x] CI running lint, typecheck, tests (with a Postgres service)
-- [ ] Auth wired end to end: sign in on web, API verifies JWT, `GET /v1/me` works _(code done and tested with a fake AuthPort; needs a manual sign-in with real Clerk keys)_
-- [ ] Invite-only gate: new users are `pending`; the API rejects everything except `GET /v1/me` for non-approved users; web shows a waiting screen; an admin can approve or reject (see "Invite-only access" in section 6) _(code done; routes opt out with `config: { allowUnapproved: true }`; needs the manual check)_
+- [x] Auth wired end to end: sign in on web, API verifies JWT, `GET /v1/me` works
+- [x] Invite-only gate: new users are `pending`; the API rejects everything except `GET /v1/me` for non-approved users; web shows a waiting screen; an admin can approve or reject (see "Invite-only access" in section 6). Routes opt out with `config: { allowUnapproved: true }`.
 - **Done when:** a fresh clone can run `pnpm i && pnpm services:up && pnpm db:migrate && pnpm dev` and sign in locally.
 
 ### Phase 1: Staging and continuous delivery
@@ -362,6 +364,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 ### Phase 2: Upload and playback (vertical slice)
 
+- [ ] S3-compatible object storage in docker-compose (stands in for R2 locally; moved from Phase 0)
 - [ ] Presigned upload flow, `track_versions` state machine
 - [ ] Worker: ffmpeg to AAC, duration, waveform peaks
 - [ ] Waveform player component, global mini-player
@@ -419,7 +422,7 @@ Listeners can send an artist a small donation to support a work in progress.
 - [ ] Rate limiting, abuse controls, upload quotas
 - [ ] Observability beyond the Phase 1 baseline (dashboards, metrics, alert tuning), backups
 - [ ] Privacy policy/ToS pages, account deletion and data export
-- [ ] Performance pass, e2e suite for critical flows
+- [ ] Performance pass, e2e suite for critical flows (Playwright, run with `pnpm test:e2e`; moved from Phase 0)
 - [ ] Production environment, deployed by promoting the same images that passed staging
 
 ### Phase 8: Mobile (Expo)
