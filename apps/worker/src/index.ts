@@ -9,7 +9,7 @@ const log = pino({
   }),
 });
 
-// BullMQ consumers (ffmpeg pipeline) are added in Phase 1. Until then the process just idles
+// BullMQ consumers (ffmpeg pipeline) are added in Phase 2. Until then the process just idles
 // so `pnpm dev` exercises the same three-process layout as production.
 const keepAlive = setInterval(() => {}, 1 << 30);
 log.info('worker started (no queues registered yet)');

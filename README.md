@@ -1,4 +1,4 @@
-# Demo
+# Feedback
 
 > Working name. A social app for sharing unfinished music: upload rough song ideas, organize them into projects, control exactly who can hear them, and collect feedback pinned to specific moments in a track.
 
@@ -6,7 +6,7 @@
 
 ## Access: invite only
 
-Demo launches as an **invite-only** service. Anyone can sign up, but a new account stays **pending** until an admin approves it by hand. Until then, the user only sees a "you're on the list" screen and can't upload, listen, or comment. Approved users get full access. Admins can also reject accounts.
+Feedback launches as an **invite-only** service. Anyone can sign up, but a new account stays **pending** until an admin approves it by hand. Until then, the user only sees a "you're on the list" screen and can't upload, listen, or comment. Approved users get full access. Admins can also reject accounts.
 
 ## Getting started
 
@@ -18,7 +18,7 @@ Demo launches as an **invite-only** service. Anyone can sign up, but a new accou
 | [pnpm](https://pnpm.io)                                                                               | 12                | `npm i -g pnpm` (Node 26 no longer ships corepack)                  |
 | [Docker Desktop](https://www.docker.com/products/docker-desktop/) or [OrbStack](https://orbstack.dev) | latest            | Open the app once so the `docker` CLI is on your `PATH`             |
 
-From Phase 1 onward you'll also need **ffmpeg** for the audio worker: `brew install ffmpeg`.
+From Phase 2 onward you'll also need **ffmpeg** for the audio worker: `brew install ffmpeg`.
 
 ### Run it locally
 
@@ -26,10 +26,25 @@ From Phase 1 onward you'll also need **ffmpeg** for the audio worker: `brew inst
 git clone <repo-url> && cd feedback
 nvm use                      # switch to Node 26
 pnpm install
-cp .env.example .env         # defaults work for local dev
-docker compose up -d         # Postgres + Redis
+pnpm env:init                # creates .env and apps/web/.env.local
+                             # then add your Clerk keys (see below)
+pnpm services:up             # Postgres + Redis in Docker
+pnpm db:migrate              # create tables
+pnpm db:seed                 # optional sample users
 pnpm dev                     # web + api + worker
 ```
+
+### Clerk setup (once)
+
+Sign-in uses [Clerk](https://clerk.com). In your Clerk application's dashboard:
+
+1. **API Keys:** copy the publishable key (`pk_test_…`) and secret key (`sk_test_…`).
+   - Root `.env`: set `CLERK_SECRET_KEY`.
+   - `apps/web/.env.local`: set `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`.
+2. **Sessions → Customize session token:** add `{ "email": "{{user.primary_email_address}}" }`.
+   The API reads the user's email from the token.
+
+The API and web app refuse to start if these keys are missing or malformed.
 
 Then open:
 
@@ -37,7 +52,7 @@ Then open:
 - **API health check:** http://localhost:4000/v1/health
 - **OpenAPI spec:** http://localhost:4000/v1/openapi.json
 
-Stop the dev servers with `Ctrl+C`, and the containers with `docker compose down` (add `-v` to wipe their data).
+Stop the dev servers with `Ctrl+C`, and the containers with `pnpm services:down` (`pnpm services:reset` also wipes their data).
 
 ## Common commands
 
@@ -47,6 +62,10 @@ pnpm lint           # ESLint across all packages
 pnpm typecheck      # tsc across all packages
 pnpm test           # Vitest across all packages
 pnpm format         # Prettier (CI runs `pnpm format:check`)
+pnpm services:up    # start Postgres + Redis (services:down, services:reset, services:logs)
+pnpm db:migrate     # apply migrations
+pnpm db:generate    # generate a migration from schema changes
+pnpm db:seed        # load dev sample data
 ```
 
 Before opening a PR: `pnpm lint && pnpm typecheck && pnpm test` must pass. CI runs the same checks.
@@ -57,8 +76,9 @@ Before opening a PR: `pnpm lint && pnpm typecheck && pnpm test` must pass. CI ru
 apps/
   web/        Next.js (App Router) + Tailwind
   api/        Fastify HTTP API, routes under /v1
-  worker/     background jobs (audio processing, from Phase 1)
+  worker/     background jobs (audio processing, from Phase 2)
 packages/
+  db/         Drizzle schema, migrations, seed, query helpers
   shared/     zod schemas and types shared by API and clients
   authz/      permission logic (pure functions, no I/O)
   config/     shared tsconfig and ESLint config

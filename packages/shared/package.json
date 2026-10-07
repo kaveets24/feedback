@@ -1,5 +1,5 @@
 {
-  "name": "@demo/shared",
+  "name": "@feedback/shared",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@demo/config": "workspace:*",
+    "@feedback/config": "workspace:*",
     "@types/node": "^26.6.4",
     "eslint": "^9.39.5",
     "typescript": "~6.0.3",

@@ -1,18 +1,19 @@
-# Local dev services. Start with: docker compose up -d
-# Object storage (S3-compatible stand-in for R2) is added in Phase 1.
+# Local dev services. Start with: pnpm services:up
+# pgweb (http://localhost:8081) is a web UI for browsing the local database.
+# Object storage (S3-compatible stand-in for R2) is added in Phase 2.
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: demo
-      POSTGRES_PASSWORD: demo
-      POSTGRES_DB: demo
+      POSTGRES_USER: feedback
+      POSTGRES_PASSWORD: feedback
+      POSTGRES_DB: feedback
     ports:
       - '5432:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U demo -d demo']
+      test: ['CMD-SHELL', 'pg_isready -U feedback -d feedback']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -25,6 +26,22 @@ services:
       - redis-data:/data
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgweb:
+    image: sosedoff/pgweb:0.17.0
+    environment:
+      PGWEB_DATABASE_URL: postgres://feedback:feedback@postgres:5432/feedback?sslmode=disable
+    ports:
+      # Localhost only: pgweb has no auth and full database access.
+      - '127.0.0.1:8081:8081'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:8081/api/info']
       interval: 5s
       timeout: 5s
       retries: 10

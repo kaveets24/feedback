@@ -1,6 +1,6 @@
 import type { FastifyError, FastifyInstance } from 'fastify';
 import { hasZodFastifySchemaValidationErrors } from 'fastify-type-provider-zod';
-import type { ErrorResponse } from '@demo/shared';
+import type { ErrorResponse } from '@feedback/shared';
 
 function body(code: string, message: string, details?: unknown): ErrorResponse {
   return { error: { code, message, ...(details !== undefined && { details }) } };
@@ -26,4 +26,9 @@ export function registerErrorHandlers(app: FastifyInstance): void {
     }
     return reply.status(status).send(body(error.code ?? 'BAD_REQUEST', error.message));
   });
+}
+
+/** An error the error handler turns into `{ error: { code, message } }` with this status. */
+export function httpError(statusCode: number, code: string, message: string): Error {
+  return Object.assign(new Error(message), { statusCode, code });
 }

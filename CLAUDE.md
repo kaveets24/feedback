@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> Working name: **Demo** (placeholder, rename freely)
+> Name: **Feedback**
 > A social app for sharing unfinished music: upload rough song ideas, organize them into projects and playlists, control exactly who can hear them, and collect feedback pinned to specific moments in a track.
 
 Read this file fully before making changes. If something here conflicts with a request, ask before deviating. Update this file whenever a decision changes.
@@ -32,32 +32,35 @@ Read this file fully before making changes. If something here conflicts with a r
 - Audio feature extraction / ML / embeddings
 - Reputation scores, leaderboards, give-to-get credits
 - Payments and monetization, **except** $1 artist donations (see "Donations" in section 11), plus direct messaging and live streaming
-- Mobile apps (planned for Phase 7; keep the API client-agnostic so it's easy later)
+- Mobile apps (planned for Phase 8; keep the API client-agnostic so it's easy later)
 
 ---
 
 ## 2. Tech stack
 
-| Concern          | Choice                                                                                                |
-| ---------------- | ----------------------------------------------------------------------------------------------------- |
-| Language         | TypeScript everywhere (strict mode)                                                                   |
-| Monorepo         | pnpm workspaces + Turborepo                                                                           |
-| Web              | Next.js (App Router), React, Tailwind CSS                                                             |
-| API              | Fastify + zod (type-provider), OpenAPI generated from schemas                                         |
-| Database         | Postgres 16                                                                                           |
-| ORM / migrations | Drizzle ORM + drizzle-kit                                                                             |
-| Auth             | Clerk (web now, Expo later). API verifies JWTs; keep behind an `AuthPort` interface so it's swappable |
-| Object storage   | Cloudflare R2 (S3-compatible API), presigned direct uploads                                           |
-| Jobs             | Redis + BullMQ                                                                                        |
-| Audio processing | ffmpeg in the worker (transcode to AAC, extract duration, generate waveform peaks)                    |
-| Realtime         | Start with polling/refetch. Add SSE or websockets only if needed                                      |
-| Testing          | Vitest (unit/integration), Playwright (e2e), Testcontainers or docker-compose Postgres for DB tests   |
-| Lint/format      | ESLint + Prettier, `tsc --noEmit` in CI                                                               |
-| CI               | GitHub Actions                                                                                        |
-| Local dev        | docker-compose for Postgres, Redis, and MinIO (S3-compatible, stands in for R2 locally)               |
-| Hosting (later)  | Vercel (web), Fly.io or Railway (api + worker), Neon (Postgres), R2 (storage)                         |
+| Concern          | Choice                                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------ |
+| Language         | TypeScript everywhere (strict mode)                                                                    |
+| Monorepo         | pnpm workspaces + Turborepo                                                                            |
+| Web              | Next.js (App Router), React, Tailwind CSS                                                              |
+| API              | Fastify + zod (type-provider), OpenAPI generated from schemas                                          |
+| Database         | Postgres 16                                                                                            |
+| ORM / migrations | Drizzle ORM + drizzle-kit                                                                              |
+| Auth             | Clerk (web now, Expo later). API verifies JWTs; keep behind an `AuthPort` interface so it's swappable  |
+| Object storage   | Cloudflare R2 (S3-compatible API), presigned direct uploads                                            |
+| Jobs             | Redis + BullMQ                                                                                         |
+| Audio processing | ffmpeg in the worker (transcode to AAC, extract duration, generate waveform peaks)                     |
+| Realtime         | Start with polling/refetch. Add SSE or websockets only if needed                                       |
+| Testing          | Vitest (unit/integration), Playwright (e2e), Testcontainers or docker-compose Postgres for DB tests    |
+| Lint/format      | ESLint + Prettier, `tsc --noEmit` in CI                                                                |
+| CI               | GitHub Actions                                                                                         |
+| Local dev        | docker-compose for Postgres, Redis, pgweb (DB browser), and MinIO (S3-compatible, stands in for R2)    |
+| Hosting          | Vercel (web), Fly.io or Railway (api + worker), Neon (Postgres), R2 (storage). Staging first (Phase 1) |
+| Monitoring       | Low-cost first (Sentry, Grafana Cloud, or Better Stack), via pino + OpenTelemetry. Picked in Phase 1   |
 
 If a choice above becomes painful, propose an alternative and record it in `docs/decisions/` as a short ADR before switching.
+
+**Auth** (see [ADR 0002](docs/decisions/0002-auth-provisioning.md)): users are created as `pending` on their first authenticated API request; the Clerk session token carries an `email` claim. The web app reads its env from `apps/web/.env.local`, not the root `.env`.
 
 **Pinned versions** (see [ADR 0001](docs/decisions/0001-runtime-and-toolchain-versions.md)): Node 26 (`.nvmrc`), pnpm 12 (installed via `npm i -g pnpm`; Node 26 has no corepack), TypeScript 6.0 (typescript-eslint doesn't support 7 yet), ESLint 9 (eslint-config-next isn't ready for 10). API and worker have no build step: Node runs `.ts` directly via type stripping, so use only erasable TS syntax (no `enum`/`namespace`) and `.ts` extensions in relative imports.
 
@@ -75,7 +78,7 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 │   ├── web/            # Next.js app
 │   ├── api/            # Fastify HTTP API
 │   ├── worker/         # BullMQ consumers (ffmpeg pipeline)
-│   └── mobile/         # Expo app (Phase 7, not yet created)
+│   └── mobile/         # Expo app (Phase 8, not yet created)
 ├── packages/
 │   ├── db/             # Drizzle schema, migrations, seed, query helpers
 │   ├── shared/         # zod schemas, shared types, constants, API client
@@ -96,11 +99,15 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 
 ## 4. Commands
 
-(Create these scripts as part of Phase 0 and keep them accurate. Not yet implemented: `db:*` (with `packages/db`), `test:e2e` (with Playwright).)
+Every command a developer needs to run (starting services, migrating, seeding, admin tasks, tests) must be a script in the root `package.json`, so `pnpm <script>` is the only interface. Don't document raw `docker`, `node`, or tool commands as steps; wrap them in a script first. Keep the scripts below accurate.
+
+(Not yet implemented: `test:e2e` (with Playwright). DB tests use a `feedback_test_<package>` database per package on the compose Postgres, created and migrated automatically by each package's vitest global setup; point `TEST_DATABASE_URL` at a different server to override.)
 
 ```bash
 pnpm install
-docker compose up -d          # postgres, redis (object storage added in Phase 1)
+pnpm env:init                 # create .env and apps/web/.env.local from examples (never overwrites)
+pnpm services:up              # start postgres, redis, pgweb in docker (object storage added in Phase 2)
+pnpm services:down            # stop them (services:reset also wipes their data; services:logs tails logs)
 pnpm db:migrate               # apply migrations
 pnpm db:seed                  # dev seed data
 pnpm dev                      # run web + api + worker via turbo
@@ -110,9 +117,11 @@ pnpm lint
 pnpm typecheck
 pnpm db:generate              # generate a migration from schema changes
 pnpm format                   # prettier (CI runs format:check)
+pnpm admin:approve <email> [--by <admin-email>]   # let a pending user in
+pnpm admin:reject <email>
 ```
 
-Local URLs: web http://localhost:3000, API http://localhost:4000 (`/v1/health`, `/v1/openapi.json`).
+Local URLs: web http://localhost:3000, API http://localhost:4000 (`/v1/health`, `/v1/openapi.json`), pgweb http://localhost:8081 (browses the `feedback` database; its connect screen can switch to a `feedback_test_*` database).
 
 Before saying a task is done: `pnpm lint && pnpm typecheck && pnpm test` must pass.
 
@@ -195,9 +204,10 @@ The service starts invite only. Anyone can create an account, but it stays `pend
 
 - The approval gate lives in **our** `users.access_status`, not in the auth provider, so it survives swapping `AuthPort`.
 - The API's auth plugin checks it: non-approved users get `403` with code `ACCOUNT_PENDING` (or `ACCOUNT_REJECTED`) on every route except `GET /v1/me`, which reports their status. Anonymous access to public or link-shared resources is unaffected.
-- The web app shows a themed "you're on the list" screen to pending users.
+- The web app shows a plain "you're on the list" screen to pending users.
 - Admin approval starts as a CLI script (`pnpm admin:approve <email>` / `admin:reject`) that records `approved_at` and `approved_by`. An admin UI comes later if the queue gets big.
 - Gate tests cover pending, approved, and rejected users on a protected route and on `/v1/me`.
+- The gate is a root `onRequest` hook (`apps/api/src/auth/gate.ts`) that runs right after auth, so it covers every route by default. A route opts out only with `config: { allowUnapproved: true }` (today: `/v1/me`, `/v1/health`, `/v1/openapi.json`).
 
 ### Testing requirement
 
@@ -245,7 +255,7 @@ Client                API                      R2/S3              Worker
 
 - App Router; server components by default, client components only where interactivity requires it.
 - **Keep the client light.** Prefer what React and Next.js already provide over new libraries; justify any client-side dependency by what it saves us.
-- Data fetching through the typed client in `packages/shared`. Fetch in server components by default; mutate with server actions or route handlers, then `router.refresh()` / `revalidatePath()`. For the few client-side needs (e.g. polling a version until it's `ready`), use a small hook in the app. No TanStack Query unless client-side caching becomes a real pain point (revisit in Phase 4).
+- Data fetching through the typed client in `packages/shared`. Fetch in server components by default; mutate with server actions or route handlers, then `router.refresh()` / `revalidatePath()`. For the few client-side needs (e.g. polling a version until it's `ready`), use a small hook in the app. No TanStack Query unless client-side caching becomes a real pain point (revisit in Phase 5).
 - Waveform player is a reusable component: renders peaks, supports click-to-seek, shows comment markers at their timestamps, and clicking a marker scrolls to that comment.
 - Global audio player persists across navigation (mini-player), controlled by a single audio store: a small module that owns the one `HTMLAudioElement`, exposed to components through `useSyncExternalStore` so only subscribers to a changed value re-render. No Zustand. Only one track plays at a time.
 - Accessibility: keyboard controls for play/pause/seek, visible focus states, semantic HTML, labelled controls.
@@ -253,6 +263,8 @@ Client                API                      R2/S3              Worker
 - Keep components small, colocate styles, avoid premature abstraction.
 
 ### Visual style: Y2K / Winamp / LimeWire
+
+> **Styling is deferred.** Don't add CSS, Tailwind classes, design tokens, or themed primitives until asked. Build pages with plain semantic HTML (accessibility rules above still apply). The direction below is the future plan, not current work.
 
 The app should feel like a late-90s/early-2000s desktop music app reimagined for Gen Z and Gen Alpha: nostalgic and playful, but clean enough to use every day. It's a nod to that era, not a costume.
 
@@ -292,24 +304,63 @@ The app should feel like a late-90s/early-2000s desktop music app reimagined for
 - Log with a structured logger (pino). Never log tokens, signed URLs, or share-link tokens.
 - Write tests alongside code. Prioritize: authz, audio pipeline state machine, share-link lifecycle, feedback visibility.
 
+### Delivery and monitoring
+
+These apply from Phase 1 on.
+
+- **`main` is always deployable.** Every merge to `main` deploys to staging automatically. If `main` breaks, fixing or reverting it comes before anything else merges.
+- **Deploys only come from CI**, never from a laptop. Build each image once and promote that same image from staging to production; never rebuild per environment.
+- **Migrations must work with the release that's already running** (expand first, contract in a later deploy), so a deploy or rollback never breaks the live version.
+- **Monitoring starts cheap.** Datadog does the job but gets expensive quickly (per-host and per-GB pricing). Start with tools that have free or low-cost tiers, such as Sentry (errors), Grafana Cloud (logs, metrics, traces), or Better Stack (logs, uptime). Move to Datadog or similar only if we outgrow them.
+- **Stay vendor-neutral.** Log JSON to stdout with pino and use OpenTelemetry for traces and metrics, so changing monitoring vendors is a config change, not a code change (same idea as `AuthPort`).
+- **Never send secrets or private content to monitoring.** The logging rule above applies: no tokens, signed URLs, share-link tokens, or audio. Scrub auth headers and query strings from error reports.
+
 ---
 
 ## 11. Phased roadmap and definitions of done
 
 Work **one phase at a time**. Do not start a phase until the previous one's checklist is complete and I've confirmed. At the start of each phase, propose a short task breakdown for approval.
 
+**Feature branches with detailed PRs.** All work, phase or not, happens on a short-lived feature branch off `main` and lands through a reviewed PR. Never commit directly to `main`.
+
+- **A phase is usually several PRs.** Each PR is one coherent slice that works on its own (for example: the upload endpoint, then the worker job, then the player). Because every merge to `main` deploys to staging, each PR must leave `main` working. Keep unfinished user-facing features hidden (an unlinked route or a flag) rather than holding them back on a long-lived branch.
+- **Name branches `<type>/<slug>`**, using the conventional-commit type (e.g. `feat/presigned-uploads`, `fix/me-route-gate`, `docs/staging-phase`). Keep them short-lived and up to date with `main`.
+- **Every PR has a detailed description** covering:
+  - **Summary:** what it delivers and why, and which phase it belongs to
+  - **What changed:** grouped by area (db, api, web, tooling, docs), noting new dependencies and why
+  - **Decisions:** anything that differs from this file or the approved plan, and new ADRs
+  - **How to test:** exact `pnpm` commands and manual steps
+  - **Checklist:** the phase's definition-of-done items this PR completes or moves forward, and what's left
+- Keep the PR description current as more commits land on the branch.
+
 ### Phase 0: Foundation
 
-- [ ] Monorepo (pnpm + Turborepo), shared tsconfig/eslint, scripts from section 4 _(done except `db:*` and `test:e2e` scripts)_
+- [ ] Monorepo (pnpm + Turborepo), shared tsconfig/eslint, scripts from section 4 _(done except `test:e2e` script)_
 - [ ] docker-compose with Postgres, Redis, MinIO _(Postgres + Redis done; S3 stand-in pending, MinIO no longer publishes free images)_
-- [ ] `packages/db` with Drizzle set up, first migration (users, profiles), seed script
+- [x] `packages/db` with Drizzle set up, first migration (users, profiles), seed script
 - [x] Env validation, structured logging, health check endpoint
-- [ ] CI running lint, typecheck, tests _(workflow written; not yet run on GitHub)_
-- [ ] Auth wired end to end: sign in on web, API verifies JWT, `GET /v1/me` works
-- [ ] Invite-only gate: new users are `pending`; the API rejects everything except `GET /v1/me` for non-approved users; web shows a waiting screen; an admin can approve or reject (see "Invite-only access" in section 6)
-- **Done when:** a fresh clone can run `docker compose up -d && pnpm i && pnpm db:migrate && pnpm dev` and sign in locally.
+- [x] CI running lint, typecheck, tests (with a Postgres service)
+- [ ] Auth wired end to end: sign in on web, API verifies JWT, `GET /v1/me` works _(code done and tested with a fake AuthPort; needs a manual sign-in with real Clerk keys)_
+- [ ] Invite-only gate: new users are `pending`; the API rejects everything except `GET /v1/me` for non-approved users; web shows a waiting screen; an admin can approve or reject (see "Invite-only access" in section 6) _(code done; routes opt out with `config: { allowUnapproved: true }`; needs the manual check)_
+- **Done when:** a fresh clone can run `pnpm i && pnpm services:up && pnpm db:migrate && pnpm dev` and sign in locally.
 
-### Phase 1: Upload and playback (vertical slice)
+### Phase 1: Staging and continuous delivery
+
+Get the app onto a staging environment as early as possible, so every later phase ships in small, deployed steps instead of one big launch. Staging uses the providers planned for production, so it also rehearses the production deploy in Phase 7. See "Delivery and monitoring" in section 10 for the rules that apply from here on.
+
+- [ ] Hosting picked and recorded in an ADR: Vercel (web), Fly.io or Railway (api + worker), Neon (Postgres), managed Redis (Upstash or the host's add-on), and a separate Clerk instance. Staging never shares a database, bucket, or keys with local dev or production.
+- [ ] One container image for api and worker (Node runs `.ts` directly, so no build step), built once in CI and tagged with the commit SHA.
+- [ ] Continuous deployment: every merge to `main` deploys to staging automatically, only after CI passes. Order: run migrations, deploy api + worker, deploy web, smoke test (`/v1/health` and the web home page). A failure at any step stops the deploy and fails the workflow.
+- [ ] Preview deploys of the web app for each PR (Vercel), pointed at the staging API.
+- [ ] Secrets live in the hosts' secret stores and GitHub Environments, never in the repo or CI logs. Staging env vars are validated at startup, same as local.
+- [ ] Rollback is one documented step (redeploy the previous image), tested once.
+- [ ] Branch protection on `main`: PR required, CI must pass.
+- [ ] Monitoring baseline: error tracking for web, api, and worker; an uptime check on `/v1/health`; pino logs shipped and searchable; alerts on new errors and downtime. Vendor picked and recorded in an ADR.
+- [ ] Staging is invite-only (the approval gate), holds no real user data, and is excluded from search engines.
+- Object storage (R2) and ffmpeg in the worker image are added to staging in Phase 2, alongside uploads.
+- **Done when:** merging a PR to `main` puts it on staging with no manual steps; a failing test or migration blocks the deploy; I can sign in on staging and be approved; a deliberately thrown error shows up in monitoring and triggers an alert; and a rollback has been done once.
+
+### Phase 2: Upload and playback (vertical slice)
 
 - [ ] Presigned upload flow, `track_versions` state machine
 - [ ] Worker: ffmpeg to AAC, duration, waveform peaks
@@ -317,7 +368,7 @@ Work **one phase at a time**. Do not start a phase until the previous one's chec
 - [ ] Track page (owner only; everything private)
 - **Done when:** I can upload a file, watch it go `processing` to `ready`, and play it with a waveform. Pipeline has integration tests including a failure case.
 
-### Phase 2: Projects and versions
+### Phase 3: Projects and versions
 
 - [ ] Projects CRUD, cover art upload, status field
 - [ ] Add/reorder tracks in a project
@@ -325,7 +376,7 @@ Work **one phase at a time**. Do not start a phase until the previous one's chec
 - [ ] A/B switch between versions in the player
 - **Done when:** I can build a 5-track project, upload v2 of a song, and compare v1 vs v2.
 
-### Phase 3: Sharing and permissions
+### Phase 4: Sharing and permissions
 
 - [ ] `packages/authz` with `canAccess` and exhaustive tests (write these **first**)
 - [ ] Visibility settings, invites by user/email, roles
@@ -334,7 +385,7 @@ Work **one phase at a time**. Do not start a phase until the previous one's chec
 - [ ] Share dialog UI; public listen page that works for logged-out link holders
 - **Done when:** every row of the permission matrix is tested, and a manual pass confirms a stranger cannot reach private audio by any URL.
 
-### Phase 4: Feedback
+### Phase 5: Feedback
 
 - [ ] Timestamped comments on the waveform, threaded replies
 - [ ] Per-version "what I want feedback on" prompt
@@ -342,7 +393,7 @@ Work **one phase at a time**. Do not start a phase until the previous one's chec
 - [ ] Notifications (in-app first, email digest optional)
 - **Done when:** a listener can comment at 1:23, the artist is notified, replies, and marks it resolved.
 
-### Phase 5: Social layer
+### Phase 6: Social layer
 
 - [ ] Public profiles, follows, activity feed of followed artists' public updates
 - [ ] User-made playlists (may include others' accessible tracks)
@@ -350,7 +401,7 @@ Work **one phase at a time**. Do not start a phase until the previous one's chec
 - [ ] Reporting/blocking basics
 - **Done when:** a new user can sign up, follow artists, build a playlist, and discover public work.
 
-### Donations (planned, after Phase 5)
+### Donations (planned, after Phase 6)
 
 Listeners can send an artist a small donation to support a work in progress.
 
@@ -363,15 +414,15 @@ Listeners can send an artist a small donation to support a work in progress.
 - Payment state is driven by provider webhooks, verified by signature and handled idempotently.
 - **Done when:** a listener can donate $1 to an opted-in artist on a track page, the artist sees it, and attempts to exceed the cap or donate to yourself are rejected and tested.
 
-### Phase 6: Hardening and launch prep
+### Phase 7: Hardening and launch prep
 
 - [ ] Rate limiting, abuse controls, upload quotas
-- [ ] Observability (error tracking, metrics), backups
+- [ ] Observability beyond the Phase 1 baseline (dashboards, metrics, alert tuning), backups
 - [ ] Privacy policy/ToS pages, account deletion and data export
 - [ ] Performance pass, e2e suite for critical flows
-- [ ] Production deploy
+- [ ] Production environment, deployed by promoting the same images that passed staging
 
-### Phase 7: Mobile (Expo)
+### Phase 8: Mobile (Expo)
 
 - [ ] Reuse `packages/shared` client and zod schemas
 - [ ] Background playback + lock-screen controls (`react-native-track-player`)
@@ -389,7 +440,10 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 
 - **Plan before coding** on anything non-trivial: summarize the approach and affected files, then wait for a go-ahead.
 - Make **small, reviewable changes**. Prefer several focused PRs/commits over one giant one.
+- **Work on feature branches**, one PR per coherent change, each with a detailed description (see section 11). Never commit to `main` directly.
 - **Schema and authz first.** Show me migrations and `canAccess` changes before building UI on top of them.
+- **No styling yet.** Web pages are plain semantic HTML until I ask for styling (see "Visual style" in section 9).
+- **Every developer command is a root `package.json` script** (see section 4). Add the script when you add the need.
 - **Write tests with the code**, and run `pnpm lint && pnpm typecheck && pnpm test` before declaring done.
 - Don't add dependencies without saying why. Prefer well-maintained, widely used packages.
 - Don't build anything from the out-of-scope list in section 1.
@@ -398,9 +452,11 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 
 ## 13. Open questions (resolve before or during the relevant phase)
 
-- Final product name and handle format rules
+- Handle format rules
 - Max upload size and per-user storage quota
-- Whether tracks can be shared individually in Phase 3 or only whole projects at first
+- Whether tracks can be shared individually in Phase 4 or only whole projects at first
 - Email provider for invites and notification digests (Resend or Postmark)
+- API and worker host (Fly.io or Railway), decided in Phase 1
+- Monitoring vendor (Sentry, Grafana Cloud, Better Stack, or a mix), decided in Phase 1
 - Moderation approach for public content
 - Donations: payment provider (Stripe Connect?), and how to handle fees. Card fees (roughly 30¢ + ~3%) take about a third of a $1 donation. Options include having the donor cover fees, batching, or accepting the loss at first.

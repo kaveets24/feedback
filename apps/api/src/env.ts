@@ -5,6 +5,10 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   API_HOST: z.string().default('0.0.0.0'),
   API_PORT: z.coerce.number().int().positive().default(4000),
+  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  CLERK_SECRET_KEY: z.string().regex(/^sk_(test|live)_/, 'must be a Clerk secret key (sk_...)'),
+  /** Origin of the web app; session tokens from other origins are rejected. */
+  WEB_ORIGIN: z.url().default('http://localhost:3000'),
 });
 
 export type Env = z.infer<typeof envSchema>;

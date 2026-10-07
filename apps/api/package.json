@@ -1,5 +1,5 @@
 {
-  "name": "@demo/api",
+  "name": "@feedback/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,15 +11,18 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@demo/shared": "workspace:*",
+    "@clerk/backend": "^3.22.0",
+    "@feedback/db": "workspace:*",
+    "@feedback/shared": "workspace:*",
     "@fastify/swagger": "^9.9.1",
+    "drizzle-orm": "^0.45.3",
     "fastify": "^5.12.5",
     "fastify-type-provider-zod": "^7.0.0",
     "pino": "^10.4.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@demo/config": "workspace:*",
+    "@feedback/config": "workspace:*",
     "@types/node": "^26.6.4",
     "eslint": "^9.39.5",
     "pino-pretty": "^13.1.3",
