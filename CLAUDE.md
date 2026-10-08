@@ -86,6 +86,7 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 │   └── config/         # shared tsconfig, eslint config
 └── docs/
     ├── decisions/      # ADRs
+    ├── learning/       # owner's study notes (not a spec; don't rely on them)
     └── api.md          # generated or hand-maintained API notes
 ```
 
@@ -449,6 +450,7 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 - Don't build anything from the out-of-scope list in section 1.
 - If requirements are ambiguous, ask a specific question rather than guessing.
 - Keep this file current: when we make a decision, add it here or in `docs/decisions/`.
+- `docs/learning/` holds my personal study notes, digested from this file and the ADRs. They aren't a source of truth: don't use them to decide anything, and don't update them unless I ask.
 
 ## 13. Open questions (resolve before or during the relevant phase)
 
