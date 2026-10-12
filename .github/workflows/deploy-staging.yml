@@ -1,0 +1,83 @@
+name: Deploy staging
+
+# Deploys one commit's server image and web app to staging (see docs/staging.md). CI calls this
+# after the image job passes on main. Run it by hand (pnpm staging:deploy <sha>) to roll back to
+# an earlier commit: it redeploys that commit's image, so it must have passed CI on main.
+on:
+  workflow_call:
+    inputs:
+      sha:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Full commit SHA on main whose image to deploy
+        required: true
+
+# One deploy at a time; a newer deploy waits instead of cancelling one in progress.
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://feedback-staging.fly.dev
+    permissions:
+      contents: read
+      packages: read
+    env:
+      SHA: ${{ inputs.sha }}
+      SOURCE: ghcr.io/${{ github.repository_owner }}/feedback-server:${{ inputs.sha }}
+      TARGET: registry.fly.io/feedback-staging:${{ inputs.sha }}
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    steps:
+      - name: Check SHA
+        run: '[[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "sha must be a full commit SHA"; exit 1; }'
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      # The GHCR package is private, so Fly can't pull it. Copy it as-is and check the manifest
+      # digests match, so what runs is byte-for-byte what CI built and tested.
+      - name: Copy image to Fly's registry
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          skopeo login ghcr.io -u "$GITHUB_ACTOR" --password-stdin <<< "$GHCR_TOKEN"
+          skopeo login registry.fly.io -u x --password-stdin <<< "$FLY_API_TOKEN"
+          skopeo copy --all --preserve-digests "docker://$SOURCE" "docker://$TARGET"
+          test "$(skopeo inspect --raw "docker://$SOURCE" | sha256sum)" = \
+               "$(skopeo inspect --raw "docker://$TARGET" | sha256sum)"
+      # Runs migrations (release_command), then replaces the api and worker machines. Fails if
+      # migrations fail or the new api machines don't pass their health check.
+      - run: flyctl deploy --config fly.staging.toml --image "$TARGET"
+      - name: Smoke test
+        run: curl -fsS --retry 10 --retry-all-errors --retry-delay 3 https://feedback-staging.fly.dev/v1/health
+
+  web:
+    needs: api
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://feedback-six-kappa.vercel.app
+    permissions:
+      contents: read
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+      # Vercel builds the web app with the staging project's env vars (NEXT_PUBLIC_* values are
+      # inlined at build time), then points the staging domain at the new deployment.
+      - run: npx --yes vercel@63.1.2 deploy --prod --yes --token "$VERCEL_TOKEN"
+      - name: Smoke test
+        run: |
+          curl -fsS --retry 10 --retry-all-errors --retry-delay 3 -o /dev/null https://feedback-six-kappa.vercel.app/
+          curl -fsSI https://feedback-six-kappa.vercel.app/ | grep -qi '^x-robots-tag: noindex'

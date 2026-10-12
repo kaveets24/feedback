@@ -17,6 +17,13 @@ describe('health routes', () => {
     expect(res.json()).toEqual({ status: 'ok' });
   });
 
+  it('tells search engines not to index responses, including errors', async () => {
+    for (const url of ['/v1/health', '/v1/nope']) {
+      const res = await app.inject({ method: 'GET', url });
+      expect(res.headers['x-robots-tag']).toBe('noindex, nofollow');
+    }
+  });
+
   it('unknown routes return the standard error shape', async () => {
     const res = await app.inject({ method: 'GET', url: '/v1/nope' });
     expect(res.statusCode).toBe(404);
