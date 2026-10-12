@@ -29,6 +29,10 @@ export async function buildApp(env: Env, deps: AppDeps) {
   registerErrorHandlers(app);
   registerAuth(app, deps);
   registerAccessGate(app);
+  // The API is never meant for search engines, in any environment.
+  app.addHook('onSend', async (_request, reply) => {
+    reply.header('x-robots-tag', 'noindex, nofollow');
+  });
 
   await app.register(swagger, {
     openapi: { info: { title: 'Feedback API', version: '0.0.0' } },
