@@ -14,7 +14,7 @@ primary_region = "iad"
   LOG_LEVEL = "info"
   API_HOST = "0.0.0.0"
   API_PORT = "4000"
-  WEB_ORIGIN = "https://feedback-staging.vercel.app"
+  WEB_ORIGIN = "https://feedback-six-kappa.vercel.app"
 
 [processes]
   api = "node apps/api/src/server.ts"

@@ -5,7 +5,7 @@ It holds no real user data, is invite-only (the approval gate), and is kept out 
 
 | Piece        | Where                                                                            |
 | ------------ | -------------------------------------------------------------------------------- |
-| Web          | Vercel project `feedback-staging`, https://feedback-staging.vercel.app           |
+| Web          | Vercel project `feedback`, https://feedback-six-kappa.vercel.app                 |
 | API + worker | Fly app `feedback-staging` (`api` and `worker` process groups), `iad`            |
 | Postgres     | Neon project `feedback` (`bold-feather-90292757`), branch `production`           |
 | Auth         | Clerk application "Feedback Staging" (separate from dev and production)          |
@@ -72,7 +72,7 @@ How staging was provisioned, for reference and for the production setup in Phase
 3. **Fly:** app `feedback-staging` created in the personal org; secrets set; a deploy token
    (`fly tokens create deploy`, named "github-actions staging") stored as the GitHub `FLY_API_TOKEN`
    secret. It expires 2027-10-12: create a new one and replace the secret before then.
-4. **Vercel:** project `feedback-staging` imported from the GitHub repo with root directory
+4. **Vercel:** project `feedback` (team `steven-kvetons-projects`, Next.js preset) imported from the GitHub repo with root directory
    `apps/web`; env vars from the table above for the Production environment; an access token
    and the project's org and project IDs stored in the GitHub `staging` environment.
 5. **First deploy:** merge to `main` (or `pnpm staging:deploy <sha>`), then sign in on staging and
