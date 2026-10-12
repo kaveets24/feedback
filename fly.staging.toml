@@ -1,0 +1,40 @@
+# Staging app for the API and worker (see docs/decisions/0003 and docs/staging.md).
+# CI deploys it with `flyctl deploy --config fly.staging.toml --image <ci image>`; nothing is built
+# here. Secrets (DATABASE_URL, CLERK_SECRET_KEY) live in Fly, not in this file.
+
+app = "feedback-staging"
+primary_region = "iad"
+
+[deploy]
+  # Runs in a one-off machine before new code starts; a failed migration fails the deploy.
+  release_command = "node packages/db/src/scripts/migrate.ts"
+
+[env]
+  NODE_ENV = "production"
+  LOG_LEVEL = "info"
+  API_HOST = "0.0.0.0"
+  API_PORT = "4000"
+  WEB_ORIGIN = "https://feedback-staging.vercel.app"
+
+[processes]
+  api = "node apps/api/src/server.ts"
+  worker = "node apps/worker/src/index.ts"
+
+[http_service]
+  processes = ["api"]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/v1/health"
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "10s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

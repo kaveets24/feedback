@@ -99,3 +99,15 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: docker push "$IMAGE"
+
+  # Every push to main that passes check and image deploys to staging (see docs/staging.md).
+  deploy-staging:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: image
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/deploy-staging.yml
+    with:
+      sha: ${{ github.sha }}
+    secrets: inherit
