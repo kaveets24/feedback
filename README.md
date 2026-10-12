@@ -14,8 +14,8 @@ Feedback launches as an **invite-only** service. Anyone can sign up, but a new a
 
 | Tool                                                                                                  | Version           | Install                                                             |
 | ----------------------------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------- |
-| [Node.js](https://nodejs.org)                                                                         | 26 (see `.nvmrc`) | `nvm install && nvm use` (via [nvm](https://github.com/nvm-sh/nvm)) |
-| [pnpm](https://pnpm.io)                                                                               | 12                | `npm i -g pnpm` (Node 26 no longer ships corepack)                  |
+| [Node.js](https://nodejs.org)                                                                         | 24 (see `.nvmrc`) | `nvm install && nvm use` (via [nvm](https://github.com/nvm-sh/nvm)) |
+| [pnpm](https://pnpm.io)                                                                               | 12                | `npm i -g pnpm` (not corepack; Node 25+ drops it)                   |
 | [Docker Desktop](https://www.docker.com/products/docker-desktop/) or [OrbStack](https://orbstack.dev) | latest            | Open the app once so the `docker` CLI is on your `PATH`             |
 
 From Phase 2 onward you'll also need **ffmpeg** for the audio worker: `brew install ffmpeg`.
@@ -24,7 +24,7 @@ From Phase 2 onward you'll also need **ffmpeg** for the audio worker: `brew inst
 
 ```bash
 git clone <repo-url> && cd feedback
-nvm use                      # switch to Node 26
+nvm use                      # switch to Node 24
 pnpm install
 pnpm env:init                # creates .env and apps/web/.env.local
                              # then add your Clerk keys (see below)
@@ -88,6 +88,6 @@ docs/
 
 ## Good to know
 
-- **No build step for the API and worker.** Node 26 runs TypeScript directly, so use only type-erasable syntax (no `enum` or `namespace`) and include the `.ts` extension in relative imports. Details in [ADR 0001](docs/decisions/0001-runtime-and-toolchain-versions.md).
+- **No build step for the API and worker.** Node 24 runs TypeScript directly, so use only type-erasable syntax (no `enum` or `namespace`) and include the `.ts` extension in relative imports. Details in [ADR 0001](docs/decisions/0001-runtime-and-toolchain-versions.md).
 - **Environment variables** are validated at startup; the app refuses to start if any are invalid. Add new ones to `.env.example` and to the relevant `env.ts`.
 - **Never commit secrets.** `.env` is gitignored.

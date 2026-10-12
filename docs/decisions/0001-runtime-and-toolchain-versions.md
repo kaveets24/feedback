@@ -1,6 +1,6 @@
 # 0001: Runtime and toolchain versions
 
-- **Status:** accepted
+- **Status:** accepted; the Node version is superseded by [0005](0005-node-24.md) (Node 24)
 - **Date:** 2026-10-02
 
 ## Decision
