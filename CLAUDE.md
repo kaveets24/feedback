@@ -121,7 +121,10 @@ pnpm format                   # prettier (CI runs format:check)
 pnpm admin:approve <email> [--by <admin-email>]   # let a pending user in
 pnpm admin:reject <email>
 pnpm image:build              # build the api/worker server image locally (feedback-server:local)
+pnpm staging:deploy <sha>     # redeploy an earlier main commit to staging via CI (rollback)
 ```
+
+Staging (deploys, rollback, secrets, setup) is documented in [docs/staging.md](docs/staging.md).
 
 Local URLs: web http://localhost:3000, API http://localhost:4000 (`/v1/health`, `/v1/openapi.json`), pgweb http://localhost:8081 (browses the `feedback` database; its connect screen can switch to a `feedback_test_*` database).
 
@@ -353,7 +356,7 @@ Work **one phase at a time**. Do not start a phase until the previous one's chec
 Get the app onto a staging environment as early as possible, so every later phase ships in small, deployed steps instead of one big launch. Staging uses the providers planned for production, so it also rehearses the production deploy in Phase 7. See "Delivery and monitoring" in section 10 for the rules that apply from here on.
 
 - [x] Hosting picked and recorded in an ADR ([0003](docs/decisions/0003-staging-hosting-and-monitoring.md)): Vercel (web), one Fly.io app with `api` and `worker` process groups, Neon (Postgres), and a separate Clerk instance. Redis is added in Phase 2 with the first queue. Staging never shares a database, bucket, or keys with local dev or production.
-- [ ] One container image for api and worker (Node runs `.ts` directly, so no build step), built once in CI and tagged with the commit SHA.
+- [x] One container image for api and worker (Node runs `.ts` directly, so no build step), built once in CI and tagged with the commit SHA.
 - [ ] Continuous deployment: every merge to `main` deploys to staging automatically, only after CI passes. Order: run migrations, deploy api + worker, deploy web, smoke test (`/v1/health` and the web home page). A failure at any step stops the deploy and fails the workflow.
 - [ ] Preview deploys of the web app for each PR (Vercel), pointed at the staging API.
 - [ ] Secrets live in the hosts' secret stores and GitHub Environments, never in the repo or CI logs. Staging env vars are validated at startup, same as local.

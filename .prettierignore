@@ -3,3 +3,7 @@ pnpm-lock.yaml
 dist/
 coverage/
 .turbo/
+
+# Tool-managed (e.g. agent skills installed by the Neon CLI)
+.claude/
+skills-lock.json
