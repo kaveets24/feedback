@@ -52,6 +52,7 @@ App secrets live in the hosts. GitHub only holds what it needs to deploy.
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`              | Vercel env var             | Staging Clerk app                                                                                  |
 | `API_URL`                                        | Vercel env var             | `https://feedback-staging.fly.dev`                                                                 |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `_SIGN_UP_URL` | Vercel env var             | `/sign-in`, `/sign-up`                                                                             |
+| `ENABLE_EXPERIMENTAL_COREPACK`                   | Vercel env var             | `1`, so Vercel uses the pnpm in `packageManager` (ADR 0005)                                        |
 | `NODE_ENV`, `LOG_LEVEL`, `API_*`, `WEB_ORIGIN`   | `fly.staging.toml`         | Not secret                                                                                         |
 | `FLY_API_TOKEN`                                  | GitHub `staging` secret    | Deploy token scoped to the Fly app                                                                 |
 | `VERCEL_TOKEN`                                   | GitHub `staging` secret    | Vercel access token                                                                                |
