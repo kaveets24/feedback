@@ -1,0 +1,10 @@
+# The Dockerfile copies only what the server image needs. This keeps secrets and bulky local
+# files out of the build context anyway.
+**/node_modules
+**/.env
+**/.env.*
+**/.next
+**/.turbo
+**/*.test.ts
+.git
+coverage

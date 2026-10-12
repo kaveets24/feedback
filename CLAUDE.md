@@ -119,6 +119,7 @@ pnpm db:generate              # generate a migration from schema changes
 pnpm format                   # prettier (CI runs format:check)
 pnpm admin:approve <email> [--by <admin-email>]   # let a pending user in
 pnpm admin:reject <email>
+pnpm image:build              # build the api/worker server image locally (feedback-server:local)
 ```
 
 Local URLs: web http://localhost:3000, API http://localhost:4000 (`/v1/health`, `/v1/openapi.json`), pgweb http://localhost:8081 (browses the `feedback` database; its connect screen can switch to a `feedback_test_*` database).
