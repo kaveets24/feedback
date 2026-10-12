@@ -12,7 +12,7 @@ const envSchema = z.object({
 const result = envSchema.safeParse(process.env);
 if (!result.success) {
   throw new Error(
-    `Invalid environment variables in apps/web/.env.local:\n${z.prettifyError(result.error)}`,
+    `Invalid environment variables (locally: apps/web/.env.local; see .env.example):\n${z.prettifyError(result.error)}`,
   );
 }
 
