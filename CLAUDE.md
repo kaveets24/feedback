@@ -361,7 +361,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 - [ ] Preview deploys of the web app for each PR (Vercel), pointed at the staging API.
 - [ ] Secrets live in the hosts' secret stores and GitHub Environments, never in the repo or CI logs. Staging env vars are validated at startup, same as local.
 - [ ] Rollback is one documented step (redeploy the previous image), tested once.
-- [ ] Branch protection on `main`: PR required, CI must pass.
+- [x] Branch protection on `main`: PR required, CI (`check`, `image`) must pass on an up-to-date branch, enforced for admins too. Repo made public to get it on the free plan.
 - [ ] Monitoring baseline: error tracking for web, api, and worker; an uptime check on `/v1/health`; pino logs shipped and searchable; alerts on new errors and downtime. Vendors: Sentry and Better Stack (ADR 0003).
 - [ ] Staging is invite-only (the approval gate), holds no real user data, and is excluded from search engines.
 - Object storage (R2) and ffmpeg in the worker image are added to staging in Phase 2, alongside uploads.
