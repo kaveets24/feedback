@@ -69,7 +69,8 @@ How staging was provisioned, for reference and for the production setup in Phase
 2. **Clerk:** a new application, "Feedback Staging", with the same session token customization
    as dev: Sessions → Customize session token → `{ "email": "{{user.primary_email_address}}" }`.
 3. **Fly:** app `feedback-staging` created in the personal org; secrets set; a deploy token
-   (`fly tokens create deploy`) stored as the GitHub `FLY_API_TOKEN` secret.
+   (`fly tokens create deploy`, named "github-actions staging") stored as the GitHub `FLY_API_TOKEN`
+   secret. It expires 2027-10-12: create a new one and replace the secret before then.
 4. **Vercel:** project `feedback-staging` imported from the GitHub repo with root directory
    `apps/web`; env vars from the table above for the Production environment; an access token
    and the project's org and project IDs stored in the GitHub `staging` environment.
