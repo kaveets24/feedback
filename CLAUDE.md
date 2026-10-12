@@ -44,7 +44,7 @@ Read this file fully before making changes. If something here conflicts with a r
 | Monorepo         | pnpm workspaces + Turborepo                                                                           |
 | Web              | Next.js (App Router), React, Tailwind CSS                                                             |
 | API              | Fastify + zod (type-provider), OpenAPI generated from schemas                                         |
-| Database         | Postgres 16                                                                                           |
+| Database         | Postgres 18 (local, CI, and Neon), see ADR 0004                                                       |
 | ORM / migrations | Drizzle ORM + drizzle-kit                                                                             |
 | Auth             | Clerk (web now, Expo later). API verifies JWTs; keep behind an `AuthPort` interface so it's swappable |
 | Object storage   | Cloudflare R2 (S3-compatible API), presigned direct uploads                                           |
