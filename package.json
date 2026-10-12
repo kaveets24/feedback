@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@12.8.1",
   "engines": {
-    "node": ">=26.10.0"
+    "node": ">=24.21.0 <25"
   },
   "scripts": {
     "env:init": "node scripts/init-env.ts",

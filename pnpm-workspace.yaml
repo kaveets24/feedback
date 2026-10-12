@@ -11,6 +11,5 @@ minimumReleaseAgeExclude:
   - '@turbo/linux-arm64@2.11.7'
   - '@turbo/windows-64@2.11.7'
   - '@turbo/windows-arm64@2.11.7'
-  - '@types/node@26.6.4'
   - pino@10.4.0
   - turbo@2.11.7

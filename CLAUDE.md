@@ -62,7 +62,7 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 
 **Auth** (see [ADR 0002](docs/decisions/0002-auth-provisioning.md)): users are created as `pending` on their first authenticated API request; the Clerk session token carries an `email` claim. The web app reads its env from `apps/web/.env.local`, not the root `.env`.
 
-**Pinned versions** (see [ADR 0001](docs/decisions/0001-runtime-and-toolchain-versions.md)): Node 26 (`.nvmrc`), pnpm 12 (installed via `npm i -g pnpm`; Node 26 has no corepack), TypeScript 6.0 (typescript-eslint doesn't support 7 yet), ESLint 9 (eslint-config-next isn't ready for 10). API and worker have no build step: Node runs `.ts` directly via type stripping, so use only erasable TS syntax (no `enum`/`namespace`) and `.ts` extensions in relative imports.
+**Pinned versions** (see [ADR 0001](docs/decisions/0001-runtime-and-toolchain-versions.md) and [0005](docs/decisions/0005-node-24.md)): Node 24 LTS (`.nvmrc`; Vercel doesn't support 26 yet), pnpm 12 (installed via `npm i -g pnpm`, not corepack, which Node 25+ drops), TypeScript 6.0 (typescript-eslint doesn't support 7 yet), ESLint 9 (eslint-config-next isn't ready for 10). API and worker have no build step: Node runs `.ts` directly via type stripping, so use only erasable TS syntax (no `enum`/`namespace`) and `.ts` extensions in relative imports.
 
 ---
 
