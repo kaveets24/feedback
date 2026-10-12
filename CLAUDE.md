@@ -58,6 +58,8 @@ Read this file fully before making changes. If something here conflicts with a r
 | Hosting          | Vercel (web), Fly.io (api + worker), Neon (Postgres), R2 (storage). Staging first, see ADR 0003       |
 | Monitoring       | Sentry (errors) + Better Stack (uptime, logs, alerts), via pino JSON logs. See ADR 0003               |
 
+**Neon agent skills** (`.claude/skills/neon*`, installed by `neon skills`) are reference for Postgres on Neon: connections, branching, and so on. Where they suggest other Neon products (Auth, Object Storage, Functions, AI Gateway), the table above wins: we use Clerk, R2, and Fly, and AI features are out of scope.
+
 If a choice above becomes painful, propose an alternative and record it in `docs/decisions/` as a short ADR before switching.
 
 **Auth** (see [ADR 0002](docs/decisions/0002-auth-provisioning.md)): users are created as `pending` on their first authenticated API request; the Clerk session token carries an `email` claim. The web app reads its env from `apps/web/.env.local`, not the root `.env`.
