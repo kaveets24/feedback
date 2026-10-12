@@ -4,6 +4,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": ["API_URL", "CLERK_SECRET_KEY", "NEXT_PUBLIC_CLERK_*", "ALLOW_INDEXING"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "dev": {
