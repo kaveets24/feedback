@@ -38,25 +38,25 @@ Read this file fully before making changes. If something here conflicts with a r
 
 ## 2. Tech stack
 
-| Concern          | Choice                                                                                                 |
-| ---------------- | ------------------------------------------------------------------------------------------------------ |
-| Language         | TypeScript everywhere (strict mode)                                                                    |
-| Monorepo         | pnpm workspaces + Turborepo                                                                            |
-| Web              | Next.js (App Router), React, Tailwind CSS                                                              |
-| API              | Fastify + zod (type-provider), OpenAPI generated from schemas                                          |
-| Database         | Postgres 16                                                                                            |
-| ORM / migrations | Drizzle ORM + drizzle-kit                                                                              |
-| Auth             | Clerk (web now, Expo later). API verifies JWTs; keep behind an `AuthPort` interface so it's swappable  |
-| Object storage   | Cloudflare R2 (S3-compatible API), presigned direct uploads                                            |
-| Jobs             | Redis + BullMQ                                                                                         |
-| Audio processing | ffmpeg in the worker (transcode to AAC, extract duration, generate waveform peaks)                     |
-| Realtime         | Start with polling/refetch. Add SSE or websockets only if needed                                       |
-| Testing          | Vitest (unit/integration), Playwright (e2e), Testcontainers or docker-compose Postgres for DB tests    |
-| Lint/format      | ESLint + Prettier, `tsc --noEmit` in CI                                                                |
-| CI               | GitHub Actions                                                                                         |
-| Local dev        | docker-compose for Postgres, Redis, pgweb (DB browser), and MinIO (S3-compatible, stands in for R2)    |
-| Hosting          | Vercel (web), Fly.io or Railway (api + worker), Neon (Postgres), R2 (storage). Staging first (Phase 1) |
-| Monitoring       | Low-cost first (Sentry, Grafana Cloud, or Better Stack), via pino + OpenTelemetry. Picked in Phase 1   |
+| Concern          | Choice                                                                                                |
+| ---------------- | ----------------------------------------------------------------------------------------------------- |
+| Language         | TypeScript everywhere (strict mode)                                                                   |
+| Monorepo         | pnpm workspaces + Turborepo                                                                           |
+| Web              | Next.js (App Router), React, Tailwind CSS                                                             |
+| API              | Fastify + zod (type-provider), OpenAPI generated from schemas                                         |
+| Database         | Postgres 16                                                                                           |
+| ORM / migrations | Drizzle ORM + drizzle-kit                                                                             |
+| Auth             | Clerk (web now, Expo later). API verifies JWTs; keep behind an `AuthPort` interface so it's swappable |
+| Object storage   | Cloudflare R2 (S3-compatible API), presigned direct uploads                                           |
+| Jobs             | Redis + BullMQ                                                                                        |
+| Audio processing | ffmpeg in the worker (transcode to AAC, extract duration, generate waveform peaks)                    |
+| Realtime         | Start with polling/refetch. Add SSE or websockets only if needed                                      |
+| Testing          | Vitest (unit/integration), Playwright (e2e), Testcontainers or docker-compose Postgres for DB tests   |
+| Lint/format      | ESLint + Prettier, `tsc --noEmit` in CI                                                               |
+| CI               | GitHub Actions                                                                                        |
+| Local dev        | docker-compose for Postgres, Redis, pgweb (DB browser), and MinIO (S3-compatible, stands in for R2)   |
+| Hosting          | Vercel (web), Fly.io (api + worker), Neon (Postgres), R2 (storage). Staging first, see ADR 0003       |
+| Monitoring       | Sentry (errors) + Better Stack (uptime, logs, alerts), via pino JSON logs. See ADR 0003               |
 
 If a choice above becomes painful, propose an alternative and record it in `docs/decisions/` as a short ADR before switching.
 
@@ -350,14 +350,14 @@ Work **one phase at a time**. Do not start a phase until the previous one's chec
 
 Get the app onto a staging environment as early as possible, so every later phase ships in small, deployed steps instead of one big launch. Staging uses the providers planned for production, so it also rehearses the production deploy in Phase 7. See "Delivery and monitoring" in section 10 for the rules that apply from here on.
 
-- [ ] Hosting picked and recorded in an ADR: Vercel (web), Fly.io or Railway (api + worker), Neon (Postgres), managed Redis (Upstash or the host's add-on), and a separate Clerk instance. Staging never shares a database, bucket, or keys with local dev or production.
+- [x] Hosting picked and recorded in an ADR ([0003](docs/decisions/0003-staging-hosting-and-monitoring.md)): Vercel (web), one Fly.io app with `api` and `worker` process groups, Neon (Postgres), and a separate Clerk instance. Redis is added in Phase 2 with the first queue. Staging never shares a database, bucket, or keys with local dev or production.
 - [ ] One container image for api and worker (Node runs `.ts` directly, so no build step), built once in CI and tagged with the commit SHA.
 - [ ] Continuous deployment: every merge to `main` deploys to staging automatically, only after CI passes. Order: run migrations, deploy api + worker, deploy web, smoke test (`/v1/health` and the web home page). A failure at any step stops the deploy and fails the workflow.
 - [ ] Preview deploys of the web app for each PR (Vercel), pointed at the staging API.
 - [ ] Secrets live in the hosts' secret stores and GitHub Environments, never in the repo or CI logs. Staging env vars are validated at startup, same as local.
 - [ ] Rollback is one documented step (redeploy the previous image), tested once.
 - [ ] Branch protection on `main`: PR required, CI must pass.
-- [ ] Monitoring baseline: error tracking for web, api, and worker; an uptime check on `/v1/health`; pino logs shipped and searchable; alerts on new errors and downtime. Vendor picked and recorded in an ADR.
+- [ ] Monitoring baseline: error tracking for web, api, and worker; an uptime check on `/v1/health`; pino logs shipped and searchable; alerts on new errors and downtime. Vendors: Sentry and Better Stack (ADR 0003).
 - [ ] Staging is invite-only (the approval gate), holds no real user data, and is excluded from search engines.
 - Object storage (R2) and ffmpeg in the worker image are added to staging in Phase 2, alongside uploads.
 - **Done when:** merging a PR to `main` puts it on staging with no manual steps; a failing test or migration blocks the deploy; I can sign in on staging and be approved; a deliberately thrown error shows up in monitoring and triggers an alert; and a rollback has been done once.
@@ -459,7 +459,5 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 - Max upload size and per-user storage quota
 - Whether tracks can be shared individually in Phase 4 or only whole projects at first
 - Email provider for invites and notification digests (Resend or Postmark)
-- API and worker host (Fly.io or Railway), decided in Phase 1
-- Monitoring vendor (Sentry, Grafana Cloud, Better Stack, or a mix), decided in Phase 1
 - Moderation approach for public content
 - Donations: payment provider (Stripe Connect?), and how to handle fees. Card fees (roughly 30¢ + ~3%) take about a third of a $1 donation. Options include having the donor cover fees, batching, or accepting the loss at first.
