@@ -10,6 +10,7 @@
     "env:init": "node scripts/init-env.ts",
     "image:build": "node scripts/image-build.ts",
     "staging:deploy": "node scripts/staging-deploy.ts",
+    "staging:admin": "node scripts/staging-admin.ts",
     "services:up": "docker compose up -d --wait",
     "services:down": "docker compose down",
     "services:reset": "docker compose down -v",
