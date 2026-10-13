@@ -61,6 +61,13 @@ for it (and the web app at that commit). Pick the last good commit from `git log
 Migrations are not rolled back; they're written to work with the previous release (CLAUDE.md
 section 10), so the older code runs against the newer schema.
 
+To confirm what's running, check the image tag in `fly status -a feedback-staging`. GitHub's
+`staging` deployment history isn't reliable for this: a run started by `pnpm staging:deploy` is
+recorded under the commit at the tip of `main`, not the commit it deployed.
+
+The drill was done on 2026-10-13: rolling back from `cf6c297` to `3c4233f` and forward again took
+about 2.5 minutes each way.
+
 ## Secrets and config
 
 App secrets live in the hosts. GitHub only holds what it needs to deploy and to check previews.
@@ -197,6 +204,11 @@ How staging was provisioned, for reference and for the production setup in Phase
    that count.
 
 ## Troubleshooting
+
+**`error starting release_command machine: ... machine failed to start, currently stopped`:** if
+`fly machine status <id> -a feedback-staging` shows the release machine exited with `exit_code=0`,
+migrations ran fine. The machine was slow to start and finished before `flyctl` saw it running.
+Nothing was replaced, so re-run the failed job (`gh run rerun <run id> --failed`).
 
 **`PR04 could not find a good candidate` / `PR01 no known healthy instances`:** the Fly proxy has
 no running api machine. Check `fly status -a feedback-staging`. A deploy updates stopped machines
