@@ -364,9 +364,9 @@ Get the app onto a staging environment as early as possible, so every later phas
 - [x] Continuous deployment: every merge to `main` deploys to staging automatically, only after CI passes. Order: run migrations, deploy api + worker, deploy web, smoke test (`/v1/health` and the web home page). A failure at any step stops the deploy and fails the workflow.
 - [x] Preview deploys of the web app for each PR (Vercel), pointed at the staging API. Previews are signed out ([ADR 0007](docs/decisions/0007-signed-out-previews.md)); a `Preview` check loads each one.
 - [x] Secrets live in the hosts' secret stores and GitHub Environments, never in the repo or CI logs. Staging env vars are validated at startup, same as local.
-- [ ] Rollback is one documented step (redeploy the previous image), tested once.
+- [x] Rollback is one documented step (redeploy the previous image), tested once (2026-10-13: `3c4233f` and back to `cf6c297`, about 2.5 minutes each way).
 - [x] Branch protection on `main`: PR required, CI (`check`, `image`) must pass on an up-to-date branch, enforced for admins too. Repo made public to get it on the free plan.
-- [ ] Monitoring baseline: error tracking for web, api, and worker; an uptime check on `/v1/health`; pino logs shipped and searchable; alerts on new errors and downtime. All on Sentry's free tier ([ADR 0006](docs/decisions/0006-monitoring-on-sentry.md)).
+- [x] Monitoring baseline: error tracking for web, api, and worker; an uptime check on `/v1/health`; pino logs shipped and searchable; alerts on new errors and downtime. All on Sentry's free tier ([ADR 0006](docs/decisions/0006-monitoring-on-sentry.md)).
 - [x] Staging is invite-only (the approval gate), holds no real user data, and is excluded from search engines.
 - Object storage (R2) and ffmpeg in the worker image are added to staging in Phase 2, alongside uploads.
 - **Done when:** merging a PR to `main` puts it on staging with no manual steps; a failing test or migration blocks the deploy; I can sign in on staging and be approved; a deliberately thrown error shows up in monitoring and triggers an alert; and a rollback has been done once.
