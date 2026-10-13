@@ -362,7 +362,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 - [x] Hosting picked and recorded in an ADR ([0003](docs/decisions/0003-staging-hosting-and-monitoring.md)): Vercel (web), one Fly.io app with `api` and `worker` process groups, Neon (Postgres), and a separate Clerk instance. Redis is added in Phase 2 with the first queue. Staging never shares a database, bucket, or keys with local dev or production.
 - [x] One container image for api and worker (Node runs `.ts` directly, so no build step), built once in CI and tagged with the commit SHA.
 - [x] Continuous deployment: every merge to `main` deploys to staging automatically, only after CI passes. Order: run migrations, deploy api + worker, deploy web, smoke test (`/v1/health` and the web home page). A failure at any step stops the deploy and fails the workflow.
-- [ ] Preview deploys of the web app for each PR (Vercel), pointed at the staging API.
+- [x] Preview deploys of the web app for each PR (Vercel), pointed at the staging API. Previews are signed out ([ADR 0007](docs/decisions/0007-signed-out-previews.md)); a `Preview` check loads each one.
 - [x] Secrets live in the hosts' secret stores and GitHub Environments, never in the repo or CI logs. Staging env vars are validated at startup, same as local.
 - [ ] Rollback is one documented step (redeploy the previous image), tested once.
 - [x] Branch protection on `main`: PR required, CI (`check`, `image`) must pass on an up-to-date branch, enforced for admins too. Repo made public to get it on the free plan.
