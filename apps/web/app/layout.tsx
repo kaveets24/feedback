@@ -12,7 +12,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="min-h-dvh bg-neutral-950 text-neutral-100 antialiased">
-        <ClerkProvider>{children}</ClerkProvider>
+        {/* Set here, not only via NEXT_PUBLIC_CLERK_SIGN_*_URL: those are inlined at build time, and
+            when one is missing Clerk links to its hosted Account Portal (accounts.<domain>). */}
+        <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
+          {children}
+        </ClerkProvider>
       </body>
     </html>
   );
