@@ -77,3 +77,14 @@ How staging was provisioned, for reference and for the production setup in Phase
    and the project's org and project IDs stored in the GitHub `staging` environment.
 5. **First deploy:** merge to `main` (or `pnpm staging:deploy <sha>`), then sign in on staging and
    approve yourself with `pnpm admin:approve` pointed at the staging database.
+6. **Scale:** the first `flyctl deploy` creates two api machines and a worker with a standby.
+   Staging runs one of each: `fly scale count api=1 worker=1 -a feedback-staging`. Deploys keep
+   that count.
+
+## Troubleshooting
+
+**`PR04 could not find a good candidate` / `PR01 no known healthy instances`:** the Fly proxy has
+no running api machine. Check `fly status -a feedback-staging`. A deploy updates stopped machines
+but doesn't start them, so once they stop (for example, when Fly's trial limit stopped them before
+billing was set up) they stay stopped across deploys. The api starts on the next request
+(`auto_start_machines`); start the worker with `fly machine start <id> -a feedback-staging`.
