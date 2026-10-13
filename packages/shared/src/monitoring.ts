@@ -19,6 +19,12 @@ export const monitoringDataCollection = {
   stackFrameVariables: false,
 };
 
+/**
+ * Log levels sent to monitoring. Debug and trace stay on stdout only, to keep well inside the
+ * free log quota.
+ */
+export const monitoredLogLevels = ['info', 'warn', 'error', 'fatal'] as const;
+
 /** Request headers worth keeping on an error report; every other header is dropped. */
 const allowedHeaders = new Set(['accept', 'content-length', 'content-type', 'user-agent']);
 
@@ -61,7 +67,11 @@ export function scrubBreadcrumb<T extends ScrubbableBreadcrumb>(breadcrumb: T): 
   return { ...breadcrumb, data };
 }
 
-/** Scrubs the URL-like string values in a flat map (a context or the tags). */
+function isPlainObject(value: unknown): value is StringMap {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Scrubs the URL-like string values in a flat map (a context, the tags, or log attributes). */
 function scrubUrlFields<T extends StringMap>(map: T): T {
   const scrubbed: StringMap = { ...map };
   for (const [key, value] of Object.entries(map)) {
@@ -102,4 +112,32 @@ export function scrubEvent<T extends ScrubbableEvent>(event: T): T {
     );
   }
   return scrubbed;
+}
+
+interface ScrubbableLog {
+  attributes?: StringMap;
+}
+
+/**
+ * Prepares a log line for monitoring. Use as `beforeSendLog`.
+ *
+ * - Flattens one level of nesting into dotted keys (pino's `req: { url }` becomes `req.url`,
+ *   `res: { statusCode }` becomes `res.statusCode`), so they're searchable fields instead of
+ *   JSON strings.
+ * - Strips query strings from URL-like attributes. It backs up the api's request log
+ *   serializer, in case a log line carries a URL some other way.
+ */
+export function scrubLog<T extends ScrubbableLog>(log: T): T {
+  if (!log.attributes) return log;
+  const flat: StringMap = {};
+  for (const [key, value] of Object.entries(log.attributes)) {
+    if (isPlainObject(value)) {
+      for (const [innerKey, innerValue] of Object.entries(value)) {
+        flat[`${key}.${innerKey}`] = innerValue;
+      }
+    } else {
+      flat[key] = value;
+    }
+  }
+  return { ...log, attributes: scrubUrlFields(flat) };
 }
