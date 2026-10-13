@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { scrubBreadcrumb, scrubEvent, scrubUrl } from './monitoring.ts';
+import { scrubBreadcrumb, scrubEvent, scrubLog, scrubUrl } from './monitoring.ts';
 
 describe('scrubUrl', () => {
   it('drops the query string and fragment', () => {
@@ -88,5 +88,45 @@ describe('scrubEvent', () => {
 describe('scrubBreadcrumb', () => {
   it('ignores non-string URL fields', () => {
     expect(scrubBreadcrumb({ data: { url: 42 } })).toEqual({ data: { url: 42 } });
+  });
+});
+
+describe('scrubLog', () => {
+  it("flattens pino's nested objects and scrubs URL-like attributes", () => {
+    const log = {
+      level: 'info',
+      message: 'incoming request',
+      attributes: {
+        reqId: 'req-1',
+        url: '/v1/me?token=secret',
+        req: { method: 'GET', url: '/v1/tracks?sig=secret', remotePort: 5000 },
+        res: { statusCode: 200 },
+        tags: ['a', 'b'],
+      },
+    };
+    expect(scrubLog(log)).toEqual({
+      level: 'info',
+      message: 'incoming request',
+      attributes: {
+        reqId: 'req-1',
+        url: '/v1/me',
+        'req.method': 'GET',
+        'req.url': '/v1/tracks',
+        'req.remotePort': 5000,
+        'res.statusCode': 200,
+        tags: ['a', 'b'],
+      },
+    });
+  });
+
+  it('does not modify the original log', () => {
+    const log = { attributes: { req: { url: '/x?token=secret' } } };
+    scrubLog(log);
+    expect(log).toEqual({ attributes: { req: { url: '/x?token=secret' } } });
+  });
+
+  it('handles logs without attributes', () => {
+    const bare: Parameters<typeof scrubLog>[0] & { message: string } = { message: 'x' };
+    expect(scrubLog(bare)).toEqual({ message: 'x' });
   });
 });

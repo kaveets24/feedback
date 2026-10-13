@@ -1,5 +1,11 @@
 import * as Sentry from '@sentry/node';
-import { monitoringDataCollection, scrubBreadcrumb, scrubEvent } from '@feedback/shared/monitoring';
+import {
+  monitoredLogLevels,
+  monitoringDataCollection,
+  scrubBreadcrumb,
+  scrubEvent,
+  scrubLog,
+} from '@feedback/shared/monitoring';
 import type { Env } from './env.ts';
 
 /**
@@ -17,8 +23,12 @@ export function initSentry(env: Env): boolean {
     dataCollection: monitoringDataCollection,
     beforeSend: scrubEvent,
     beforeBreadcrumb: scrubBreadcrumb,
+    // Forwards pino's log lines (they still go to stdout too) as Sentry Logs.
+    integrations: [Sentry.pinoIntegration({ log: { levels: [...monitoredLogLevels] } })],
+    beforeSendLog: scrubLog,
   });
   Sentry.setTag('service', 'worker');
+  Sentry.getGlobalScope().setAttributes({ service: 'worker' });
   return true;
 }
 
