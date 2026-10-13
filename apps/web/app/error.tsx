@@ -1,6 +1,7 @@
 'use client';
 
 import { Show, useClerk } from '@clerk/nextjs';
+import * as Sentry from '@sentry/browser';
 import Link from 'next/link';
 import { useEffect } from 'react';
 
@@ -26,8 +27,10 @@ export default function ErrorPage({
   retry: () => void;
 }) {
   useEffect(() => {
-    // Server errors arrive here with only a digest; the full error is in the server logs.
+    // Server errors arrive here with only a digest; the full error is in the server logs and
+    // was already reported by instrumentation.ts. Errors from browser rendering have no digest.
     console.error(error);
+    if (!error.digest) Sentry.captureException(error);
   }, [error]);
 
   return (

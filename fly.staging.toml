@@ -15,6 +15,7 @@ primary_region = "iad"
   API_HOST = "0.0.0.0"
   API_PORT = "4000"
   WEB_ORIGIN = "https://feedback-six-kappa.vercel.app"
+  SENTRY_ENVIRONMENT = "staging"
 
 [processes]
   api = "node apps/api/src/server.ts"

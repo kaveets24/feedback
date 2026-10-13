@@ -11,6 +11,7 @@
     "image:build": "node scripts/image-build.ts",
     "staging:deploy": "node scripts/staging-deploy.ts",
     "staging:admin": "node scripts/staging-admin.ts",
+    "staging:test-errors": "node scripts/staging-test-errors.ts",
     "services:up": "docker compose up -d --wait",
     "services:down": "docker compose down",
     "services:reset": "docker compose down -v",

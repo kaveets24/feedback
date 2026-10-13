@@ -9,6 +9,14 @@ const envSchema = z.object({
   CLERK_SECRET_KEY: z.string().regex(/^sk_(test|live)_/, 'must be a Clerk secret key (sk_...)'),
   /** Origin of the web app; session tokens from other origins are rejected. */
   WEB_ORIGIN: z.url().default('http://localhost:3000'),
+  /** Sentry project DSN; unset turns error reporting off (the default locally). */
+  SENTRY_DSN: z.url().optional(),
+  /** Tags error reports with where they came from, e.g. `staging`. */
+  SENTRY_ENVIRONMENT: z.string().optional(),
+  /** Commit the image was built from, baked in by the Dockerfile. Tags error reports. */
+  GIT_SHA: z.string().optional(),
+  /** Adds GET /v1/debug/error, which throws, to test error reporting. Off unless testing. */
+  MONITORING_TEST_ERRORS: z.stringbool().default(false),
 });
 
 export type Env = z.infer<typeof envSchema>;
