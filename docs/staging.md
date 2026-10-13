@@ -10,7 +10,7 @@ It holds no real user data, is invite-only (the approval gate), and is kept out 
 | Postgres     | Neon project `feedback` (`bold-feather-90292757`), branch `production`           |
 | Auth         | Clerk application "Feedback Staging" (separate from dev and production)          |
 | Images       | `ghcr.io/kaveets24/feedback-server:<sha>`, copied to `registry.fly.io`           |
-| Errors       | Sentry projects `feedback-server` (api + worker) and `feedback-web`              |
+| Monitoring   | Sentry projects `feedback-server` (api + worker) and `feedback-web`              |
 | Deploy creds | GitHub Environment `staging` (only deploy tokens; app secrets stay in the hosts) |
 
 ## How a deploy works
@@ -66,21 +66,34 @@ App secrets live in the hosts. GitHub only holds what it needs to deploy.
 `ALLOW_INDEXING` is never set on staging. The API and worker validate their env at startup,
 same as locally, so a missing or malformed secret fails the deploy's health check.
 
-## Error reporting
+## Monitoring
 
-Sentry gets unexpected errors from all three apps: 5xx responses and crashes in the api,
-uncaught errors in the worker, and server render errors and uncaught browser errors in the web
-app. Each event is tagged with `service` (`api`, `worker`, `web`), the environment (`staging`),
-and the release (the commit SHA). Sentry emails on every new issue.
+Everything is on Sentry's free tier ([ADR 0006](decisions/0006-monitoring-on-sentry.md)).
+
+**Errors.** Sentry gets unexpected errors from all three apps: 5xx responses and crashes in the
+api, uncaught errors in the worker, and server render errors and uncaught browser errors in the
+web app. Each event is tagged with `service` (`api`, `worker`, `web`), the environment
+(`staging`), and the release (the commit SHA). Sentry emails on every new issue.
+
+**Logs.** The api and worker send their pino log lines (`info` and above) to Sentry Logs, in the
+`feedback-server` project, kept for 30 days. Search them under Explore → Logs, for example
+`service:api`, `res.statusCode:>=400`, or `reqId:req-1` to follow one request. Successful
+`/v1/health` checks aren't logged. The same lines still go to stdout, so `fly logs -a
+feedback-staging` streams them live, and the app dashboard's "Search logs in Grafana" button
+searches the last 7 days. Web app logs are in the Vercel dashboard.
+
+**Uptime.** A Sentry uptime monitor calls `https://feedback-staging.fly.dev/v1/health` and emails
+when it fails. The web home page has no monitor (the free plan has one); every deploy's smoke
+test loads it.
 
 Nothing secret is sent: no headers except a short allowlist, no cookies, request bodies, query
-strings, or local variables. `packages/shared/src/monitoring.ts` holds the settings and scrubber
-all three apps use.
+strings, or local variables. `packages/shared/src/monitoring.ts` holds the settings and scrubbers
+all three apps use; the api's request logs drop query strings before they're even written.
 
 Reporting is off when the DSN is unset, which is the usual local setup. To try it locally, set
 `SENTRY_DSN` (api, worker) or `NEXT_PUBLIC_SENTRY_DSN` (web) to a Sentry project's DSN.
 
-### Testing it end to end
+### Testing error reporting end to end
 
 Test errors are behind `MONITORING_TEST_ERRORS`, which is off everywhere by default. Turn it on
 only while testing.
@@ -102,6 +115,13 @@ worker startup" (`service:worker`).
 3. Open `/debug/error` on staging. Click "Throw a server error" and, after going back, "Throw a
    browser error". Each should show up in Sentry with `service:web`.
 4. Remove the env var and redeploy again (step 2), so `/debug/error` returns 404.
+
+### Testing the uptime alert
+
+Stopping the api machine doesn't work as a test: `auto_start_machines` starts it again on the
+monitor's next request. Instead, edit the uptime monitor's URL to a path that returns 404 (for
+example `/v1/uptime-test`), wait for the failure email (Sentry needs a few failed checks in a
+row), then set it back to `/v1/health` and wait for the resolved email.
 
 ## Approving users
 
@@ -137,6 +157,9 @@ How staging was provisioned, for reference and for the production setup in Phase
    (`fly secrets set SENTRY_DSN=... -a feedback-staging`) and `NEXT_PUBLIC_SENTRY_DSN` and
    `NEXT_PUBLIC_SENTRY_ENVIRONMENT=staging` as Vercel env vars for the Production environment.
    Production (Phase 7) uses the same projects with `environment` set to `production`.
+   In the `feedback-server` project, add an uptime monitor (Alerts → Create alert → Uptime
+   monitor): URL `https://feedback-staging.fly.dev/v1/health`, method GET, environment
+   `staging`, notify by email.
 6. **First deploy:** merge to `main` (or `pnpm staging:deploy <sha>`), then sign in on staging and
    approve yourself with `pnpm staging:admin approve <email>`.
 7. **Scale:** the first `flyctl deploy` creates two api machines and a worker with a standby.

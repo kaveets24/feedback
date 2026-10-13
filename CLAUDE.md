@@ -56,7 +56,7 @@ Read this file fully before making changes. If something here conflicts with a r
 | CI               | GitHub Actions                                                                                        |
 | Local dev        | docker-compose for Postgres, Redis, pgweb (DB browser), and MinIO (S3-compatible, stands in for R2)   |
 | Hosting          | Vercel (web), Fly.io (api + worker), Neon (Postgres), R2 (storage). Staging first, see ADR 0003       |
-| Monitoring       | Sentry (errors) + Better Stack (uptime, logs, alerts), via pino JSON logs. See ADR 0003               |
+| Monitoring       | Sentry (errors, logs, uptime, alerts), fed by pino JSON logs on stdout. See ADR 0006                  |
 
 If a choice above becomes painful, propose an alternative and record it in `docs/decisions/` as a short ADR before switching.
 
@@ -361,13 +361,13 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 - [x] Hosting picked and recorded in an ADR ([0003](docs/decisions/0003-staging-hosting-and-monitoring.md)): Vercel (web), one Fly.io app with `api` and `worker` process groups, Neon (Postgres), and a separate Clerk instance. Redis is added in Phase 2 with the first queue. Staging never shares a database, bucket, or keys with local dev or production.
 - [x] One container image for api and worker (Node runs `.ts` directly, so no build step), built once in CI and tagged with the commit SHA.
-- [ ] Continuous deployment: every merge to `main` deploys to staging automatically, only after CI passes. Order: run migrations, deploy api + worker, deploy web, smoke test (`/v1/health` and the web home page). A failure at any step stops the deploy and fails the workflow.
+- [x] Continuous deployment: every merge to `main` deploys to staging automatically, only after CI passes. Order: run migrations, deploy api + worker, deploy web, smoke test (`/v1/health` and the web home page). A failure at any step stops the deploy and fails the workflow.
 - [ ] Preview deploys of the web app for each PR (Vercel), pointed at the staging API.
-- [ ] Secrets live in the hosts' secret stores and GitHub Environments, never in the repo or CI logs. Staging env vars are validated at startup, same as local.
+- [x] Secrets live in the hosts' secret stores and GitHub Environments, never in the repo or CI logs. Staging env vars are validated at startup, same as local.
 - [ ] Rollback is one documented step (redeploy the previous image), tested once.
 - [x] Branch protection on `main`: PR required, CI (`check`, `image`) must pass on an up-to-date branch, enforced for admins too. Repo made public to get it on the free plan.
-- [ ] Monitoring baseline: error tracking for web, api, and worker; an uptime check on `/v1/health`; pino logs shipped and searchable; alerts on new errors and downtime. Vendors: Sentry and Better Stack (ADR 0003).
-- [ ] Staging is invite-only (the approval gate), holds no real user data, and is excluded from search engines.
+- [ ] Monitoring baseline: error tracking for web, api, and worker; an uptime check on `/v1/health`; pino logs shipped and searchable; alerts on new errors and downtime. All on Sentry's free tier ([ADR 0006](docs/decisions/0006-monitoring-on-sentry.md)).
+- [x] Staging is invite-only (the approval gate), holds no real user data, and is excluded from search engines.
 - Object storage (R2) and ffmpeg in the worker image are added to staging in Phase 2, alongside uploads.
 - **Done when:** merging a PR to `main` puts it on staging with no manual steps; a failing test or migration blocks the deploy; I can sign in on staging and be approved; a deliberately thrown error shows up in monitoring and triggers an alert; and a rollback has been done once.
 

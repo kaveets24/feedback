@@ -1,6 +1,6 @@
 # 0003: Staging hosting, deploys, and monitoring
 
-- **Status:** accepted
+- **Status:** accepted (the Better Stack part is superseded by [0006](0006-monitoring-on-sentry.md))
 - **Date:** 2026-10-07
 
 ## Context
@@ -53,16 +53,17 @@ API and worker and left the monitoring vendor open.
 
 - **Sentry** (free tier) for errors in web, API, and worker: three projects, one per app.
   Auth headers, cookies, and query strings are scrubbed before sending.
-- **Better Stack** (free tier) for uptime checks on `/v1/health` and the web home page, log
+- ~~**Better Stack** (free tier) for uptime checks on `/v1/health` and the web home page, log
   search, and alerts. Fly logs are shipped to it. Web logs stay in Vercel's dashboard if
-  shipping them needs a paid Vercel plan.
+  shipping them needs a paid Vercel plan.~~ Superseded by [0006](0006-monitoring-on-sentry.md):
+  logs and uptime moved to Sentry.
 - No OpenTelemetry tracing yet. Logs stay as pino JSON on stdout, so adding OTel or changing
   vendors later doesn't touch application code.
 
 ## Consequences
 
-- Staging costs a few dollars a month (two small Fly machines); Neon, Sentry, Better Stack, and
-  Clerk start on free tiers. Vercel's Hobby plan is for non-commercial use, so production will
+- Staging costs a few dollars a month (two small Fly machines); Neon, Sentry, and Clerk start
+  on free tiers. Vercel's Hobby plan is for non-commercial use, so production will
   likely need Vercel Pro.
 - Preview deploys get a different URL per PR, so the API's single `WEB_ORIGIN` check needs to
   accept preview origins before previews can sign in (a separate Phase 1 PR).
