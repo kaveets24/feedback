@@ -1,6 +1,7 @@
 # 0003: Staging hosting, deploys, and monitoring
 
-- **Status:** accepted (the Better Stack part is superseded by [0006](0006-monitoring-on-sentry.md))
+- **Status:** accepted (the Better Stack part is superseded by [0006](0006-monitoring-on-sentry.md),
+  the preview sign-in plan by [0007](0007-signed-out-previews.md))
 - **Date:** 2026-10-07
 
 ## Context
@@ -65,8 +66,9 @@ API and worker and left the monitoring vendor open.
 - Staging costs a few dollars a month (two small Fly machines); Neon, Sentry, and Clerk start
   on free tiers. Vercel's Hobby plan is for non-commercial use, so production will
   likely need Vercel Pro.
-- Preview deploys get a different URL per PR, so the API's single `WEB_ORIGIN` check needs to
-  accept preview origins before previews can sign in (a separate Phase 1 PR).
+- ~~Preview deploys get a different URL per PR, so the API's single `WEB_ORIGIN` check needs to
+  accept preview origins before previews can sign in (a separate Phase 1 PR).~~ Replaced by
+  [0007](0007-signed-out-previews.md): previews are signed out.
 - The idle worker costs money before it does anything. We accept that so the deploy pipeline
   covers all three processes from the start.
 - Production (Phase 7) gets its own Fly app, Neon project, Clerk instance, and Vercel

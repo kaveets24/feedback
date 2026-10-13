@@ -1,0 +1,73 @@
+name: Preview
+
+# Vercel builds a preview of the web app for every PR (see docs/staging.md, "Preview deploys").
+# This waits for the PR head's preview and loads its home page, so a broken preview (a build
+# that fails, or env vars that make every page error) shows up as a failed check on the PR.
+#
+# Previews sit behind Vercel's login. The bypass secret gets past it. It's a repository secret,
+# and GitHub never passes secrets to pull_request runs from forks, so fork PRs skip the check.
+# Don't switch this to deployment_status: that event runs the workflow file from the deployed
+# commit (the PR's own code) with the repo's secrets.
+on:
+  pull_request:
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      deployments: read
+    env:
+      SHA: ${{ github.event.pull_request.head.sha }}
+      BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - id: secret
+        run: |
+          if [ -n "$BYPASS" ]; then echo "present=true" >> "$GITHUB_OUTPUT"
+          else echo "::notice::No bypass secret (fork PR?); skipping the preview check."; fi
+
+      # Vercel reports each preview as a GitHub deployment (environment "Preview") on the commit.
+      - id: deployment
+        if: steps.secret.outputs.present
+        run: |
+          for _ in $(seq 1 90); do
+            id=$(gh api "repos/$GITHUB_REPOSITORY/deployments?sha=$SHA&environment=Preview" --jq '.[0].id // empty')
+            if [ -n "$id" ]; then
+              latest=$(gh api "repos/$GITHUB_REPOSITORY/deployments/$id/statuses" --jq '.[0] // empty')
+              state=$(jq -r '.state // empty' <<< "$latest")
+              case "$state" in
+                success)
+                  echo "url=$(jq -r '.environment_url' <<< "$latest")" >> "$GITHUB_OUTPUT"
+                  exit 0 ;;
+                failure|error)
+                  echo "::error::Vercel preview deploy failed: $(jq -r '.target_url' <<< "$latest")"
+                  exit 1 ;;
+              esac
+            fi
+            sleep 10
+          done
+          echo "::error::No successful Vercel preview for $SHA after 15 minutes"
+          exit 1
+
+      # The bypass header is sent only to the preview host, in a request that doesn't follow
+      # redirects: Vercel answers with a cookie for that host. The real request then follows
+      # redirects with that cookie jar (Clerk's development instance redirects through its own
+      # host on a first visit), so the secret never goes to another host.
+      - name: Smoke test
+        if: steps.secret.outputs.present
+        env:
+          URL: ${{ steps.deployment.outputs.url }}
+        run: |
+          curl -sS -o /dev/null -c jar \
+            -H "x-vercel-protection-bypass: $BYPASS" -H "x-vercel-set-bypass-cookie: true" "$URL/"
+          read -r code final robots < <(curl -sSL -b jar -c jar -o /dev/null --max-redirs 10 \
+            -w '%{http_code} %{url_effective} %header{x-robots-tag}' "$URL/")
+          echo "$code $final $robots"
+          test "$code" = 200 || { echo "::error::Preview home page returned $code ($final)"; exit 1; }
+          case "$final" in "$URL"/*) ;; *) echo "::error::Preview ended up at $final"; exit 1 ;; esac
+          case "$robots" in *noindex*) ;; *) echo "::error::Preview is missing X-Robots-Tag: noindex"; exit 1 ;; esac
