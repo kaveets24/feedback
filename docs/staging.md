@@ -61,6 +61,20 @@ App secrets live in the hosts. GitHub only holds what it needs to deploy.
 `ALLOW_INDEXING` is never set on staging. The API and worker validate their env at startup,
 same as locally, so a missing or malformed secret fails the deploy's health check.
 
+## Approving users
+
+```bash
+pnpm staging:admin approve <email> [--by <admin-email>]
+pnpm staging:admin reject <email>
+```
+
+These run the same admin script as `pnpm admin:approve`, but inside a staging api machine over
+`fly ssh`, using the deployed code and the `DATABASE_URL` secret already there. Run
+`fly auth login` once first. The user must have signed in on staging at least once.
+
+Don't point your local `.env` at the staging database to run `pnpm admin:*`: local dev would then
+read and write staging data.
+
 ## One-time setup
 
 How staging was provisioned, for reference and for the production setup in Phase 7.
@@ -76,7 +90,7 @@ How staging was provisioned, for reference and for the production setup in Phase
    `apps/web`; env vars from the table above for the Production environment; an access token
    and the project's org and project IDs stored in the GitHub `staging` environment.
 5. **First deploy:** merge to `main` (or `pnpm staging:deploy <sha>`), then sign in on staging and
-   approve yourself with `pnpm admin:approve` pointed at the staging database.
+   approve yourself with `pnpm staging:admin approve <email>`.
 6. **Scale:** the first `flyctl deploy` creates two api machines and a worker with a standby.
    Staging runs one of each: `fly scale count api=1 worker=1 -a feedback-staging`. Deploys keep
    that count.

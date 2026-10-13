@@ -122,6 +122,8 @@ pnpm admin:approve <email> [--by <admin-email>]   # let a pending user in
 pnpm admin:reject <email>
 pnpm image:build              # build the api/worker server image locally (feedback-server:local)
 pnpm staging:deploy <sha>     # redeploy an earlier main commit to staging via CI (rollback)
+pnpm staging:admin approve <email> [--by <admin-email>]   # same, on staging (runs inside Fly)
+pnpm staging:admin reject <email>
 ```
 
 Staging (deploys, rollback, secrets, setup) is documented in [docs/staging.md](docs/staging.md).
