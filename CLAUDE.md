@@ -429,6 +429,7 @@ Listeners can send an artist a small donation to support a work in progress.
 - [ ] Privacy policy/ToS pages, account deletion and data export
 - [ ] Performance pass, e2e suite for critical flows (Playwright, run with `pnpm test:e2e`; moved from Phase 0)
 - [ ] Production environment, deployed by promoting the same images that passed staging
+- [ ] SSO sign-in on Clerk: Google, plus any other providers we pick. Set up on each Clerk instance (staging and production) with our own OAuth credentials, and confirm the `email` session claim is still populated
 
 ### Phase 8: Mobile (Expo)
 
