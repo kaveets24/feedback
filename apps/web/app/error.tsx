@@ -1,8 +1,19 @@
 'use client';
 
-import { Show, SignOutButton } from '@clerk/nextjs';
+import { Show, useClerk } from '@clerk/nextjs';
 import Link from 'next/link';
 import { useEffect } from 'react';
+
+// Clerk's <SignOutButton> navigates client-side, which keeps this boundary mounted when the error
+// was on "/" (Next only resets it on a path change). A full load starts over, signed out.
+function SignOutAndReload() {
+  const { signOut } = useClerk();
+  return (
+    <button type="button" onClick={() => void signOut(() => window.location.assign('/'))}>
+      Sign out
+    </button>
+  );
+}
 
 // Catches errors thrown while rendering any page (server or client) below the root layout,
 // so a failure shows a way out instead of a blank "This page couldn't load".
@@ -35,7 +46,7 @@ export default function ErrorPage({
         <Link href="/">Go to the home page</Link>
       </p>
       <Show when="signed-in">
-        <SignOutButton />
+        <SignOutAndReload />
       </Show>
     </main>
   );
