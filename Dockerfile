@@ -37,6 +37,10 @@ COPY packages/db/src packages/db/src
 COPY packages/db/migrations packages/db/migrations
 COPY apps/api/src apps/api/src
 COPY apps/worker/src apps/worker/src
+# The commit this image was built from, so error reports name their release. Last, because it
+# changes every build.
+ARG GIT_SHA
+ENV GIT_SHA=${GIT_SHA}
 USER node
 EXPOSE 4000
 CMD ["node", "apps/api/src/server.ts"]

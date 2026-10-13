@@ -128,6 +128,8 @@ pnpm staging:admin reject <email>
 
 Staging (deploys, rollback, secrets, setup) is documented in [docs/staging.md](docs/staging.md).
 
+Env vars: each app reads its own env file (`.env` for api, worker, and db scripts; `apps/web/.env.local` for web). Turbo runs tasks in strict env mode, so a var exported only in your shell (e.g. `FOO=1 pnpm dev`) never reaches the app; put it in the env file. `turbo.json` declares only what the web build reads from the process env on Vercel (see the comment there).
+
 Local URLs: web http://localhost:3000, API http://localhost:4000 (`/v1/health`, `/v1/openapi.json`), pgweb http://localhost:8081 (browses the `feedback` database; its connect screen can switch to a `feedback_test_*` database).
 
 Before saying a task is done: `pnpm lint && pnpm typecheck && pnpm test` must pass.

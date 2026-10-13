@@ -4,7 +4,11 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "env": ["API_URL", "CLERK_SECRET_KEY", "NEXT_PUBLIC_CLERK_*", "ALLOW_INDEXING"],
+      // Strict env mode hides undeclared vars from tasks, so list every var the web build reads
+      // from the process env (Vercel builds with `turbo run build`). NEXT_PUBLIC_* vars are
+      // passed automatically by turbo's Next.js framework inference. Vars only read at runtime
+      // don't belong here.
+      "env": ["API_URL", "CLERK_SECRET_KEY", "ALLOW_INDEXING"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "dev": {

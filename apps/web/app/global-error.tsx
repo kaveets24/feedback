@@ -1,5 +1,6 @@
 'use client';
 
+import * as Sentry from '@sentry/browser';
 import { useEffect } from 'react';
 
 // Last-resort boundary for errors in the root layout (e.g. ClerkProvider failing). It replaces
@@ -13,7 +14,9 @@ export default function GlobalError({
   retry: () => void;
 }) {
   useEffect(() => {
+    // Server errors (with a digest) were already reported by instrumentation.ts.
     console.error(error);
+    if (!error.digest) Sentry.captureException(error);
   }, [error]);
 
   return (

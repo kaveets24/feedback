@@ -11,6 +11,8 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@feedback/shared": "workspace:*",
+    "@sentry/node": "~11.6.0",
     "pino": "^10.4.0",
     "zod": "^4.6.5"
   },

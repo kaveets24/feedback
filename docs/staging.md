@@ -10,6 +10,7 @@ It holds no real user data, is invite-only (the approval gate), and is kept out 
 | Postgres     | Neon project `feedback` (`bold-feather-90292757`), branch `production`           |
 | Auth         | Clerk application "Feedback Staging" (separate from dev and production)          |
 | Images       | `ghcr.io/kaveets24/feedback-server:<sha>`, copied to `registry.fly.io`           |
+| Errors       | Sentry projects `feedback-server` (api + worker) and `feedback-web`              |
 | Deploy creds | GitHub Environment `staging` (only deploy tokens; app secrets stay in the hosts) |
 
 ## How a deploy works
@@ -53,13 +54,54 @@ App secrets live in the hosts. GitHub only holds what it needs to deploy.
 | `API_URL`                                        | Vercel env var             | `https://feedback-staging.fly.dev`                                                                 |
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `_SIGN_UP_URL` | Vercel env var             | `/sign-in`, `/sign-up`                                                                             |
 | `ENABLE_EXPERIMENTAL_COREPACK`                   | Vercel env var             | `1`, so Vercel uses the pnpm in `packageManager` (ADR 0005)                                        |
-| `NODE_ENV`, `LOG_LEVEL`, `API_*`, `WEB_ORIGIN`   | `fly.staging.toml`         | Not secret                                                                                         |
+| `SENTRY_DSN`                                     | Fly secret                 | `feedback-server` project's DSN, shared by api and worker (events carry a `service` tag)           |
+| `NEXT_PUBLIC_SENTRY_DSN`                         | Vercel env var             | `feedback-web` project's DSN; public by design (it only lets clients send events)                  |
+| `NEXT_PUBLIC_SENTRY_ENVIRONMENT`                 | Vercel env var             | `staging`                                                                                          |
+| `NODE_ENV`, `LOG_LEVEL`, `API_*`, `WEB_ORIGIN`   | `fly.staging.toml`         | Not secret; so is `SENTRY_ENVIRONMENT=staging`                                                     |
+| `GIT_SHA`                                        | Baked into the image       | The commit CI built it from; tags error reports with their release                                 |
 | `FLY_API_TOKEN`                                  | GitHub `staging` secret    | Deploy token scoped to the Fly app                                                                 |
 | `VERCEL_TOKEN`                                   | GitHub `staging` secret    | Vercel access token                                                                                |
 | `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`             | GitHub `staging` variables | From the Vercel project settings                                                                   |
 
 `ALLOW_INDEXING` is never set on staging. The API and worker validate their env at startup,
 same as locally, so a missing or malformed secret fails the deploy's health check.
+
+## Error reporting
+
+Sentry gets unexpected errors from all three apps: 5xx responses and crashes in the api,
+uncaught errors in the worker, and server render errors and uncaught browser errors in the web
+app. Each event is tagged with `service` (`api`, `worker`, `web`), the environment (`staging`),
+and the release (the commit SHA). Sentry emails on every new issue.
+
+Nothing secret is sent: no headers except a short allowlist, no cookies, request bodies, query
+strings, or local variables. `packages/shared/src/monitoring.ts` holds the settings and scrubber
+all three apps use.
+
+Reporting is off when the DSN is unset, which is the usual local setup. To try it locally, set
+`SENTRY_DSN` (api, worker) or `NEXT_PUBLIC_SENTRY_DSN` (web) to a Sentry project's DSN.
+
+### Testing it end to end
+
+Test errors are behind `MONITORING_TEST_ERRORS`, which is off everywhere by default. Turn it on
+only while testing.
+
+**API and worker:**
+
+```bash
+pnpm staging:test-errors on    # restarts the machines with the flag on, then calls /v1/debug/error
+pnpm staging:test-errors off   # when done
+```
+
+Sentry should show "Test error from GET /v1/debug/error" (`service:api`) and "Test error from
+worker startup" (`service:worker`).
+
+**Web:** Vercel only picks up env var changes on the next deploy.
+
+1. In the Vercel project, add `MONITORING_TEST_ERRORS=true` to the Production environment.
+2. Redeploy the current commit: `pnpm staging:deploy <sha of origin/main>`.
+3. Open `/debug/error` on staging. Click "Throw a server error" and, after going back, "Throw a
+   browser error". Each should show up in Sentry with `service:web`.
+4. Remove the env var and redeploy again (step 2), so `/debug/error` returns 404.
 
 ## Approving users
 
@@ -89,9 +131,15 @@ How staging was provisioned, for reference and for the production setup in Phase
 4. **Vercel:** project `feedback` (team `steven-kvetons-projects`, Next.js preset) imported from the GitHub repo with root directory
    `apps/web`; env vars from the table above for the Production environment; an access token
    and the project's org and project IDs stored in the GitHub `staging` environment.
-5. **First deploy:** merge to `main` (or `pnpm staging:deploy <sha>`), then sign in on staging and
+5. **Sentry:** one organization with two projects: `feedback-server` (platform Node.js, for the
+   api and worker) and `feedback-web` (platform Next.js). Keep the default alert rule that
+   emails on every new issue. Then set `SENTRY_DSN` as a Fly secret
+   (`fly secrets set SENTRY_DSN=... -a feedback-staging`) and `NEXT_PUBLIC_SENTRY_DSN` and
+   `NEXT_PUBLIC_SENTRY_ENVIRONMENT=staging` as Vercel env vars for the Production environment.
+   Production (Phase 7) uses the same projects with `environment` set to `production`.
+6. **First deploy:** merge to `main` (or `pnpm staging:deploy <sha>`), then sign in on staging and
    approve yourself with `pnpm staging:admin approve <email>`.
-6. **Scale:** the first `flyctl deploy` creates two api machines and a worker with a standby.
+7. **Scale:** the first `flyctl deploy` creates two api machines and a worker with a standby.
    Staging runs one of each: `fly scale count api=1 worker=1 -a feedback-staging`. Deploys keep
    that count.
 

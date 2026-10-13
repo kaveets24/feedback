@@ -12,9 +12,10 @@
   },
   "dependencies": {
     "@clerk/backend": "^3.22.0",
+    "@fastify/swagger": "^9.9.1",
     "@feedback/db": "workspace:*",
     "@feedback/shared": "workspace:*",
-    "@fastify/swagger": "^9.9.1",
+    "@sentry/node": "~11.6.0",
     "drizzle-orm": "^0.45.3",
     "fastify": "^5.12.5",
     "fastify-type-provider-zod": "^7.0.0",
