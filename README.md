@@ -28,7 +28,7 @@ nvm use                      # switch to Node 24
 pnpm install
 pnpm env:init                # creates .env and apps/web/.env.local
                              # then add your Clerk keys (see below)
-pnpm services:up             # Postgres + Redis in Docker
+pnpm services:up             # Postgres, Redis, and object storage in Docker
 pnpm db:migrate              # create tables
 pnpm db:seed                 # optional sample users
 pnpm dev                     # web + api + worker
@@ -51,6 +51,7 @@ Then open:
 - **Web:** http://localhost:3000
 - **API health check:** http://localhost:4000/v1/health
 - **OpenAPI spec:** http://localhost:4000/v1/openapi.json
+- **Stored files (local object storage):** http://localhost:8888/buckets/
 
 Stop the dev servers with `Ctrl+C`, and the containers with `pnpm services:down` (`pnpm services:reset` also wipes their data).
 
@@ -62,7 +63,7 @@ pnpm lint           # ESLint across all packages
 pnpm typecheck      # tsc across all packages
 pnpm test           # Vitest across all packages
 pnpm format         # Prettier (CI runs `pnpm format:check`)
-pnpm services:up    # start Postgres + Redis (services:down, services:reset, services:logs)
+pnpm services:up    # start Postgres, Redis, object storage (services:down, services:reset, services:logs)
 pnpm db:migrate     # apply migrations
 pnpm db:generate    # generate a migration from schema changes
 pnpm db:seed        # load dev sample data

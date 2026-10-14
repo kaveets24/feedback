@@ -1,6 +1,6 @@
 # Local dev services. Start with: pnpm services:up
 # pgweb (http://localhost:8081) is a web UI for browsing the local database.
-# Object storage (S3-compatible stand-in for R2) is added in Phase 2.
+# storage is SeaweedFS, an S3-compatible stand-in for Backblaze B2 (see docs/decisions/0008).
 services:
   postgres:
     image: postgres:18-alpine
@@ -49,6 +49,41 @@ services:
       timeout: 5s
       retries: 10
 
+  storage:
+    image: chrislusf/seaweedfs:4.47
+    # One process running the master, a volume server, the filer, and the S3 gateway.
+    command: server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+    configs:
+      - source: seaweedfs-s3
+        target: /etc/seaweedfs/s3.json
+    ports:
+      # Localhost only. The browser uploads to and plays from 8333 directly via presigned URLs.
+      - '127.0.0.1:8333:8333'
+      # Filer UI for browsing stored files (under /buckets).
+      - '127.0.0.1:8888:8888'
+    volumes:
+      - storage-data:/data
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8333/healthz']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+configs:
+  # S3 credentials for local dev only, like the Postgres password above (matches .env.example).
+  seaweedfs-s3:
+    content: |
+      {
+        "identities": [
+          {
+            "name": "feedback-dev",
+            "credentials": [{ "accessKey": "feedback", "secretKey": "feedback-dev-secret" }],
+            "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+          }
+        ]
+      }
+
 volumes:
   postgres-18-data:
   redis-data:
+  storage-data:

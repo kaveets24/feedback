@@ -25,6 +25,7 @@ COPY packages/authz/package.json packages/authz/
 COPY packages/config/package.json packages/config/
 COPY packages/db/package.json packages/db/
 COPY packages/shared/package.json packages/shared/
+COPY packages/storage/package.json packages/storage/
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --prod --filter '@feedback/api...' --filter '@feedback/worker...' --filter '!@feedback/config'
 
