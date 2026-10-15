@@ -1,6 +1,7 @@
 # Staging app for the API and worker (see docs/decisions/0003 and docs/staging.md).
 # CI deploys it with `flyctl deploy --config fly.staging.toml --image <ci image>`; nothing is built
-# here. Secrets (DATABASE_URL, CLERK_SECRET_KEY) live in Fly, not in this file.
+# here. Secrets (DATABASE_URL, CLERK_SECRET_KEY, STORAGE_ACCESS_KEY_ID, ...) live in Fly, not in
+# this file.
 
 app = "feedback-staging"
 primary_region = "iad"
@@ -16,6 +17,10 @@ primary_region = "iad"
   API_PORT = "4000"
   WEB_ORIGIN = "https://feedback-six-kappa.vercel.app"
   SENTRY_ENVIRONMENT = "staging"
+  # Backblaze B2 (ADR 0008). The keys are Fly secrets.
+  STORAGE_ENDPOINT = "https://s3.us-east-005.backblazeb2.com"
+  STORAGE_REGION = "us-east-005"
+  STORAGE_BUCKET = "feedback-audio-staging"
 
 [processes]
   api = "node apps/api/src/server.ts"
