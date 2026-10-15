@@ -1,5 +1,5 @@
 {
-  "id": "21d3ccdd-977d-4213-a0d6-b63bb9726734",
+  "id": "99effe85-de29-47f1-bf5e-27be1c449a5e",
   "prevId": "af5f89c1-4c28-43e2-b7bc-f93931cf6960",
   "version": "7",
   "dialect": "postgresql",
@@ -460,7 +460,7 @@
     "public.visibility": {
       "name": "visibility",
       "schema": "public",
-      "values": ["private", "shared", "unlisted", "public"]
+      "values": ["private", "unlisted", "public"]
     }
   },
   "schemas": {},

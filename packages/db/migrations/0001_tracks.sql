@@ -1,5 +1,5 @@
 CREATE TYPE "public"."track_version_status" AS ENUM('uploading', 'processing', 'ready', 'failed');--> statement-breakpoint
-CREATE TYPE "public"."visibility" AS ENUM('private', 'shared', 'unlisted', 'public');--> statement-breakpoint
+CREATE TYPE "public"."visibility" AS ENUM('private', 'unlisted', 'public');--> statement-breakpoint
 CREATE TABLE "track_versions" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"track_id" uuid NOT NULL,

@@ -9,8 +9,8 @@ const actors: Record<string, Actor> = {
   anonymous: { kind: 'anonymous' },
 };
 
-// Phase 2: only the owner gets in. Phase 4 adds grantee and link-holder rows and opens up
-// shared, unlisted and public resources.
+// Phase 2: only the owner gets in. Phase 4 adds link-holder rows and opens up unlisted and public
+// resources.
 const expected = (actor: string) => actor === 'owner';
 
 const cases = VISIBILITIES.flatMap((visibility) =>

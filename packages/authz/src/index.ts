@@ -1,7 +1,7 @@
 // Pure permission logic. No I/O: callers pass already-loaded data in and get a decision back.
 // Every authorization decision goes through canAccess() (CLAUDE.md section 6, rule 2).
 
-export const VISIBILITIES = ['private', 'shared', 'unlisted', 'public'] as const;
+export const VISIBILITIES = ['private', 'unlisted', 'public'] as const;
 export type Visibility = (typeof VISIBILITIES)[number];
 
 export const ROLES = ['owner', 'comment', 'listen'] as const;
@@ -24,7 +24,7 @@ export interface Resource {
  * Whether `actor` may perform `action` on `resource`.
  *
  * Phase 2 (everything is private): the owner may do anything, and everyone else is denied at
- * every visibility. Grants, share links and public access arrive in Phase 4, with exhaustive
+ * every visibility. Share links and public access arrive in Phase 4, with exhaustive
  * tests written first. Until then this fails closed.
  */
 export function canAccess(actor: Actor, resource: Resource, _action: Action): boolean {
