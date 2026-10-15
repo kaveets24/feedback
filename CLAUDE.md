@@ -148,9 +148,11 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 **Music**
 
 - `projects`: id, owner_id, title, description, cover_url, status (`idea | demo | mixing | done`), visibility, deleted_at
-- `tracks`: id, project_id, title, notes, position, current_version_id, visibility_override (nullable)
-- `track_versions`: id, track_id, version_number, change_notes, feedback_prompt (what the artist wants feedback on), status (`uploading | processing | ready | failed`), duration_ms, original_key, stream_key, waveform_peaks (jsonb or storage key), created_at
+- `tracks`: id, owner_id, project_id (nullable: a track without one is a "loose" track), title, notes, position (nullable, only meaningful in a project), visibility (default `private`; a loose track's own visibility), current_version_id (the newest `ready` version), visibility_override (nullable), deleted_at. `project_id`, `position`, and `visibility_override` arrive with the `projects` table in Phase 3; Phase 2 tracks are all loose.
+- `track_versions`: id, track_id, version_number, change_notes, feedback_prompt (what the artist wants feedback on), status (`uploading | processing | ready | failed`), failure_reason (shown to the artist), original_key, original_filename, original_content_type, original_size_bytes, stream_key, duration_ms, waveform_peaks (jsonb `number[]`), created_at
 - Versions are **immutable** once `ready`. New edits = new version.
+- A version belongs to its track, never directly to a project. `(track_id, version_number)` is unique; numbers count up per track and are **never reused** (a failed v3 stays v3, the next upload is v4). Everything else refers to a version by its `id`.
+- Status moves `uploading -> processing -> ready`, or to `failed` from either of the first two; `ready` and `failed` are terminal. The transition table is `canTransition()` in `packages/shared`, and the status updates in `packages/db` are compare-and-set, so repeats are harmless.
 
 **Organization**
 
@@ -202,7 +204,7 @@ Applied to projects (and optionally overridden per track):
 4. **Downloads are off by default** and require an explicit per-project setting. Never expose original files to non-owners.
 5. **Audio is served via short-lived signed URLs** (target: 5 to 15 minutes). The API issues a signed URL only after `canAccess(..., 'listen')` passes. Never return permanent public URLs for non-public audio.
 6. Share links: unguessable (at least 128 bits of entropy), stored hashed, support expiry and revocation. Revoking takes effect immediately.
-7. A track inherits its project's visibility unless `visibility_override` is set. An override can only be **more restrictive** than the project unless the owner explicitly widens it.
+7. A track inherits its project's visibility unless `visibility_override` is set. An override can only be **more restrictive** than the project unless the owner explicitly widens it. A loose track (no project) uses its own `visibility`.
 8. `artist_only` feedback is visible only to the track owner and the feedback's author.
 9. Unauthenticated access to a non-public resource returns `404`, not `403`, to avoid leaking existence.
 10. Deleting a project or track revokes all shares/links and invalidates outstanding signed URLs as soon as practical.
@@ -374,7 +376,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 ### Phase 2: Upload and playback (vertical slice)
 
 - [x] S3-compatible object storage in docker-compose (SeaweedFS, stands in for B2 locally; moved from Phase 0)
-- [ ] Presigned upload flow, `track_versions` state machine
+- [ ] Presigned upload flow, `track_versions` state machine _(schema, state machine, and owner-only `canAccess` done; endpoints next)_
 - [ ] Worker: ffmpeg to AAC, duration, waveform peaks
 - [ ] Waveform player component, global mini-player
 - [ ] Track page (owner only; everything private)
@@ -469,6 +471,7 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 - Handle format rules
 - Max upload size and per-user storage quota
 - Whether tracks can be shared individually in Phase 4 or only whole projects at first
+- How a project track's own `visibility` relates to `visibility_override` and the project's visibility (rule 7) once tracks can join projects (Phase 3/4)
 - Email provider for invites and notification digests (Resend or Postmark)
 - Moderation approach for public content
 - Donations: payment provider (Stripe Connect?), and how to handle fees. Card fees (roughly 30¢ + ~3%) take about a third of a $1 donation. Options include having the donor cover fees, batching, or accepting the loss at first.

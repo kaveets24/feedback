@@ -352,6 +352,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@feedback/authz':
+        specifier: workspace:*
+        version: link:../authz
       '@feedback/shared':
         specifier: workspace:*
         version: link:../shared
