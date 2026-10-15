@@ -1,7 +1,8 @@
 # 0003: Staging hosting, deploys, and monitoring
 
 - **Status:** accepted (the Better Stack part is superseded by [0006](0006-monitoring-on-sentry.md),
-  the preview sign-in plan by [0007](0007-signed-out-previews.md))
+  the preview sign-in plan by [0007](0007-signed-out-previews.md), and R2 by
+  [0008](0008-object-storage-and-queue.md))
 - **Date:** 2026-10-07
 
 ## Context

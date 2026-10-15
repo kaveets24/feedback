@@ -36,6 +36,9 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm db:migrate
+      # The S3 stand-in, from docker-compose.yml so CI runs the same image and config as local
+      # dev. (Service containers can't pass it a command.) Tests create their own buckets.
+      - run: docker compose up -d --wait storage
       - run: pnpm test
 
   # Builds the API/worker server image (see docs/decisions/0003), checks that it migrates a fresh

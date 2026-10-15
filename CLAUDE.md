@@ -38,25 +38,25 @@ Read this file fully before making changes. If something here conflicts with a r
 
 ## 2. Tech stack
 
-| Concern          | Choice                                                                                                |
-| ---------------- | ----------------------------------------------------------------------------------------------------- |
-| Language         | TypeScript everywhere (strict mode)                                                                   |
-| Monorepo         | pnpm workspaces + Turborepo                                                                           |
-| Web              | Next.js (App Router), React, Tailwind CSS                                                             |
-| API              | Fastify + zod (type-provider), OpenAPI generated from schemas                                         |
-| Database         | Postgres 18 (local, CI, and Neon), see ADR 0004                                                       |
-| ORM / migrations | Drizzle ORM + drizzle-kit                                                                             |
-| Auth             | Clerk (web now, Expo later). API verifies JWTs; keep behind an `AuthPort` interface so it's swappable |
-| Object storage   | Cloudflare R2 (S3-compatible API), presigned direct uploads                                           |
-| Jobs             | Redis + BullMQ                                                                                        |
-| Audio processing | ffmpeg in the worker (transcode to AAC, extract duration, generate waveform peaks)                    |
-| Realtime         | Start with polling/refetch. Add SSE or websockets only if needed                                      |
-| Testing          | Vitest (unit/integration), Playwright (e2e), Testcontainers or docker-compose Postgres for DB tests   |
-| Lint/format      | ESLint + Prettier, `tsc --noEmit` in CI                                                               |
-| CI               | GitHub Actions                                                                                        |
-| Local dev        | docker-compose for Postgres, Redis, pgweb (DB browser), and MinIO (S3-compatible, stands in for R2)   |
-| Hosting          | Vercel (web), Fly.io (api + worker), Neon (Postgres), R2 (storage). Staging first, see ADR 0003       |
-| Monitoring       | Sentry (errors, logs, uptime, alerts), fed by pino JSON logs on stdout. See ADR 0006                  |
+| Concern          | Choice                                                                                                           |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Language         | TypeScript everywhere (strict mode)                                                                              |
+| Monorepo         | pnpm workspaces + Turborepo                                                                                      |
+| Web              | Next.js (App Router), React, Tailwind CSS                                                                        |
+| API              | Fastify + zod (type-provider), OpenAPI generated from schemas                                                    |
+| Database         | Postgres 18 (local, CI, and Neon), see ADR 0004                                                                  |
+| ORM / migrations | Drizzle ORM + drizzle-kit                                                                                        |
+| Auth             | Clerk (web now, Expo later). API verifies JWTs; keep behind an `AuthPort` interface so it's swappable            |
+| Object storage   | Backblaze B2 (S3-compatible API), presigned direct uploads. See ADR 0008                                         |
+| Jobs             | Redis + BullMQ                                                                                                   |
+| Audio processing | ffmpeg in the worker (transcode to AAC, extract duration, generate waveform peaks)                               |
+| Realtime         | Start with polling/refetch. Add SSE or websockets only if needed                                                 |
+| Testing          | Vitest (unit/integration), Playwright (e2e), Testcontainers or docker-compose Postgres for DB tests              |
+| Lint/format      | ESLint + Prettier, `tsc --noEmit` in CI                                                                          |
+| CI               | GitHub Actions                                                                                                   |
+| Local dev        | docker-compose for Postgres, Redis, pgweb (DB browser), and SeaweedFS (S3-compatible, stands in for B2)          |
+| Hosting          | Vercel (web), Fly.io (api + worker + Redis), Neon (Postgres), B2 (storage). Staging first, see ADR 0003 and 0008 |
+| Monitoring       | Sentry (errors, logs, uptime, alerts), fed by pino JSON logs on stdout. See ADR 0006                             |
 
 If a choice above becomes painful, propose an alternative and record it in `docs/decisions/` as a short ADR before switching.
 
@@ -107,7 +107,7 @@ Every command a developer needs to run (starting services, migrating, seeding, a
 ```bash
 pnpm install
 pnpm env:init                 # create .env and apps/web/.env.local from examples (never overwrites)
-pnpm services:up              # start postgres, redis, pgweb in docker (object storage added in Phase 2)
+pnpm services:up              # start postgres, redis, pgweb, and object storage in docker; creates the bucket
 pnpm services:down            # stop them (services:reset also wipes their data; services:logs tails logs)
 pnpm db:migrate               # apply migrations
 pnpm db:seed                  # dev seed data
@@ -130,7 +130,7 @@ Staging (deploys, rollback, secrets, setup) is documented in [docs/staging.md](d
 
 Env vars: each app reads its own env file (`.env` for api, worker, and db scripts; `apps/web/.env.local` for web). Turbo runs tasks in strict env mode, so a var exported only in your shell (e.g. `FOO=1 pnpm dev`) never reaches the app; put it in the env file. `turbo.json` declares only what the web build reads from the process env on Vercel (see the comment there).
 
-Local URLs: web http://localhost:3000, API http://localhost:4000 (`/v1/health`, `/v1/openapi.json`), pgweb http://localhost:8081 (browses the `feedback` database; its connect screen can switch to a `feedback_test_*` database).
+Local URLs: web http://localhost:3000, API http://localhost:4000 (`/v1/health`, `/v1/openapi.json`), pgweb http://localhost:8081 (browses the `feedback` database; its connect screen can switch to a `feedback_test_*` database), object storage (S3 API) http://localhost:8333 with a file browser at http://localhost:8888/buckets/.
 
 Before saying a task is done: `pnpm lint && pnpm typecheck && pnpm test` must pass.
 
@@ -149,7 +149,7 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 
 - `projects`: id, owner_id, title, description, cover_url, status (`idea | demo | mixing | done`), visibility, deleted_at
 - `tracks`: id, project_id, title, notes, position, current_version_id, visibility_override (nullable)
-- `track_versions`: id, track_id, version_number, change_notes, feedback_prompt (what the artist wants feedback on), status (`uploading | processing | ready | failed`), duration_ms, original_key, stream_key, waveform_peaks (jsonb or R2 key), created_at
+- `track_versions`: id, track_id, version_number, change_notes, feedback_prompt (what the artist wants feedback on), status (`uploading | processing | ready | failed`), duration_ms, original_key, stream_key, waveform_peaks (jsonb or storage key), created_at
 - Versions are **immutable** once `ready`. New edits = new version.
 
 **Organization**
@@ -227,7 +227,7 @@ The service starts invite only. Anyone can create an account, but it stays `pend
 ## 7. Audio pipeline
 
 ```
-Client                API                      R2/S3              Worker
+Client                API                      B2/S3              Worker
   | POST /uploads       |                         |                  |
   |-------------------->| create version row      |                  |
   |   presigned PUT URL |  (status=uploading)     |                  |
@@ -368,12 +368,12 @@ Get the app onto a staging environment as early as possible, so every later phas
 - [x] Branch protection on `main`: PR required, CI (`check`, `image`) must pass on an up-to-date branch, enforced for admins too. Repo made public to get it on the free plan.
 - [x] Monitoring baseline: error tracking for web, api, and worker; an uptime check on `/v1/health`; pino logs shipped and searchable; alerts on new errors and downtime. All on Sentry's free tier ([ADR 0006](docs/decisions/0006-monitoring-on-sentry.md)).
 - [x] Staging is invite-only (the approval gate), holds no real user data, and is excluded from search engines.
-- Object storage (R2) and ffmpeg in the worker image are added to staging in Phase 2, alongside uploads.
+- Object storage (B2, see ADR 0008) and ffmpeg in the worker image are added to staging in Phase 2, alongside uploads.
 - **Done when:** merging a PR to `main` puts it on staging with no manual steps; a failing test or migration blocks the deploy; I can sign in on staging and be approved; a deliberately thrown error shows up in monitoring and triggers an alert; and a rollback has been done once.
 
 ### Phase 2: Upload and playback (vertical slice)
 
-- [ ] S3-compatible object storage in docker-compose (stands in for R2 locally; moved from Phase 0)
+- [x] S3-compatible object storage in docker-compose (SeaweedFS, stands in for B2 locally; moved from Phase 0)
 - [ ] Presigned upload flow, `track_versions` state machine
 - [ ] Worker: ffmpeg to AAC, duration, waveform peaks
 - [ ] Waveform player component, global mini-player
