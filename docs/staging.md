@@ -3,15 +3,16 @@
 Staging runs the same providers planned for production ([ADR 0003](decisions/0003-staging-hosting-and-monitoring.md)).
 It holds no real user data, is invite-only (the approval gate), and is kept out of search engines.
 
-| Piece        | Where                                                                            |
-| ------------ | -------------------------------------------------------------------------------- |
-| Web          | Vercel project `feedback`, https://feedback-six-kappa.vercel.app                 |
-| API + worker | Fly app `feedback-staging` (`api` and `worker` process groups), `iad`            |
-| Postgres     | Neon project `feedback` (`bold-feather-90292757`), branch `production`           |
-| Auth         | Clerk application "Feedback Staging" (separate from dev and production)          |
-| Images       | `ghcr.io/kaveets24/feedback-server:<sha>`, copied to `registry.fly.io`           |
-| Monitoring   | Sentry projects `feedback-server` (api + worker) and `feedback-web`              |
-| Deploy creds | GitHub Environment `staging` (only deploy tokens; app secrets stay in the hosts) |
+| Piece        | Where                                                                                                          |
+| ------------ | -------------------------------------------------------------------------------------------------------------- |
+| Web          | Vercel project `feedback`, https://feedback-six-kappa.vercel.app                                               |
+| API + worker | Fly app `feedback-staging` (`api` and `worker` process groups), `iad`                                          |
+| Postgres     | Neon project `feedback` (`bold-feather-90292757`), branch `production`                                         |
+| Auth         | Clerk application "Feedback Staging" (separate from dev and production)                                        |
+| Storage      | Backblaze B2 bucket `feedback-audio-staging` (private), [ADR 0008](decisions/0008-object-storage-and-queue.md) |
+| Images       | `ghcr.io/kaveets24/feedback-server:<sha>`, copied to `registry.fly.io`                                         |
+| Monitoring   | Sentry projects `feedback-server` (api + worker) and `feedback-web`                                            |
+| Deploy creds | GitHub Environment `staging` (only deploy tokens; app secrets stay in the hosts)                               |
 
 ## How a deploy works
 
@@ -73,24 +74,26 @@ about 2.5 minutes each way.
 App secrets live in the hosts. GitHub only holds what it needs to deploy and to check previews.
 Vercel env vars are set for the **Production** environment (staging) unless a row says otherwise.
 
-| Name                                             | Where                      | Notes                                                                                                                                                                                   |
-| ------------------------------------------------ | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                                   | Fly secret                 | Neon **direct** connection string, `?sslmode=require` only (postgres.js rejects `channel_binding`)                                                                                      |
-| `CLERK_SECRET_KEY`                               | Fly secret, Vercel env var | Staging Clerk app                                                                                                                                                                       |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`              | Vercel env var             | Staging Clerk app                                                                                                                                                                       |
-| `API_URL`                                        | Vercel env var             | `https://feedback-staging.fly.dev`                                                                                                                                                      |
-| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `_SIGN_UP_URL` | Vercel env var             | `/sign-in`, `/sign-up`                                                                                                                                                                  |
-| `ENABLE_EXPERIMENTAL_COREPACK`                   | Vercel env var             | `1`, so Vercel uses the pnpm in `packageManager` (ADR 0005)                                                                                                                             |
-| `SENTRY_DSN`                                     | Fly secret                 | `feedback-server` project's DSN, shared by api and worker (events carry a `service` tag)                                                                                                |
-| `NEXT_PUBLIC_SENTRY_DSN`                         | Vercel env var             | `feedback-web` project's DSN; public by design (it only lets clients send events)                                                                                                       |
-| `NEXT_PUBLIC_SENTRY_ENVIRONMENT`                 | Vercel env var             | `staging`                                                                                                                                                                               |
-| Preview env vars                                 | Vercel env vars (Preview)  | `API_URL` and the sign-in/up URLs as above; Clerk keys from the staging app's **development** instance; `NEXT_PUBLIC_SENTRY_DSN` as above with `NEXT_PUBLIC_SENTRY_ENVIRONMENT=preview` |
-| `NODE_ENV`, `LOG_LEVEL`, `API_*`, `WEB_ORIGIN`   | `fly.staging.toml`         | Not secret; so is `SENTRY_ENVIRONMENT=staging`                                                                                                                                          |
-| `GIT_SHA`                                        | Baked into the image       | The commit CI built it from; tags error reports with their release                                                                                                                      |
-| `FLY_API_TOKEN`                                  | GitHub `staging` secret    | Deploy token scoped to the Fly app                                                                                                                                                      |
-| `VERCEL_TOKEN`                                   | GitHub `staging` secret    | Vercel access token                                                                                                                                                                     |
-| `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`             | GitHub `staging` variables | From the Vercel project settings                                                                                                                                                        |
-| `VERCEL_AUTOMATION_BYPASS_SECRET`                | GitHub repository secret   | Vercel → Settings → Deployment Protection → Protection Bypass for Automation; lets the `Preview` check past Vercel's login                                                              |
+| Name                                                   | Where                      | Notes                                                                                                                                                                                   |
+| ------------------------------------------------------ | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                         | Fly secret                 | Neon **direct** connection string, `?sslmode=require` only (postgres.js rejects `channel_binding`)                                                                                      |
+| `CLERK_SECRET_KEY`                                     | Fly secret, Vercel env var | Staging Clerk app                                                                                                                                                                       |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`                    | Vercel env var             | Staging Clerk app                                                                                                                                                                       |
+| `API_URL`                                              | Vercel env var             | `https://feedback-staging.fly.dev`                                                                                                                                                      |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `_SIGN_UP_URL`       | Vercel env var             | `/sign-in`, `/sign-up`                                                                                                                                                                  |
+| `ENABLE_EXPERIMENTAL_COREPACK`                         | Vercel env var             | `1`, so Vercel uses the pnpm in `packageManager` (ADR 0005)                                                                                                                             |
+| `SENTRY_DSN`                                           | Fly secret                 | `feedback-server` project's DSN, shared by api and worker (events carry a `service` tag)                                                                                                |
+| `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY`  | Fly secret                 | B2 application key `feedback-staging`: this bucket only, Read and Write. Never the master key                                                                                           |
+| `STORAGE_ENDPOINT`, `STORAGE_REGION`, `STORAGE_BUCKET` | `fly.staging.toml`         | Not secret. The region is the middle part of the endpoint (`s3.<region>.backblazeb2.com`)                                                                                               |
+| `NEXT_PUBLIC_SENTRY_DSN`                               | Vercel env var             | `feedback-web` project's DSN; public by design (it only lets clients send events)                                                                                                       |
+| `NEXT_PUBLIC_SENTRY_ENVIRONMENT`                       | Vercel env var             | `staging`                                                                                                                                                                               |
+| Preview env vars                                       | Vercel env vars (Preview)  | `API_URL` and the sign-in/up URLs as above; Clerk keys from the staging app's **development** instance; `NEXT_PUBLIC_SENTRY_DSN` as above with `NEXT_PUBLIC_SENTRY_ENVIRONMENT=preview` |
+| `NODE_ENV`, `LOG_LEVEL`, `API_*`, `WEB_ORIGIN`         | `fly.staging.toml`         | Not secret; so is `SENTRY_ENVIRONMENT=staging`                                                                                                                                          |
+| `GIT_SHA`                                              | Baked into the image       | The commit CI built it from; tags error reports with their release                                                                                                                      |
+| `FLY_API_TOKEN`                                        | GitHub `staging` secret    | Deploy token scoped to the Fly app                                                                                                                                                      |
+| `VERCEL_TOKEN`                                         | GitHub `staging` secret    | Vercel access token                                                                                                                                                                     |
+| `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`                   | GitHub `staging` variables | From the Vercel project settings                                                                                                                                                        |
+| `VERCEL_AUTOMATION_BYPASS_SECRET`                      | GitHub repository secret   | Vercel → Settings → Deployment Protection → Protection Bypass for Automation; lets the `Preview` check past Vercel's login                                                              |
 
 The web project holds only what the web app reads (`apps/web/lib/env.ts` and the Sentry config).
 Never add the api's vars (`DATABASE_URL`, `WEB_ORIGIN`, ...) to it: every preview build runs PR code
@@ -197,9 +200,40 @@ How staging was provisioned, for reference and for the production setup in Phase
    In the `feedback-server` project, add an uptime monitor (Alerts → Create alert → Uptime
    monitor): URL `https://feedback-staging.fly.dev/v1/health`, method GET, environment
    `staging`, notify by email.
-6. **First deploy:** merge to `main` (or `pnpm staging:deploy <sha>`), then sign in on staging and
+6. **Backblaze B2** (ADR 0008):
+   - Account → Caps & Alerts: daily caps on storage, download bandwidth, and class B and C
+     transactions (about $1/day each), so a bill can't run away.
+   - Buckets → Create a Bucket: a globally unique name, files **Private**, Object Lock off. Then
+     Lifecycle Settings → "Keep only the last version of the file". The bucket card shows the S3
+     endpoint; it and the bucket name go in `fly.staging.toml`.
+   - Application Keys → Add a New Application Key: name `feedback-staging`, access to this bucket
+     only, Read and Write, no prefix. Copy the key ID and key (shown once) into Fly without
+     leaving them in shell history: `fly secrets import --stage -a feedback-staging`, then type
+     `STORAGE_ACCESS_KEY_ID=...` and `STORAGE_SECRET_ACCESS_KEY=...` on separate lines and press
+     Ctrl-D. `--stage` waits for the next deploy instead of restarting the machines.
+   - CORS: the web UI's CORS settings only cover downloads, and the app key can't change bucket
+     settings, so set the rule once with the B2 CLI (`brew install b2-tools`), signed in with the
+     master key and signed out after. It's the same rule `pnpm services:up` sets on SeaweedFS:
+
+     ```bash
+     b2 account authorize
+     b2 bucket update --cors-rules '[{"corsRuleName":"web","allowedOrigins":["https://feedback-six-kappa.vercel.app"],"allowedOperations":["s3_get","s3_head","s3_put"],"allowedHeaders":["content-type","range"],"exposeHeaders":["content-length","content-range","etag"],"maxAgeSeconds":3600}]' feedback-audio-staging allPrivate
+     b2 account clear
+     ```
+
+     Only the staging origin is allowed: previews are signed out, so they never upload. Check it
+     with a preflight, which should answer with `Access-Control-Allow-Origin` (and shouldn't for
+     any other origin):
+
+     ```bash
+     curl -si -X OPTIONS "https://s3.us-east-005.backblazeb2.com/feedback-audio-staging/originals/test" \
+       -H "Origin: https://feedback-six-kappa.vercel.app" \
+       -H "Access-Control-Request-Method: PUT" -H "Access-Control-Request-Headers: content-type"
+     ```
+
+7. **First deploy:** merge to `main` (or `pnpm staging:deploy <sha>`), then sign in on staging and
    approve yourself with `pnpm staging:admin approve <email>`.
-7. **Scale:** the first `flyctl deploy` creates two api machines and a worker with a standby.
+8. **Scale:** the first `flyctl deploy` creates two api machines and a worker with a standby.
    Staging runs one of each: `fly scale count api=1 worker=1 -a feedback-staging`. Deploys keep
    that count.
 
