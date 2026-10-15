@@ -17,6 +17,7 @@
     "admin": "node --env-file-if-exists=../../.env src/scripts/admin.ts"
   },
   "dependencies": {
+    "@feedback/authz": "workspace:*",
     "@feedback/shared": "workspace:*",
     "@opentelemetry/api": "^1.9.1",
     "drizzle-orm": "^0.45.3",

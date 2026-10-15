@@ -15,7 +15,7 @@ Read this file fully before making changes. If something here conflicts with a r
 
 1. Artist uploads a rough track (private by default).
 2. Artist groups tracks into a **project** (album/EP/idea folder) and uploads new **versions** as the song evolves.
-3. Artist shares privately (invite or secret link) or publicly, and says what feedback they want.
+3. Artist shares privately (secret link) or publicly, and says what feedback they want.
 4. Listeners leave **timestamped comments** on the waveform.
 5. Artist works through feedback (resolve/unresolved), then ships the next version.
 
@@ -148,9 +148,11 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 **Music**
 
 - `projects`: id, owner_id, title, description, cover_url, status (`idea | demo | mixing | done`), visibility, deleted_at
-- `tracks`: id, project_id, title, notes, position, current_version_id, visibility_override (nullable)
-- `track_versions`: id, track_id, version_number, change_notes, feedback_prompt (what the artist wants feedback on), status (`uploading | processing | ready | failed`), duration_ms, original_key, stream_key, waveform_peaks (jsonb or storage key), created_at
+- `tracks`: id, owner_id, project_id (nullable: a track without one is a "loose" track), title, notes, position (nullable, only meaningful in a project), visibility (default `private`; a loose track's own visibility), current_version_id (the newest `ready` version), visibility_override (nullable), deleted_at. `project_id`, `position`, and `visibility_override` arrive with the `projects` table in Phase 3; Phase 2 tracks are all loose.
+- `track_versions`: id, track_id, version_number, change_notes, feedback_prompt (what the artist wants feedback on), status (`uploading | processing | ready | failed`), failure_reason (shown to the artist), original_key, original_filename, original_content_type, original_size_bytes, stream_key, duration_ms, waveform_peaks (jsonb `number[]`), created_at
 - Versions are **immutable** once `ready`. New edits = new version.
+- A version belongs to its track, never directly to a project. `(track_id, version_number)` is unique; numbers count up per track and are **never reused** (a failed v3 stays v3, the next upload is v4). Everything else refers to a version by its `id`.
+- Status moves `uploading -> processing -> ready`, or to `failed` from either of the first two; `ready` and `failed` are terminal. The transition table is `canTransition()` in `packages/shared`, and the status updates in `packages/db` are compare-and-set, so repeats are harmless.
 
 **Organization**
 
@@ -160,7 +162,7 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 
 **Sharing**
 
-- `shares`: id, resource_type (`project | track`), resource_id, grantee_user_id (nullable), grantee_email (nullable, for invites to non-users), role (`listen | comment`), invited_by, accepted_at
+- Sharing is by link only for now. Invites to specific people (a `shares` table with grantees, and a visibility level for it) are parked; see "Later / parking lot" in section 11.
 - `share_links`: id, resource_type, resource_id, token_hash (store a hash, never the raw token), role, expires_at, revoked_at, created_by
 
 **Feedback**
@@ -173,7 +175,7 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 - `follows`: follower_id, followee_id
 - `notifications`: id, user_id, type, payload (jsonb), read_at
 
-Index for the hot paths: `tracks(project_id, position)`, `track_versions(track_id, version_number)`, `feedback(track_version_id, timestamp_ms)`, `shares(grantee_user_id)`, `share_links(token_hash)`.
+Index for the hot paths: `tracks(project_id, position)`, `track_versions(track_id, version_number)`, `feedback(track_version_id, timestamp_ms)`, `share_links(token_hash)`.
 
 ---
 
@@ -184,7 +186,6 @@ Index for the hot paths: `tracks(project_id, position)`, `track_versions(track_i
 Applied to projects (and optionally overridden per track):
 
 - `private`: owner only
-- `shared`: owner plus explicit grantees in `shares`
 - `unlisted`: anyone holding a valid share link
 - `public`: anyone; appears on profile and in discovery
 
@@ -202,10 +203,10 @@ Applied to projects (and optionally overridden per track):
 4. **Downloads are off by default** and require an explicit per-project setting. Never expose original files to non-owners.
 5. **Audio is served via short-lived signed URLs** (target: 5 to 15 minutes). The API issues a signed URL only after `canAccess(..., 'listen')` passes. Never return permanent public URLs for non-public audio.
 6. Share links: unguessable (at least 128 bits of entropy), stored hashed, support expiry and revocation. Revoking takes effect immediately.
-7. A track inherits its project's visibility unless `visibility_override` is set. An override can only be **more restrictive** than the project unless the owner explicitly widens it.
+7. A track inherits its project's visibility unless `visibility_override` is set. An override can only be **more restrictive** than the project unless the owner explicitly widens it. A loose track (no project) uses its own `visibility`.
 8. `artist_only` feedback is visible only to the track owner and the feedback's author.
 9. Unauthenticated access to a non-public resource returns `404`, not `403`, to avoid leaking existence.
-10. Deleting a project or track revokes all shares/links and invalidates outstanding signed URLs as soon as practical.
+10. Deleting a project or track revokes all share links and invalidates outstanding signed URLs as soon as practical.
 
 ### Invite-only access (launch mode)
 
@@ -220,7 +221,7 @@ The service starts invite only. Anyone can create an account, but it stays `pend
 
 ### Testing requirement
 
-`packages/authz` must have exhaustive table-driven tests covering every combination of visibility x role x action x (owner / grantee / link-holder / stranger / anonymous). Any change to permission logic requires test updates in the same commit. Treat a permissions bug as a P0.
+`packages/authz` must have exhaustive table-driven tests covering every combination of visibility x role x action x (owner / link-holder / stranger / anonymous). Any change to permission logic requires test updates in the same commit. Treat a permissions bug as a P0.
 
 ---
 
@@ -374,7 +375,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 ### Phase 2: Upload and playback (vertical slice)
 
 - [x] S3-compatible object storage in docker-compose (SeaweedFS, stands in for B2 locally; moved from Phase 0)
-- [ ] Presigned upload flow, `track_versions` state machine
+- [ ] Presigned upload flow, `track_versions` state machine _(schema, state machine, and owner-only `canAccess` done; endpoints next)_
 - [ ] Worker: ffmpeg to AAC, duration, waveform peaks
 - [ ] Waveform player component, global mini-player
 - [ ] Track page (owner only; everything private)
@@ -391,7 +392,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 ### Phase 4: Sharing and permissions
 
 - [ ] `packages/authz` with `canAccess` and exhaustive tests (write these **first**)
-- [ ] Visibility settings, invites by user/email, roles
+- [ ] Visibility settings, roles on share links
 - [ ] Share links with expiry and revoke
 - [ ] Signed audio URLs gated by `canAccess`
 - [ ] Share dialog UI; public listen page that works for logged-out link holders
@@ -445,7 +446,7 @@ Listeners can send an artist a small donation to support a work in progress.
 
 ### Later / parking lot
 
-Reputation and give-to-get credits, local/geo features and place-based listening, audio analysis and auto-tagging, collaboration (stems, co-owners), embeds.
+Reputation and give-to-get credits, local/geo features and place-based listening, audio analysis and auto-tagging, collaboration (stems, co-owners), embeds, invites to specific users or emails (a `shares` table plus a visibility level between `private` and `unlisted`; dropped from Phase 4 on 2026-10-15).
 
 ---
 
@@ -469,6 +470,7 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 - Handle format rules
 - Max upload size and per-user storage quota
 - Whether tracks can be shared individually in Phase 4 or only whole projects at first
-- Email provider for invites and notification digests (Resend or Postmark)
+- How a project track's own `visibility` relates to `visibility_override` and the project's visibility (rule 7) once tracks can join projects (Phase 3/4)
+- Email provider for notification digests (Resend or Postmark)
 - Moderation approach for public content
 - Donations: payment provider (Stripe Connect?), and how to handle fees. Card fees (roughly 30¢ + ~3%) take about a third of a $1 donation. Options include having the donor cover fees, batching, or accepting the loss at first.
