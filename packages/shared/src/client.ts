@@ -2,10 +2,13 @@ import type { z } from 'zod';
 import { errorResponseSchema } from './schemas/common.ts';
 import { meResponseSchema } from './schemas/me.ts';
 import {
-  createUploadResponseSchema,
+  streamResponseSchema,
+  trackListResponseSchema,
+  trackResponseSchema,
   versionResponseSchema,
-  type CreateUploadRequest,
-} from './schemas/uploads.ts';
+  type TrackListQuery,
+} from './schemas/tracks.ts';
+import { createUploadResponseSchema, type CreateUploadRequest } from './schemas/uploads.ts';
 
 /** A non-2xx API response, carrying the standard error body. */
 export class ApiError extends Error {
@@ -69,6 +72,19 @@ export function createApiClient({ baseUrl, getToken, fetch = globalThis.fetch }:
       post(`/v1/uploads/${encodeURIComponent(versionId)}/complete`, versionResponseSchema),
     getVersion: (versionId: string) =>
       request(`/v1/versions/${encodeURIComponent(versionId)}`, versionResponseSchema),
+    /** A short-lived URL for a ready version's audio. Fetch a new one when it expires. */
+    getStream: (versionId: string) =>
+      request(`/v1/versions/${encodeURIComponent(versionId)}/stream`, streamResponseSchema),
+    /** The signed-in user's tracks, newest first. Pass `nextCursor` back as `cursor` for more. */
+    listTracks: ({ cursor, limit }: TrackListQuery = {}) => {
+      const query = new URLSearchParams();
+      if (cursor) query.set('cursor', cursor);
+      if (limit !== undefined) query.set('limit', String(limit));
+      const search = query.size ? `?${query}` : '';
+      return request(`/v1/tracks${search}`, trackListResponseSchema);
+    },
+    getTrack: (trackId: string) =>
+      request(`/v1/tracks/${encodeURIComponent(trackId)}`, trackResponseSchema),
   };
 }
 

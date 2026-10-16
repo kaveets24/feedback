@@ -81,6 +81,8 @@ describe('createApiClient', () => {
       status: 'processing',
       failureReason: null,
       durationMs: null,
+      waveformPeaks: null,
+      createdAt: '2026-10-16T00:00:00.000Z',
     };
     const fetch = fakeFetch(200, version);
     const api = createApiClient({ baseUrl: 'http://api.test', fetch });
@@ -90,6 +92,34 @@ describe('createApiClient', () => {
     expect(url.toString()).toBe(`http://api.test/v1/uploads/${version.id}/complete`);
     expect(init.method).toBe('POST');
     expect(init.body).toBeUndefined();
+  });
+
+  it('lists tracks with the cursor and limit in the query string', async () => {
+    const fetch = fakeFetch(200, { tracks: [], nextCursor: null });
+    const api = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+    await api.listTracks();
+    await api.listTracks({ cursor: '01890a5d-ac96-774b-bcce-b302099a8057', limit: 5 });
+    const urls = fetch.mock.calls.map((call) => String((call as unknown as [URL])[0]));
+    expect(urls).toEqual([
+      'http://api.test/v1/tracks',
+      'http://api.test/v1/tracks?cursor=01890a5d-ac96-774b-bcce-b302099a8057&limit=5',
+    ]);
+  });
+
+  it('fetches a stream URL for a version', async () => {
+    const stream = {
+      url: 'http://storage.test/b/streams/x?sig=1',
+      expiresAt: '2026-10-16T00:10:00.000Z',
+    };
+    const fetch = fakeFetch(200, stream);
+    const api = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+    await expect(api.getStream('01890a5d-ac96-774b-bcce-b302099a8058')).resolves.toEqual(stream);
+    const [url] = fetch.mock.calls[0] as unknown as [URL];
+    expect(url.toString()).toBe(
+      'http://api.test/v1/versions/01890a5d-ac96-774b-bcce-b302099a8058/stream',
+    );
   });
 
   it('throws when a success response does not match the schema', async () => {

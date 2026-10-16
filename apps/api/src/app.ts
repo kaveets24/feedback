@@ -18,6 +18,7 @@ import { debugRoutes } from './modules/debug/routes.ts';
 import { healthRoutes } from './modules/health/routes.ts';
 import { meRoutes } from './modules/me/routes.ts';
 import { uploadRoutes } from './modules/uploads/routes.ts';
+import { trackRoutes } from './modules/tracks/routes.ts';
 import { versionRoutes } from './modules/versions/routes.ts';
 import { noopErrorReporter, type ErrorReporter } from './monitoring/port.ts';
 import type { JobQueue } from './queue.ts';
@@ -57,7 +58,8 @@ export async function buildApp(env: Env, deps: AppDeps) {
       await v1.register(healthRoutes(deps.queue));
       await v1.register(meRoutes(deps.db));
       await v1.register(uploadRoutes(deps));
-      await v1.register(versionRoutes(deps.db));
+      await v1.register(versionRoutes(deps));
+      await v1.register(trackRoutes(deps.db));
       if (env.MONITORING_TEST_ERRORS) await v1.register(debugRoutes);
       v1.get('/openapi.json', { schema: { hide: true }, config: { allowUnapproved: true } }, () =>
         app.swagger(),
