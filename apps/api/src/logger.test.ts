@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { loadEnv } from './env.ts';
 import { loggerOptions } from './logger.ts';
 import { healthRoutes } from './modules/health/routes.ts';
+import { fakeQueue } from './testing/app.ts';
 
 /** An app using the real logger options, writing log lines into `lines`. */
 async function buildLoggedApp() {
@@ -26,7 +27,7 @@ async function buildLoggedApp() {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
   app.get('/echo', async () => ({ ok: true }));
-  await app.register(healthRoutes, { prefix: '/v1' });
+  await app.register(healthRoutes(fakeQueue()), { prefix: '/v1' });
   return { app, lines };
 }
 

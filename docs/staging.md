@@ -32,7 +32,10 @@ Any failed step fails the workflow and stops later steps. Deploys never run from
 
 The one exception is Redis (`fly.redis.staging.toml`). It runs a stock, pinned image and isn't
 part of these deploys, so merges never restart it. When its image tag or flags change, redeploy it
-by hand after the PR merges, with `pnpm staging:redis:deploy`.
+by hand after the PR merges, with `pnpm staging:redis:deploy`. The script deploys only the config
+on `origin/main` (it refuses if your copy differs), and starts the machine if Fly left it stopped:
+a deploy keeps a stopped machine stopped, and while it is, nothing can reach Redis (its
+`.internal` name stops resolving). Finish by checking `/v1/health/queue` returns `ok`.
 
 Vercel's own Git deploys of `main` are off (`apps/web/vercel.json`), so the web app only reaches
 staging through this workflow, after the API it talks to.
@@ -125,8 +128,13 @@ web app. Each event is tagged with `service` (`api`, `worker`, `web`), the envir
 feedback-staging` streams them live, and the app dashboard's "Search logs in Grafana" button
 searches the last 7 days. Web app logs are in the Vercel dashboard.
 
-**Uptime.** A Sentry uptime monitor calls `https://feedback-staging.fly.dev/v1/health` and emails
-when it fails. The web home page has no monitor (the free plan has one); every deploy's smoke
+**Uptime.** A Sentry uptime monitor calls `https://feedback-staging.fly.dev/v1/health/queue` and
+emails when it fails. That route returns 503 unless Redis answers and at least one worker is
+consuming the transcode queue, and it fails when the API is down too, so one monitor covers all
+three. (Fly's machine check and the deploy smoke tests use `/v1/health`, which only checks the API
+process: a queue outage shouldn't take the API's other routes down. Neither checks the database,
+since probing it every minute would keep Neon's compute from scaling to zero.) A 503 is logged as
+a warning with `redis` and `workers`, but not reported as an error. The web home page has no monitor (the free plan has one); every deploy's smoke
 test loads it.
 
 Nothing secret is sent: no headers except a short allowlist, no cookies, request bodies, query
@@ -205,7 +213,7 @@ How staging was provisioned, for reference and for the production setup in Phase
    `NEXT_PUBLIC_SENTRY_ENVIRONMENT=staging` as Vercel env vars for the Production environment.
    Production (Phase 7) uses the same projects with `environment` set to `production`.
    In the `feedback-server` project, add an uptime monitor (Alerts → Create alert → Uptime
-   monitor): URL `https://feedback-staging.fly.dev/v1/health`, method GET, environment
+   monitor): URL `https://feedback-staging.fly.dev/v1/health/queue`, method GET, environment
    `staging`, notify by email.
 6. **Backblaze B2** (ADR 0008):
    - Account → Caps & Alerts: daily caps on storage, download bandwidth, and class B and C
@@ -276,13 +284,17 @@ but doesn't start them, so once they stop (for example, when Fly's trial limit s
 billing was set up) they stay stopped across deploys. The api starts on the next request
 (`auto_start_machines`); start the worker with `fly machine start <id> -a feedback-staging`.
 
-**A version is stuck in `processing`:** the worker picks jobs up from Redis. Check the worker is
-running (`fly status -a feedback-staging`) and look for `transcode attempt failed` in its logs
+**A version is stuck in `processing`:** the worker picks jobs up from Redis. Start with
+`curl https://feedback-staging.fly.dev/v1/health/queue`: a 503 says whether Redis is unreachable or
+no worker is connected. Check the worker is running (`fly status -a feedback-staging`) and look for `transcode attempt failed` in its logs
 (`fly logs -a feedback-staging`, or Sentry Logs filtered to `service:worker`). Each job gets 3
 attempts; after the last, the version is marked `failed` and the error is reported to Sentry. A job
 that's gone from Redis leaves its version `processing` until the cleanup planned for Phase 7.
 
 **Is Redis healthy?** `fly status -a feedback-staging-redis` shows the machine and its TCP check.
+If it's stopped or failing, `fly logs -a feedback-staging-redis` shows why (for example
+`Permission denied` on its data directory, which the config on `main` fixes; redeploy it with
+`pnpm staging:redis:deploy`).
 For memory use and connected clients, run `fly ssh console -a feedback-staging-redis`, then
 `redis-cli --no-auth-warning -a "$REDIS_PASSWORD" info memory` (or `info clients`). If
 `used_memory` nears the 200 MB cap, writes fail (BullMQ needs `noeviction`): trim old jobs rather

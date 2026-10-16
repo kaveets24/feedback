@@ -8,13 +8,34 @@ export interface JobQueue {
    * same version again while its job still exists does nothing.
    */
   enqueueTranscode(versionId: string): Promise<void>;
+  /** Whether Redis answers, and how many workers are consuming the transcode queue. */
+  health(): Promise<QueueHealth>;
   /** Called with connection errors, which happen in the background (e.g. Redis restarting). */
   onError(listener: (err: Error) => void): void;
   close(): Promise<void>;
 }
 
+export interface QueueHealth {
+  redis: boolean;
+  workers: number;
+}
+
 /** How long a request waits to queue a job before giving up (and the client retries). */
 const ENQUEUE_TIMEOUT_MS = 5000;
+/** How long a health check waits on Redis; it's down if it hasn't answered by then. */
+const HEALTH_TIMEOUT_MS = 2000;
+
+/** Rejects with `message` if `promise` hasn't settled within `ms`. */
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  // If the timeout wins, the promise may still reject later; that's already been handled.
+  promise.catch(() => {});
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error(message)), ms).unref();
+    }),
+  ]);
+}
 
 /**
  * The job queue on Redis with BullMQ (ADR 0008). Startup never waits on Redis, and the
@@ -26,10 +47,23 @@ const ENQUEUE_TIMEOUT_MS = 5000;
  */
 export function bullmqJobQueue(
   redisUrl: string,
-  { enqueueTimeoutMs = ENQUEUE_TIMEOUT_MS }: { enqueueTimeoutMs?: number } = {},
+  {
+    enqueueTimeoutMs = ENQUEUE_TIMEOUT_MS,
+    healthTimeoutMs = HEALTH_TIMEOUT_MS,
+    prefix,
+  }: {
+    enqueueTimeoutMs?: number;
+    healthTimeoutMs?: number;
+    /**
+     * BullMQ's key and client-name prefix (default `bull`, which the worker uses too). Tests set
+     * their own: Redis counts connected workers server-wide, across databases.
+     */
+    prefix?: string;
+  } = {},
 ): JobQueue {
   const transcode = new Queue<TranscodeJob>(TRANSCODE_QUEUE, {
     connection: { url: redisUrl, maxRetriesPerRequest: null },
+    ...(prefix && { prefix }),
     skipWaitingForReady: true,
     defaultJobOptions: {
       attempts: 3,
@@ -45,18 +79,24 @@ export function bullmqJobQueue(
 
   return {
     async enqueueTranscode(versionId) {
-      const added = transcode.add('transcode', { versionId }, { jobId: versionId });
-      // If the timeout wins, the add may still fail later; that's already been handled.
-      added.catch(() => {});
-      await Promise.race([
-        added,
-        new Promise((_, reject) => {
-          setTimeout(
-            () => reject(new Error('Timed out adding a job; is Redis reachable?')),
-            enqueueTimeoutMs,
-          ).unref();
-        }),
-      ]);
+      await withTimeout(
+        transcode.add('transcode', { versionId }, { jobId: versionId }),
+        enqueueTimeoutMs,
+        'Timed out adding a job; is Redis reachable?',
+      );
+    },
+    async health() {
+      try {
+        // Workers are counted from Redis's client list, so this also checks Redis answers.
+        const workers = await withTimeout(
+          transcode.getWorkersCount(),
+          healthTimeoutMs,
+          'Timed out checking the job queue',
+        );
+        return { redis: true, workers };
+      } catch {
+        return { redis: false, workers: 0 };
+      }
     },
     onError(listener) {
       report = listener;

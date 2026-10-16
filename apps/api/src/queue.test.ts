@@ -1,4 +1,4 @@
-import { Queue } from 'bullmq';
+import { Queue, Worker } from 'bullmq';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { TRANSCODE_QUEUE } from '@feedback/shared';
 import { bullmqJobQueue } from './queue.ts';
@@ -36,6 +36,37 @@ describe('bullmqJobQueue', () => {
     try {
       await expect(down.enqueueTranscode(crypto.randomUUID())).rejects.toThrow(/Timed out/);
       await expect.poll(() => errors.length).toBeGreaterThan(0);
+    } finally {
+      await down.close();
+    }
+  });
+});
+
+describe('bullmqJobQueue health', () => {
+  // A prefix of its own: Redis counts workers across all databases, so the worker package's tests
+  // (on database 2, default prefix) would otherwise show up here.
+  const prefix = `health-test-${crypto.randomUUID()}`;
+
+  it('counts workers consuming the transcode queue', async () => {
+    const queue = bullmqJobQueue(redisUrl, { prefix });
+    try {
+      expect(await queue.health()).toEqual({ redis: true, workers: 0 });
+      const worker = new Worker(TRANSCODE_QUEUE, async () => {}, {
+        connection: { url: redisUrl, maxRetriesPerRequest: null },
+        prefix,
+      });
+      await expect.poll(() => queue.health()).toEqual({ redis: true, workers: 1 });
+      await worker.close();
+      await expect.poll(() => queue.health()).toEqual({ redis: true, workers: 0 });
+    } finally {
+      await queue.close();
+    }
+  });
+
+  it('reports Redis down when it is unreachable', async () => {
+    const down = bullmqJobQueue('redis://127.0.0.1:1', { healthTimeoutMs: 200 });
+    try {
+      expect(await down.health()).toEqual({ redis: false, workers: 0 });
     } finally {
       await down.close();
     }
