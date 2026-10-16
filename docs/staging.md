@@ -228,7 +228,12 @@ How staging was provisioned, for reference and for the production setup in Phase
      Ctrl-D. `--stage` waits for the next deploy instead of restarting the machines.
    - CORS: the web UI's CORS settings only cover downloads, and the app key can't change bucket
      settings, so set the rule once with the B2 CLI (`brew install b2-tools`), signed in with the
-     master key and signed out after. It's the same rule `pnpm services:up` sets on SeaweedFS:
+     master key and signed out after. It's the same rule `pnpm services:up` sets on SeaweedFS.
+     Don't add a CORS rule in the web UI: its "share everything in this bucket" rule allows only
+     `GET` with no request headers, so uploads fail in the browser with "No
+     'Access-Control-Allow-Origin' header". The command below replaces any rule made there, and
+     saving CORS in the web UI later overwrites it. `b2 account authorize` prompts for the key, so
+     run it in a normal terminal (not Claude Code's `!`, which can't answer prompts):
 
      ```bash
      b2 account authorize
@@ -245,6 +250,13 @@ How staging was provisioned, for reference and for the production setup in Phase
        -H "Origin: https://feedback-six-kappa.vercel.app" \
        -H "Access-Control-Request-Method: PUT" -H "Access-Control-Request-Headers: content-type"
      ```
+
+     Repeat it with `Access-Control-Request-Method: GET` and `Access-Control-Request-Headers: range`
+     (the player's seeking), which should also be allowed.
+
+     **Production (Phase 7):** the production bucket needs the same CLI rule, with that bucket's
+     name and `allowedOrigins` set to the production web origin only, never the staging
+     `vercel.app` one.
 
 7. **Redis** (ADR 0008), its own Fly app so app deploys never restart it and ffmpeg can't take its
    memory. It's a plain machine billed for the VM and volume (about $2 a month), not Upstash
