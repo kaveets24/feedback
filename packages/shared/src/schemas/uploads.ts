@@ -29,6 +29,33 @@ export const AUDIO_CONTENT_TYPES = [
   'audio/ogg',
 ] as const;
 
+export type AudioContentType = (typeof AUDIO_CONTENT_TYPES)[number];
+
+/** What to send for each accepted extension when the browser doesn't report a usable type. */
+const CONTENT_TYPE_BY_EXTENSION: Record<string, AudioContentType> = {
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
+  m4a: 'audio/mp4',
+  aac: 'audio/aac',
+  flac: 'audio/flac',
+  ogg: 'audio/ogg',
+};
+
+/** File extensions the upload form accepts, e.g. for an `accept` attribute. */
+export const AUDIO_EXTENSIONS = Object.keys(CONTENT_TYPE_BY_EXTENSION).map((ext) => `.${ext}`);
+
+/**
+ * The content type to upload a file as, or null if it isn't a format we accept. Browsers often
+ * report an empty or nonstandard type for flac, m4a, and aac files, so the extension is the
+ * fallback. Either way the API checks the file's bytes once it's uploaded.
+ */
+export function audioContentTypeFor(file: { name: string; type: string }): AudioContentType | null {
+  const reported = AUDIO_CONTENT_TYPES.find((type) => type === file.type.toLowerCase());
+  if (reported) return reported;
+  const extension = /\.([a-z0-9]+)$/i.exec(file.name)?.[1]?.toLowerCase();
+  return (extension && CONTENT_TYPE_BY_EXTENSION[extension]) || null;
+}
+
 export const createUploadRequestSchema = z.object({
   title: z.string().trim().min(1).max(200),
   /** The file's name on the artist's device, kept for their reference. */
