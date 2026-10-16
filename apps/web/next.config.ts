@@ -6,7 +6,7 @@ const allowIndexing = process.env.ALLOW_INDEXING === 'true';
 
 const nextConfig: NextConfig = {
   // Workspace packages ship TypeScript source; let Next compile them.
-  transpilePackages: ['@feedback/shared'],
+  transpilePackages: ['@feedback/shared', '@feedback/authz'],
   async headers() {
     if (allowIndexing) return [];
     return [{ source: '/:path*', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] }];

@@ -166,6 +166,8 @@ describe('uploads', () => {
         status: 'processing',
         failureReason: null,
         durationMs: null,
+        waveformPeaks: null,
+        createdAt: expect.any(String),
       });
       expect(queue.transcodes).toEqual([started.versionId]);
     });

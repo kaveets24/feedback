@@ -381,8 +381,8 @@ Get the app onto a staging environment as early as possible, so every later phas
 - [x] S3-compatible object storage in docker-compose (SeaweedFS, stands in for B2 locally; moved from Phase 0)
 - [x] Presigned upload flow, `track_versions` state machine _(API: `POST /v1/uploads`, `POST /v1/uploads/:versionId/complete`, `GET /v1/versions/:versionId`; the web upload form comes with the track page)_
 - [x] Worker: ffmpeg to AAC, duration, waveform peaks _(BullMQ consumer; ffmpeg ships in the server image as a pinned static build)_
-- [ ] Waveform player component, global mini-player
-- [ ] Track page (owner only; everything private)
+- [ ] Waveform player component, global mini-player _(API: `GET /v1/versions/:versionId/stream` issues a 10-minute signed URL after `canAccess(..., 'listen')`; the player fetches a new one when it expires)_
+- [ ] Track page (owner only; everything private) _(API: `GET /v1/tracks`, `GET /v1/tracks/:trackId`; version responses include `waveformPeaks`)_
 - **Done when:** I can upload a file, watch it go `processing` to `ready`, and play it with a waveform. Pipeline has integration tests including a failure case.
 
 ### Phase 3: Projects and versions

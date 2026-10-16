@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
 import { statusesBefore } from '@feedback/shared';
 import type { Db } from './client.ts';
@@ -50,6 +50,67 @@ export async function findTrack(db: Db, trackId: string): Promise<Track | null> 
     .from(tracks)
     .where(and(eq(tracks.id, trackId), isNull(tracks.deletedAt)));
   return track ?? null;
+}
+
+/** The newest version of a track, in any status, without its peaks (for lists). */
+export type VersionSummary = Pick<TrackVersion, 'id' | 'versionNumber' | 'status' | 'durationMs'>;
+
+/**
+ * An owner's tracks, newest first, each with its newest version. Pages by id: ids are UUIDv7, so
+ * they sort by creation time and compare exactly, unlike a timestamp truncated to milliseconds.
+ * Pass the last id of one page as `before` to get the next.
+ */
+export async function listTracksForOwner(
+  db: Db,
+  ownerId: string,
+  { limit, before }: { limit: number; before?: string },
+): Promise<{ track: Track; latestVersion: VersionSummary }[]> {
+  const page = await db
+    .select()
+    .from(tracks)
+    .where(
+      and(
+        eq(tracks.ownerId, ownerId),
+        isNull(tracks.deletedAt),
+        before ? lt(tracks.id, before) : undefined,
+      ),
+    )
+    .orderBy(desc(tracks.id))
+    .limit(limit);
+  if (page.length === 0) return [];
+
+  const latest = await db
+    .selectDistinctOn([trackVersions.trackId], {
+      trackId: trackVersions.trackId,
+      id: trackVersions.id,
+      versionNumber: trackVersions.versionNumber,
+      status: trackVersions.status,
+      durationMs: trackVersions.durationMs,
+    })
+    .from(trackVersions)
+    .where(
+      inArray(
+        trackVersions.trackId,
+        page.map((t) => t.id),
+      ),
+    )
+    .orderBy(trackVersions.trackId, desc(trackVersions.versionNumber));
+  const byTrack = new Map(latest.map(({ trackId, ...version }) => [trackId, version]));
+
+  // Every track is created with its v1 in one transaction, so each has a latest version.
+  return page.flatMap((track) => {
+    const latestVersion = byTrack.get(track.id);
+    return latestVersion ? [{ track, latestVersion }] : [];
+  });
+}
+
+/** A track's versions, newest first. */
+export async function listVersions(db: Db, trackId: string): Promise<TrackVersion[]> {
+  return db
+    .select()
+    .from(trackVersions)
+    .where(eq(trackVersions.trackId, trackId))
+    .orderBy(desc(trackVersions.versionNumber));
 }
 
 /** A version and its track, or null if either doesn't exist or the track was deleted. */

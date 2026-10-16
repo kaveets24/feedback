@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { versionStatusSchema } from './tracks.ts';
 
 /** Largest original we accept (CLAUDE.md section 7). Signed into the upload URL. */
 export const MAX_UPLOAD_BYTES = 200 * 1024 * 1024;
@@ -52,17 +51,3 @@ export const createUploadResponseSchema = z.object({
   }),
 });
 export type CreateUploadResponse = z.infer<typeof createUploadResponseSchema>;
-
-/** A version's processing state, for the artist to watch. */
-export const versionResponseSchema = z.object({
-  id: z.uuid(),
-  trackId: z.uuid(),
-  versionNumber: z.number().int().positive(),
-  status: versionStatusSchema,
-  /** Why the version failed, in words for the artist. Null unless `failed`. */
-  failureReason: z.string().nullable(),
-  durationMs: z.number().int().nullable(),
-});
-export type VersionResponse = z.infer<typeof versionResponseSchema>;
-
-export const versionParamsSchema = z.object({ versionId: z.uuid() });

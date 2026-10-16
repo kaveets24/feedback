@@ -7,6 +7,8 @@ import {
   createTrackWithFirstVersion,
   findTrack,
   findVersion,
+  listTracksForOwner,
+  listVersions,
   markVersionFailed,
   markVersionProcessing,
   markVersionReady,
@@ -166,5 +168,64 @@ describe('find helpers', () => {
     await db.update(tracks).set({ deletedAt: new Date() }).where(eq(tracks.id, track.id));
     expect(await findTrack(db, track.id)).toBeNull();
     expect(await findVersion(db, version.id)).toBeNull();
+  });
+});
+
+describe('listTracksForOwner', () => {
+  async function trackFor(providerId: string, title: string) {
+    const owner = await upsertUserFromAuth(db, {
+      authProviderId: providerId,
+      email: `${providerId}@x.test`,
+    });
+    return createTrackWithFirstVersion(db, { ownerId: owner.id, title, original });
+  }
+
+  it("lists only the owner's live tracks, newest first, with each one's newest version", async () => {
+    const a = await trackFor('auth_1', 'A');
+    const b = await trackFor('auth_1', 'B');
+    const deleted = await trackFor('auth_1', 'Deleted');
+    await trackFor('auth_2', 'Someone else');
+    await db.update(tracks).set({ deletedAt: new Date() }).where(eq(tracks.id, deleted.track.id));
+    // A's v2 failed; it's still A's newest version, so the list shows it.
+    const v2 = await addVersion(a.track.id, 2);
+    await markVersionFailed(db, v2.id, 'Bad file');
+
+    const listed = await listTracksForOwner(db, a.track.ownerId, { limit: 10 });
+    expect(listed.map(({ track }) => track.title)).toEqual(['B', 'A']);
+    expect(listed[0]?.latestVersion).toEqual({
+      id: b.version.id,
+      versionNumber: 1,
+      status: 'uploading',
+      durationMs: null,
+    });
+    expect(listed[1]?.latestVersion).toMatchObject({
+      id: v2.id,
+      versionNumber: 2,
+      status: 'failed',
+    });
+  });
+
+  it('pages with the last id of the previous page', async () => {
+    const { ownerId } = (await trackFor('auth_1', '1')).track;
+    for (const title of ['2', '3', '4', '5', '6']) await trackFor('auth_1', title);
+
+    const seen: string[] = [];
+    let before: string | undefined;
+    for (;;) {
+      const page = await listTracksForOwner(db, ownerId, { limit: 2, before });
+      if (page.length === 0) break;
+      seen.push(...page.map(({ track }) => track.title));
+      before = page.at(-1)!.track.id;
+    }
+    expect(seen).toEqual(['6', '5', '4', '3', '2', '1']);
+  });
+});
+
+describe('listVersions', () => {
+  it("returns a track's versions newest first", async () => {
+    const { track } = await newTrack();
+    await addVersion(track.id, 2);
+    await addVersion(track.id, 3);
+    expect((await listVersions(db, track.id)).map((v) => v.versionNumber)).toEqual([3, 2, 1]);
   });
 });
