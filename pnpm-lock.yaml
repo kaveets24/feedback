@@ -297,12 +297,21 @@ importers:
 
   apps/worker:
     dependencies:
+      '@feedback/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@feedback/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@feedback/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@sentry/node':
         specifier: ~11.6.0
         version: 11.6.0(@babel/core@7.29.7(supports-color@7.2.0))(rollup@4.64.5)
+      bullmq:
+        specifier: 6.3.11
+        version: 6.3.11(ioredis@6.0.0(supports-color@7.2.0))
       pino:
         specifier: ^10.4.0
         version: 10.4.0

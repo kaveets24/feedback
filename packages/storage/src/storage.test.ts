@@ -1,3 +1,6 @@
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { loadStorageConfig } from './config.ts';
 import { createStorage, MAX_PRESIGN_SECONDS } from './storage.ts';
@@ -99,6 +102,36 @@ describe('readStart', () => {
 
   it('returns null for a missing object', async () => {
     expect(await storage.readStart(key('missing'), 16)).toBeNull();
+  });
+});
+
+describe('upload and download', () => {
+  it('round-trips a file through storage, replacing what was there', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'storage-test-'));
+    try {
+      const objectKey = key('file');
+      const source = join(dir, 'source');
+      const target = join(dir, 'target');
+      await writeFile(source, 'first');
+      await storage.upload(objectKey, source, 'audio/mp4');
+      await writeFile(source, audio(300_000));
+      await storage.upload(objectKey, source, 'audio/mp4');
+      expect(await storage.head(objectKey)).toEqual({ size: 300_000, contentType: 'audio/mp4' });
+
+      expect(await storage.download(objectKey, target)).toBe(true);
+      expect(new Uint8Array(await readFile(target))).toEqual(audio(300_000));
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('download returns false for a missing object', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'storage-test-'));
+    try {
+      expect(await storage.download(key('missing'), join(dir, 'target'))).toBe(false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });
 

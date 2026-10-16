@@ -102,7 +102,7 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 
 Every command a developer needs to run (starting services, migrating, seeding, admin tasks, tests) must be a script in the root `package.json`, so `pnpm <script>` is the only interface. Don't document raw `docker`, `node`, or tool commands as steps; wrap them in a script first. Keep the scripts below accurate.
 
-(Not yet implemented: `test:e2e` (with Playwright, Phase 7). DB tests use a `feedback_test_<package>` database per package on the compose Postgres, created and migrated automatically by each package's vitest global setup; point `TEST_DATABASE_URL` at a different server to override.)
+(Not yet implemented: `test:e2e` (with Playwright, Phase 7). DB tests use a `feedback_test_<package>` database per package on the compose Postgres, created and migrated automatically by each package's vitest global setup; point `TEST_DATABASE_URL` at a different server to override. Worker tests run real ffmpeg, so install it locally (`brew install ffmpeg`); CI installs it, and the server image has its own static build.)
 
 ```bash
 pnpm install
@@ -247,6 +247,9 @@ Client                API                      B2/S3              Worker
 - Worker jobs must be **idempotent** and retry-safe. Failed jobs set `status=failed` with a user-visible reason.
 - Uploads must never block the API process. No transcoding in request handlers.
 - Start with progressive AAC. Move to HLS only if there's a concrete need.
+- How the worker does it (`apps/worker/src/transcode/`): one ffmpeg pass writes the stream (192 kbps stereo AAC, resampled to 48 kHz only if higher, at `streams/<versionId>`) and pipes mono samples for the peaks and the exact duration (counted from decoded samples, since headers can lie). Peaks are absolute: each point is the loudest sample in its slice as a fraction of full scale, so a quiet demo draws as quiet and the player can scale it for display.
+- ffmpeg treats originals as hostile: it may read only local files (no URLs, so a crafted playlist can't fetch anything) with only the demuxers for the accepted formats, keeps only the first audio stream, and drops all metadata (tags can hold things the artist didn't mean to share).
+- A file that can't be used fails at once with a reason; any other error is retried (3 attempts, set by the API when it queues the job), and the last failed attempt marks the version failed and reports to Sentry.
 
 ---
 
@@ -377,7 +380,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 - [x] S3-compatible object storage in docker-compose (SeaweedFS, stands in for B2 locally; moved from Phase 0)
 - [x] Presigned upload flow, `track_versions` state machine _(API: `POST /v1/uploads`, `POST /v1/uploads/:versionId/complete`, `GET /v1/versions/:versionId`; the web upload form comes with the track page)_
-- [ ] Worker: ffmpeg to AAC, duration, waveform peaks
+- [x] Worker: ffmpeg to AAC, duration, waveform peaks _(BullMQ consumer; ffmpeg ships in the server image as a pinned static build)_
 - [ ] Waveform player component, global mini-player
 - [ ] Track page (owner only; everything private)
 - **Done when:** I can upload a file, watch it go `processing` to `ready`, and play it with a waveform. Pipeline has integration tests including a failure case.
@@ -430,7 +433,7 @@ Listeners can send an artist a small donation to support a work in progress.
 
 ### Phase 7: Hardening and launch prep
 
-- [ ] Rate limiting, abuse controls, upload quotas, and cleanup of uploads that were started but never completed (versions left `uploading`, and their partial originals)
+- [ ] Rate limiting, abuse controls, upload quotas, and cleanup of uploads that were started but never completed (versions left `uploading`, and their partial originals), and of versions left `processing` because their job was lost (e.g. Redis lost it, or it stalled past BullMQ's limit)
 - [ ] Observability beyond the Phase 1 baseline (dashboards, metrics, alert tuning), backups
 - [ ] Privacy policy/ToS pages, account deletion and data export
 - [ ] Performance pass, e2e suite for critical flows (Playwright, run with `pnpm test:e2e`; moved from Phase 0)

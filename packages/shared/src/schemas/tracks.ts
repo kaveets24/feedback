@@ -26,3 +26,9 @@ export function canTransition(from: VersionStatus, to: VersionStatus): boolean {
 export function statusesBefore(to: VersionStatus): VersionStatus[] {
   return VERSION_STATUSES.filter((from) => canTransition(from, to));
 }
+
+/**
+ * Points in a ready version's `waveformPeaks`. Each is the loudest sample in its slice of the
+ * track, as a fraction of full scale (0 to 1), so a quiet recording draws as quiet.
+ */
+export const WAVEFORM_PEAK_COUNT = 1000;

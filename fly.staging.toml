@@ -5,6 +5,9 @@
 
 app = "feedback-staging"
 primary_region = "iad"
+# How long a stopping machine gets before it's killed (default 5s): time for the worker to finish
+# its running job (a few seconds for most songs). A job cut off still runs again later.
+kill_timeout = "30s"
 
 [deploy]
   # Runs in a one-off machine before new code starts; a failed migration fails the deploy.

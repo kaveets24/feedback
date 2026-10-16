@@ -2,7 +2,7 @@
 
 > A social app for sharing unfinished music: upload rough song ideas, organize them into projects, control exactly who can hear them, and collect feedback pinned to specific moments in a track.
 
-**Status:** Phase 0 (foundation) is complete: the web app, API, worker, and database run locally, with Clerk sign-in and the invite-only approval gate. Phase 1 (staging and continuous delivery) is in progress; uploads arrive in Phase 2. See [CLAUDE.md](CLAUDE.md) for the full product spec, architecture, and roadmap.
+**Status:** Phase 0 (foundation) is complete: the web app, API, worker, and database run locally, with Clerk sign-in and the invite-only approval gate. Phase 1 (staging and continuous delivery) is complete too. Phase 2 (upload and playback) is in progress. See [CLAUDE.md](CLAUDE.md) for the full product spec, architecture, and roadmap.
 
 ## Access: invite only
 
@@ -18,7 +18,7 @@ Feedback launches as an **invite-only** service. Anyone can sign up, but a new a
 | [pnpm](https://pnpm.io)                                                                               | 12                | `npm i -g pnpm` (not corepack; Node 25+ drops it)                   |
 | [Docker Desktop](https://www.docker.com/products/docker-desktop/) or [OrbStack](https://orbstack.dev) | latest            | Open the app once so the `docker` CLI is on your `PATH`             |
 
-From Phase 2 onward you'll also need **ffmpeg** for the audio worker: `brew install ffmpeg`.
+You'll also need **ffmpeg** (with ffprobe) for the audio worker and its tests: `brew install ffmpeg`.
 
 ### Run it locally
 
@@ -77,7 +77,7 @@ Before opening a PR: `pnpm lint && pnpm typecheck && pnpm test` must pass. CI ru
 apps/
   web/        Next.js (App Router) + Tailwind
   api/        Fastify HTTP API, routes under /v1
-  worker/     background jobs (audio processing, from Phase 2)
+  worker/     background jobs (audio processing)
 packages/
   db/         Drizzle schema, migrations, seed, query helpers
   shared/     zod schemas and types shared by API and clients
