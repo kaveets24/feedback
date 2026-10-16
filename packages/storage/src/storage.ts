@@ -2,6 +2,7 @@ import {
   CreateBucketCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  NoSuchKey,
   NotFound,
   PutBucketCorsCommand,
   PutObjectCommand,
@@ -94,6 +95,25 @@ export function createStorage(config: StorageConfig) {
         return { size: res.ContentLength ?? 0, contentType: res.ContentType };
       } catch (err) {
         if (err instanceof NotFound) return null;
+        throw err;
+      }
+    },
+
+    /**
+     * The first `length` bytes of an object (fewer if it's shorter), or null if it doesn't
+     * exist. Used to check what an uploaded file really is without downloading all of it.
+     */
+    async readStart(key: string, length: number): Promise<Uint8Array | null> {
+      if (!Number.isSafeInteger(length) || length < 1) {
+        throw new RangeError('length must be a positive integer');
+      }
+      try {
+        const res = await client.send(
+          new GetObjectCommand({ Bucket: bucket, Key: key, Range: `bytes=0-${length - 1}` }),
+        );
+        return res.Body ? await res.Body.transformToByteArray() : new Uint8Array();
+      } catch (err) {
+        if (err instanceof NoSuchKey) return null;
         throw err;
       }
     },

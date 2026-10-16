@@ -45,6 +45,53 @@ describe('createApiClient', () => {
     expect(err).toMatchObject({ status: 401, code: 'UNAUTHENTICATED', message: 'Sign in' });
   });
 
+  it('posts a new upload as JSON', async () => {
+    const created = {
+      trackId: '01890a5d-ac96-774b-bcce-b302099a8057',
+      versionId: '01890a5d-ac96-774b-bcce-b302099a8058',
+      upload: {
+        url: 'http://storage.test/b/originals/x?sig=1',
+        method: 'PUT',
+        headers: { 'content-type': 'audio/wav' },
+        expiresAt: '2026-10-16T00:15:00.000Z',
+      },
+    };
+    const fetch = fakeFetch(201, created);
+    const api = createApiClient({ baseUrl: 'http://api.test', fetch });
+    const input = {
+      title: 'Demo',
+      filename: 'demo.wav',
+      contentType: 'audio/wav',
+      sizeBytes: 10,
+    } as const;
+
+    await expect(api.createUpload(input)).resolves.toEqual(created);
+    const [url, init] = fetch.mock.calls[0] as unknown as [URL, RequestInit];
+    expect(url.toString()).toBe('http://api.test/v1/uploads');
+    expect(init.method).toBe('POST');
+    expect(new Headers(init.headers).get('content-type')).toBe('application/json');
+    expect(JSON.parse(init.body as string)).toEqual(input);
+  });
+
+  it('completes an upload with an empty POST', async () => {
+    const version = {
+      id: '01890a5d-ac96-774b-bcce-b302099a8058',
+      trackId: '01890a5d-ac96-774b-bcce-b302099a8057',
+      versionNumber: 1,
+      status: 'processing',
+      failureReason: null,
+      durationMs: null,
+    };
+    const fetch = fakeFetch(200, version);
+    const api = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+    await expect(api.completeUpload(version.id)).resolves.toEqual(version);
+    const [url, init] = fetch.mock.calls[0] as unknown as [URL, RequestInit];
+    expect(url.toString()).toBe(`http://api.test/v1/uploads/${version.id}/complete`);
+    expect(init.method).toBe('POST');
+    expect(init.body).toBeUndefined();
+  });
+
   it('throws when a success response does not match the schema', async () => {
     const api = createApiClient({ baseUrl: 'http://api.test', fetch: fakeFetch(200, { id: 1 }) });
     await expect(api.getMe()).rejects.toThrow();

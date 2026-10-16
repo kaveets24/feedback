@@ -36,9 +36,10 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm db:migrate
-      # The S3 stand-in, from docker-compose.yml so CI runs the same image and config as local
-      # dev. (Service containers can't pass it a command.) Tests create their own buckets.
-      - run: docker compose up -d --wait storage
+      # The S3 stand-in and Redis, from docker-compose.yml so CI runs the same images and config
+      # as local dev. (Service containers can't pass storage a command.) Tests create their own
+      # buckets and use Redis database 1.
+      - run: docker compose up -d --wait storage redis
       - run: pnpm test
 
   # Builds the API/worker server image (see docs/decisions/0003), checks that it migrates a fresh
@@ -87,7 +88,11 @@ jobs:
       - name: Smoke test
         run: |
           docker run --rm --network host -e DATABASE_URL "$IMAGE" node packages/db/src/scripts/migrate.ts
-          docker run -d --name api --network host -e DATABASE_URL -e CLERK_SECRET_KEY=sk_test_ci "$IMAGE"
+          # Storage and Redis aren't running here; the api starts without reaching either.
+          docker run -d --name api --network host -e DATABASE_URL -e CLERK_SECRET_KEY=sk_test_ci \
+            -e REDIS_URL=redis://localhost:6379 -e STORAGE_ENDPOINT=http://localhost:8333 \
+            -e STORAGE_REGION=us-east-1 -e STORAGE_BUCKET=ci -e STORAGE_ACCESS_KEY_ID=ci \
+            -e STORAGE_SECRET_ACCESS_KEY=ci "$IMAGE"
           docker run -d --name worker --network host "$IMAGE" node apps/worker/src/index.ts
           for i in $(seq 1 20); do curl -fsS localhost:4000/v1/health && break; sleep 1; done
           curl -fsS localhost:4000/v1/health
