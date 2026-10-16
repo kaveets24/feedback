@@ -42,9 +42,15 @@ Sign-in uses [Clerk](https://clerk.com). In your Clerk application's dashboard:
    - Root `.env`: set `CLERK_SECRET_KEY`.
    - `apps/web/.env.local`: set `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`.
 2. **Sessions → Customize session token:** add `{ "email": "{{user.primary_email_address}}" }`.
-   The API reads the user's email from the token.
+   The API reads the user's email from the token. Type it in: the editor doesn't offer it as a
+   suggestion. It's the Clerk user's primary email, so it works the same for Google or any other
+   SSO provider as for email sign-in.
+3. **User & authentication → Email:** make email required, so a provider that withholds one
+   still leaves the user with a primary email.
 
-The API and web app refuse to start if these keys are missing or malformed.
+The API and web app refuse to start if these keys are missing or malformed. If sign-in fails with
+a `resource_not_found` handshake error, the keys belong to a Clerk instance that no longer exists;
+copy fresh ones. If the API logs `Clerk session token has no "email" claim`, step 2 is missing.
 
 Then open:
 
