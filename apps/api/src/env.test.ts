@@ -4,6 +4,7 @@ import { loadEnv } from './env.ts';
 const required = {
   DATABASE_URL: 'postgres://feedback:feedback@localhost:5432/feedback',
   CLERK_SECRET_KEY: 'sk_test_abc',
+  REDIS_URL: 'redis://localhost:6379',
 };
 
 describe('loadEnv', () => {
@@ -41,10 +42,19 @@ describe('loadEnv', () => {
     );
   });
 
-  it('requires the database URL and Clerk secret key', () => {
-    expect(() => loadEnv({})).toThrow(/DATABASE_URL[\s\S]*CLERK_SECRET_KEY/);
+  it('requires the database URL, Clerk secret key, and Redis URL', () => {
+    expect(() => loadEnv({})).toThrow(/DATABASE_URL[\s\S]*CLERK_SECRET_KEY[\s\S]*REDIS_URL/);
     expect(() => loadEnv({ ...required, CLERK_SECRET_KEY: 'pk_test_abc' })).toThrow(
       /Clerk secret key/,
     );
+  });
+
+  it('accepts redis and rediss URLs only', () => {
+    const url = 'redis://default:pw@feedback-staging-redis.internal:6379?family=6';
+    expect(loadEnv({ ...required, REDIS_URL: url }).REDIS_URL).toBe(url);
+    expect(loadEnv({ ...required, REDIS_URL: 'rediss://h:6380' }).REDIS_URL).toBe(
+      'rediss://h:6380',
+    );
+    expect(() => loadEnv({ ...required, REDIS_URL: 'http://h:6379' })).toThrow(/REDIS_URL/);
   });
 });

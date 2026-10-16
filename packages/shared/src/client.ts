@@ -1,6 +1,11 @@
 import type { z } from 'zod';
 import { errorResponseSchema } from './schemas/common.ts';
 import { meResponseSchema } from './schemas/me.ts';
+import {
+  createUploadResponseSchema,
+  versionResponseSchema,
+  type CreateUploadRequest,
+} from './schemas/uploads.ts';
 
 /** A non-2xx API response, carrying the standard error body. */
 export class ApiError extends Error {
@@ -45,8 +50,25 @@ export function createApiClient({ baseUrl, getToken, fetch = globalThis.fetch }:
     return schema.parse(body);
   }
 
+  const post = <T>(path: string, schema: z.ZodType<T>, body?: unknown) =>
+    request(path, schema, {
+      method: 'POST',
+      ...(body !== undefined && {
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+    });
+
   return {
     getMe: () => request('/v1/me', meResponseSchema),
+    /** Starts an upload: creates the track and its v1, and returns where to PUT the file. */
+    createUpload: (input: CreateUploadRequest) =>
+      post('/v1/uploads', createUploadResponseSchema, input),
+    /** Call once the PUT succeeds. Safe to repeat; returns the version's state. */
+    completeUpload: (versionId: string) =>
+      post(`/v1/uploads/${encodeURIComponent(versionId)}/complete`, versionResponseSchema),
+    getVersion: (versionId: string) =>
+      request(`/v1/versions/${encodeURIComponent(versionId)}`, versionResponseSchema),
   };
 }
 

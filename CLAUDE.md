@@ -258,7 +258,7 @@ Client                API                      B2/S3              Worker
 - Errors use a consistent shape: `{ error: { code, message, details? } }`.
 - Pagination: cursor-based (`?cursor=&limit=`), never offset for feed-like lists.
 - No business logic in route handlers beyond orchestration; put it in service modules (`apps/api/src/modules/<domain>/`).
-- Each module: `routes.ts`, `service.ts`, `repo.ts`, `*.test.ts`.
+- Each module: `routes.ts`, `service.ts`, `repo.ts`, `*.test.ts`. Queries the worker also runs (tracks and versions) live in `packages/db` instead, and those modules have no `repo.ts`.
 
 ---
 
@@ -376,7 +376,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 ### Phase 2: Upload and playback (vertical slice)
 
 - [x] S3-compatible object storage in docker-compose (SeaweedFS, stands in for B2 locally; moved from Phase 0)
-- [ ] Presigned upload flow, `track_versions` state machine _(schema, state machine, and owner-only `canAccess` done; endpoints next)_
+- [x] Presigned upload flow, `track_versions` state machine _(API: `POST /v1/uploads`, `POST /v1/uploads/:versionId/complete`, `GET /v1/versions/:versionId`; the web upload form comes with the track page)_
 - [ ] Worker: ffmpeg to AAC, duration, waveform peaks
 - [ ] Waveform player component, global mini-player
 - [ ] Track page (owner only; everything private)
@@ -430,7 +430,7 @@ Listeners can send an artist a small donation to support a work in progress.
 
 ### Phase 7: Hardening and launch prep
 
-- [ ] Rate limiting, abuse controls, upload quotas
+- [ ] Rate limiting, abuse controls, upload quotas, and cleanup of uploads that were started but never completed (versions left `uploading`, and their partial originals)
 - [ ] Observability beyond the Phase 1 baseline (dashboards, metrics, alert tuning), backups
 - [ ] Privacy policy/ToS pages, account deletion and data export
 - [ ] Performance pass, e2e suite for critical flows (Playwright, run with `pnpm test:e2e`; moved from Phase 0)

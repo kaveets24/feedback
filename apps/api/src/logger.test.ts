@@ -13,6 +13,7 @@ async function buildLoggedApp() {
     LOG_LEVEL: 'info',
     DATABASE_URL: 'postgres://unused',
     CLERK_SECRET_KEY: 'sk_test_unused',
+    REDIS_URL: 'redis://unused',
   });
   const lines: string[] = [];
   const stream = new Writable({

@@ -7,6 +7,8 @@ const envSchema = z.object({
   API_PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   CLERK_SECRET_KEY: z.string().regex(/^sk_(test|live)_/, 'must be a Clerk secret key (sk_...)'),
+  /** Redis for the job queue (BullMQ). On Fly's private network, add `?family=6` (IPv6). */
+  REDIS_URL: z.url({ protocol: /^rediss?$/ }),
   /** Origin of the web app; session tokens from other origins are rejected. */
   WEB_ORIGIN: z.url().default('http://localhost:3000'),
   /** Sentry project DSN; unset turns error reporting off (the default locally). */

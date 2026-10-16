@@ -35,6 +35,7 @@ WORKDIR /app
 COPY --from=deps /app ./
 COPY packages/authz/src packages/authz/src
 COPY packages/shared/src packages/shared/src
+COPY packages/storage/src packages/storage/src
 COPY packages/db/src packages/db/src
 COPY packages/db/migrations packages/db/migrations
 COPY apps/api/src apps/api/src

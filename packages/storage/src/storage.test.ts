@@ -87,6 +87,21 @@ describe('presignDownload', () => {
   });
 });
 
+describe('readStart', () => {
+  it('returns the first bytes of an object, or all of a shorter one', async () => {
+    const objectKey = key('read-start');
+    const body = audio(1000);
+    body.set([1, 2, 3, 4], 0);
+    await upload(objectKey, body);
+    expect(await storage.readStart(objectKey, 4)).toEqual(new Uint8Array([1, 2, 3, 4]));
+    expect((await storage.readStart(objectKey, 5000))?.length).toBe(1000);
+  });
+
+  it('returns null for a missing object', async () => {
+    expect(await storage.readStart(key('missing'), 16)).toBeNull();
+  });
+});
+
 describe('head', () => {
   it('returns null for a missing object', async () => {
     expect(await storage.head(key('missing'))).toBeNull();

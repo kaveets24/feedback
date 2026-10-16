@@ -3,6 +3,8 @@ packages:
   - packages/*
 allowBuilds:
   esbuild: false
+  # Optional native speed-up for bullmq's msgpackr; its pure JS fallback is fine.
+  msgpackr-extract: false
   unrs-resolver: false
 minimumReleaseAgeExclude:
   - '@turbo/darwin-64@2.11.7'
