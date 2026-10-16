@@ -1,0 +1,36 @@
+# Redis for the staging job queue (BullMQ; see docs/decisions/0008 and docs/staging.md).
+# A stock, pinned image, so it isn't part of CI deploys: set up once and redeployed by hand with
+# `pnpm staging:redis:deploy` when the tag or flags below change. REDIS_PASSWORD is a Fly secret.
+#
+# No [http_service] or [[services]], so it has no public address: only the api and worker reach it,
+# over Fly's private network at feedback-staging-redis.internal:6379.
+
+app = "feedback-staging-redis"
+primary_region = "iad"
+
+[build]
+  image = "redis:8.10.2-alpine"
+
+[processes]
+  # Through sh so the password comes from the secret, and through the image's entrypoint so it
+  # owns /data and drops to the redis user. noeviction is required by BullMQ (evicting a job's
+  # keys corrupts the queue); the append-only file on the volume keeps jobs across restarts.
+  app = "sh -c 'exec docker-entrypoint.sh redis-server --requirepass \"$REDIS_PASSWORD\" --maxmemory 200mb --maxmemory-policy noeviction --appendonly yes --dir /data'"
+
+[mounts]
+  source = "redis_data"
+  destination = "/data"
+
+[[restart]]
+  policy = "always"
+
+[checks.redis]
+  type = "tcp"
+  port = 6379
+  interval = "15s"
+  timeout = "5s"
+  grace_period = "10s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

@@ -124,6 +124,7 @@ pnpm image:build              # build the api/worker server image locally (feedb
 pnpm staging:deploy <sha>     # redeploy an earlier main commit to staging via CI (rollback)
 pnpm staging:admin approve <email> [--by <admin-email>]   # same, on staging (runs inside Fly)
 pnpm staging:admin reject <email>
+pnpm staging:redis:deploy     # redeploy staging Redis by hand after its config changes (not part of CI deploys)
 ```
 
 Staging (deploys, rollback, secrets, setup) is documented in [docs/staging.md](docs/staging.md).
@@ -319,7 +320,7 @@ The app should feel like a late-90s/early-2000s desktop music app reimagined for
 These apply from Phase 1 on.
 
 - **`main` is always deployable.** Every merge to `main` deploys to staging automatically. If `main` breaks, fixing or reverting it comes before anything else merges.
-- **Deploys only come from CI**, never from a laptop. Build each image once and promote that same image from staging to production; never rebuild per environment.
+- **Deploys only come from CI**, never from a laptop. Build each image once and promote that same image from staging to production; never rebuild per environment. The one exception is Redis: a stock, pinned image in its own Fly app, set up once and redeployed by hand (`pnpm staging:redis:deploy`) only when its tag or flags change, like provisioning Neon or B2.
 - **Migrations must work with the release that's already running** (expand first, contract in a later deploy), so a deploy or rollback never breaks the live version.
 - **Monitoring starts cheap.** Datadog does the job but gets expensive quickly (per-host and per-GB pricing). Start with tools that have free or low-cost tiers, such as Sentry (errors), Grafana Cloud (logs, metrics, traces), or Better Stack (logs, uptime). Move to Datadog or similar only if we outgrow them.
 - **Stay vendor-neutral.** Log JSON to stdout with pino and use OpenTelemetry for traces and metrics, so changing monitoring vendors is a config change, not a code change (same idea as `AuthPort`).

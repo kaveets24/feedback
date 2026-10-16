@@ -12,6 +12,7 @@
     "staging:deploy": "node scripts/staging-deploy.ts",
     "staging:admin": "node scripts/staging-admin.ts",
     "staging:test-errors": "node scripts/staging-test-errors.ts",
+    "staging:redis:deploy": "fly deploy --config fly.redis.staging.toml",
     "services:up": "docker compose up -d --wait && pnpm --filter @feedback/storage storage:setup",
     "services:down": "docker compose down",
     "services:reset": "docker compose down -v",

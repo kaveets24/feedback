@@ -10,6 +10,7 @@ It holds no real user data, is invite-only (the approval gate), and is kept out 
 | Postgres     | Neon project `feedback` (`bold-feather-90292757`), branch `production`                                         |
 | Auth         | Clerk application "Feedback Staging" (separate from dev and production)                                        |
 | Storage      | Backblaze B2 bucket `feedback-audio-staging` (private), [ADR 0008](decisions/0008-object-storage-and-queue.md) |
+| Queue        | Fly app `feedback-staging-redis` (Redis for BullMQ, private network only), `iad`                               |
 | Images       | `ghcr.io/kaveets24/feedback-server:<sha>`, copied to `registry.fly.io`                                         |
 | Monitoring   | Sentry projects `feedback-server` (api + worker) and `feedback-web`                                            |
 | Deploy creds | GitHub Environment `staging` (only deploy tokens; app secrets stay in the hosts)                               |
@@ -28,6 +29,10 @@ Every push to `main` runs CI (`.github/workflows/ci.yml`). If `check` and `image
    checks it sends `X-Robots-Tag: noindex`.
 
 Any failed step fails the workflow and stops later steps. Deploys never run from a laptop.
+
+The one exception is Redis (`fly.redis.staging.toml`). It runs a stock, pinned image and isn't
+part of these deploys, so merges never restart it. When its image tag or flags change, redeploy it
+by hand after the PR merges, with `pnpm staging:redis:deploy`.
 
 Vercel's own Git deploys of `main` are off (`apps/web/vercel.json`), so the web app only reaches
 staging through this workflow, after the API it talks to.
@@ -74,26 +79,28 @@ about 2.5 minutes each way.
 App secrets live in the hosts. GitHub only holds what it needs to deploy and to check previews.
 Vercel env vars are set for the **Production** environment (staging) unless a row says otherwise.
 
-| Name                                                   | Where                      | Notes                                                                                                                                                                                   |
-| ------------------------------------------------------ | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                                         | Fly secret                 | Neon **direct** connection string, `?sslmode=require` only (postgres.js rejects `channel_binding`)                                                                                      |
-| `CLERK_SECRET_KEY`                                     | Fly secret, Vercel env var | Staging Clerk app                                                                                                                                                                       |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`                    | Vercel env var             | Staging Clerk app                                                                                                                                                                       |
-| `API_URL`                                              | Vercel env var             | `https://feedback-staging.fly.dev`                                                                                                                                                      |
-| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `_SIGN_UP_URL`       | Vercel env var             | `/sign-in`, `/sign-up`                                                                                                                                                                  |
-| `ENABLE_EXPERIMENTAL_COREPACK`                         | Vercel env var             | `1`, so Vercel uses the pnpm in `packageManager` (ADR 0005)                                                                                                                             |
-| `SENTRY_DSN`                                           | Fly secret                 | `feedback-server` project's DSN, shared by api and worker (events carry a `service` tag)                                                                                                |
-| `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY`  | Fly secret                 | B2 application key `feedback-staging`: this bucket only, Read and Write. Never the master key                                                                                           |
-| `STORAGE_ENDPOINT`, `STORAGE_REGION`, `STORAGE_BUCKET` | `fly.staging.toml`         | Not secret. The region is the middle part of the endpoint (`s3.<region>.backblazeb2.com`)                                                                                               |
-| `NEXT_PUBLIC_SENTRY_DSN`                               | Vercel env var             | `feedback-web` project's DSN; public by design (it only lets clients send events)                                                                                                       |
-| `NEXT_PUBLIC_SENTRY_ENVIRONMENT`                       | Vercel env var             | `staging`                                                                                                                                                                               |
-| Preview env vars                                       | Vercel env vars (Preview)  | `API_URL` and the sign-in/up URLs as above; Clerk keys from the staging app's **development** instance; `NEXT_PUBLIC_SENTRY_DSN` as above with `NEXT_PUBLIC_SENTRY_ENVIRONMENT=preview` |
-| `NODE_ENV`, `LOG_LEVEL`, `API_*`, `WEB_ORIGIN`         | `fly.staging.toml`         | Not secret; so is `SENTRY_ENVIRONMENT=staging`                                                                                                                                          |
-| `GIT_SHA`                                              | Baked into the image       | The commit CI built it from; tags error reports with their release                                                                                                                      |
-| `FLY_API_TOKEN`                                        | GitHub `staging` secret    | Deploy token scoped to the Fly app                                                                                                                                                      |
-| `VERCEL_TOKEN`                                         | GitHub `staging` secret    | Vercel access token                                                                                                                                                                     |
-| `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`                   | GitHub `staging` variables | From the Vercel project settings                                                                                                                                                        |
-| `VERCEL_AUTOMATION_BYPASS_SECRET`                      | GitHub repository secret   | Vercel → Settings → Deployment Protection → Protection Bypass for Automation; lets the `Preview` check past Vercel's login                                                              |
+| Name                                                   | Where                                  | Notes                                                                                                                                                                                   |
+| ------------------------------------------------------ | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                         | Fly secret                             | Neon **direct** connection string, `?sslmode=require` only (postgres.js rejects `channel_binding`)                                                                                      |
+| `CLERK_SECRET_KEY`                                     | Fly secret, Vercel env var             | Staging Clerk app                                                                                                                                                                       |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`                    | Vercel env var                         | Staging Clerk app                                                                                                                                                                       |
+| `API_URL`                                              | Vercel env var                         | `https://feedback-staging.fly.dev`                                                                                                                                                      |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `_SIGN_UP_URL`       | Vercel env var                         | `/sign-in`, `/sign-up`                                                                                                                                                                  |
+| `ENABLE_EXPERIMENTAL_COREPACK`                         | Vercel env var                         | `1`, so Vercel uses the pnpm in `packageManager` (ADR 0005)                                                                                                                             |
+| `SENTRY_DSN`                                           | Fly secret                             | `feedback-server` project's DSN, shared by api and worker (events carry a `service` tag)                                                                                                |
+| `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY`  | Fly secret                             | B2 application key `feedback-staging`: this bucket only, Read and Write. Never the master key                                                                                           |
+| `STORAGE_ENDPOINT`, `STORAGE_REGION`, `STORAGE_BUCKET` | `fly.staging.toml`                     | Not secret. The region is the middle part of the endpoint (`s3.<region>.backblazeb2.com`)                                                                                               |
+| `REDIS_PASSWORD`                                       | Fly secret on `feedback-staging-redis` | Random, 64 hex characters                                                                                                                                                               |
+| `REDIS_URL`                                            | Fly secret                             | `redis://default:<REDIS_PASSWORD>@feedback-staging-redis.internal:6379?family=6`. Fly's private network is IPv6, which ioredis only uses with `family=6`                                |
+| `NEXT_PUBLIC_SENTRY_DSN`                               | Vercel env var                         | `feedback-web` project's DSN; public by design (it only lets clients send events)                                                                                                       |
+| `NEXT_PUBLIC_SENTRY_ENVIRONMENT`                       | Vercel env var                         | `staging`                                                                                                                                                                               |
+| Preview env vars                                       | Vercel env vars (Preview)              | `API_URL` and the sign-in/up URLs as above; Clerk keys from the staging app's **development** instance; `NEXT_PUBLIC_SENTRY_DSN` as above with `NEXT_PUBLIC_SENTRY_ENVIRONMENT=preview` |
+| `NODE_ENV`, `LOG_LEVEL`, `API_*`, `WEB_ORIGIN`         | `fly.staging.toml`                     | Not secret; so is `SENTRY_ENVIRONMENT=staging`                                                                                                                                          |
+| `GIT_SHA`                                              | Baked into the image                   | The commit CI built it from; tags error reports with their release                                                                                                                      |
+| `FLY_API_TOKEN`                                        | GitHub `staging` secret                | Deploy token scoped to the Fly app                                                                                                                                                      |
+| `VERCEL_TOKEN`                                         | GitHub `staging` secret                | Vercel access token                                                                                                                                                                     |
+| `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`                   | GitHub `staging` variables             | From the Vercel project settings                                                                                                                                                        |
+| `VERCEL_AUTOMATION_BYPASS_SECRET`                      | GitHub repository secret               | Vercel → Settings → Deployment Protection → Protection Bypass for Automation; lets the `Preview` check past Vercel's login                                                              |
 
 The web project holds only what the web app reads (`apps/web/lib/env.ts` and the Sentry config).
 Never add the api's vars (`DATABASE_URL`, `WEB_ORIGIN`, ...) to it: every preview build runs PR code
@@ -231,9 +238,28 @@ How staging was provisioned, for reference and for the production setup in Phase
        -H "Access-Control-Request-Method: PUT" -H "Access-Control-Request-Headers: content-type"
      ```
 
-7. **First deploy:** merge to `main` (or `pnpm staging:deploy <sha>`), then sign in on staging and
+7. **Redis** (ADR 0008), its own Fly app so app deploys never restart it and ffmpeg can't take its
+   memory. It's a plain machine billed for the VM and volume (about $2 a month), not Upstash
+   (`fly redis create`), which bills per command and gets expensive with BullMQ's constant polling.
+   It has no public address. Generate the password into a shell variable so it never appears in
+   shell history, and give both apps the same value:
+
+   ```bash
+   fly apps create feedback-staging-redis
+   fly volumes create redis_data --size 1 -r iad -a feedback-staging-redis
+   pw=$(openssl rand -hex 32)
+   echo "REDIS_PASSWORD=$pw" | fly secrets import --stage -a feedback-staging-redis
+   echo "REDIS_URL=redis://default:$pw@feedback-staging-redis.internal:6379?family=6" | fly secrets import --stage -a feedback-staging
+   unset pw
+   pnpm staging:redis:deploy
+   ```
+
+   Then check that `fly ips list -a feedback-staging-redis` shows no addresses. If `fly deploy`
+   allocated any, release them with `fly ips release <address> -a feedback-staging-redis`.
+
+8. **First deploy:** merge to `main` (or `pnpm staging:deploy <sha>`), then sign in on staging and
    approve yourself with `pnpm staging:admin approve <email>`.
-8. **Scale:** the first `flyctl deploy` creates two api machines and a worker with a standby.
+9. **Scale:** the first `flyctl deploy` creates two api machines and a worker with a standby.
    Staging runs one of each: `fly scale count api=1 worker=1 -a feedback-staging`. Deploys keep
    that count.
 
@@ -249,3 +275,9 @@ no running api machine. Check `fly status -a feedback-staging`. A deploy updates
 but doesn't start them, so once they stop (for example, when Fly's trial limit stopped them before
 billing was set up) they stay stopped across deploys. The api starts on the next request
 (`auto_start_machines`); start the worker with `fly machine start <id> -a feedback-staging`.
+
+**Is Redis healthy?** `fly status -a feedback-staging-redis` shows the machine and its TCP check.
+For memory use and connected clients, run `fly ssh console -a feedback-staging-redis`, then
+`redis-cli --no-auth-warning -a "$REDIS_PASSWORD" info memory` (or `info clients`). If
+`used_memory` nears the 200 MB cap, writes fail (BullMQ needs `noeviction`): trim old jobs rather
+than raising the cap past what the 256 MB machine holds.
