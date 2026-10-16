@@ -13,9 +13,12 @@ primary_region = "iad"
 
 [processes]
   # Through sh so the password comes from the secret, and through the image's entrypoint so it
-  # owns /data and drops to the redis user. noeviction is required by BullMQ (evicting a job's
+  # drops to the redis user. Data lives in /data/redis, not the volume's root: a new volume has a
+  # lost+found there, and the entrypoint won't change ownership of a directory holding files it
+  # doesn't recognize, so Redis couldn't write. Started from inside /data/redis, the entrypoint
+  # gives that directory to the redis user. noeviction is required by BullMQ (evicting a job's
   # keys corrupts the queue); the append-only file on the volume keeps jobs across restarts.
-  app = "sh -c 'exec docker-entrypoint.sh redis-server --requirepass \"$REDIS_PASSWORD\" --maxmemory 200mb --maxmemory-policy noeviction --appendonly yes --dir /data'"
+  app = "sh -c 'mkdir -p /data/redis && cd /data/redis && exec docker-entrypoint.sh redis-server --requirepass \"$REDIS_PASSWORD\" --maxmemory 200mb --maxmemory-policy noeviction --appendonly yes --dir /data/redis'"
 
 [mounts]
   source = "redis_data"
