@@ -276,6 +276,12 @@ but doesn't start them, so once they stop (for example, when Fly's trial limit s
 billing was set up) they stay stopped across deploys. The api starts on the next request
 (`auto_start_machines`); start the worker with `fly machine start <id> -a feedback-staging`.
 
+**A version is stuck in `processing`:** the worker picks jobs up from Redis. Check the worker is
+running (`fly status -a feedback-staging`) and look for `transcode attempt failed` in its logs
+(`fly logs -a feedback-staging`, or Sentry Logs filtered to `service:worker`). Each job gets 3
+attempts; after the last, the version is marked `failed` and the error is reported to Sentry. A job
+that's gone from Redis leaves its version `processing` until the cleanup planned for Phase 7.
+
 **Is Redis healthy?** `fly status -a feedback-staging-redis` shows the machine and its TCP check.
 For memory use and connected clients, run `fly ssh console -a feedback-staging-redis`, then
 `redis-cli --no-auth-warning -a "$REDIS_PASSWORD" info memory` (or `info clients`). If

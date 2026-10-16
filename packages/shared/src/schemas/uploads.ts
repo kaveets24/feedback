@@ -4,6 +4,9 @@ import { versionStatusSchema } from './tracks.ts';
 /** Largest original we accept (CLAUDE.md section 7). Signed into the upload URL. */
 export const MAX_UPLOAD_BYTES = 200 * 1024 * 1024;
 
+/** Longest audio we accept (CLAUDE.md section 7). The worker fails longer versions. */
+export const MAX_DURATION_MS = 20 * 60 * 1000;
+
 /**
  * Content types accepted for originals: mp3, wav, m4a, aac, flac, ogg (CLAUDE.md section 7),
  * under the names browsers report for them. The API also checks the file's first bytes once

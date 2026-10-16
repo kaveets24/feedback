@@ -8,11 +8,14 @@
     "start": "node src/index.ts",
     "lint": "eslint .",
     "typecheck": "tsc",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run"
   },
   "dependencies": {
+    "@feedback/db": "workspace:*",
     "@feedback/shared": "workspace:*",
+    "@feedback/storage": "workspace:*",
     "@sentry/node": "~11.6.0",
+    "bullmq": "6.3.11",
     "pino": "^10.4.0",
     "zod": "^4.6.5"
   },

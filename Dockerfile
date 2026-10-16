@@ -11,6 +11,10 @@
 
 ARG NODE_VERSION
 
+# Static ffmpeg and ffprobe builds for the worker's audio pipeline, pinned by digest: the same
+# version as local dev (Homebrew), and 226 MB against 406 MB for Debian's older ffmpeg package.
+FROM mwader/static-ffmpeg:9.0.2-1@sha256:f5d100184884eb3e82b0eb14bb5ebf98da99826ac824989720297fb9ef21c822 AS ffmpeg
+
 FROM node:${NODE_VERSION}-slim AS deps
 ARG PNPM_VERSION
 RUN npm install -g pnpm@${PNPM_VERSION}
@@ -31,6 +35,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
 
 FROM node:${NODE_VERSION}-slim
 ENV NODE_ENV=production
+COPY --from=ffmpeg /ffmpeg /ffprobe /usr/local/bin/
 WORKDIR /app
 COPY --from=deps /app ./
 COPY packages/authz/src packages/authz/src

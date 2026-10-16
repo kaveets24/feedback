@@ -10,6 +10,10 @@ import {
   S3ServiceException,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
+import type { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import type { StorageConfig } from './config.ts';
 
 /**
@@ -116,6 +120,39 @@ export function createStorage(config: StorageConfig) {
         if (err instanceof NoSuchKey) return null;
         throw err;
       }
+    },
+
+    /**
+     * Streams an object to a local file, so a large original never sits in memory. Returns
+     * false, writing nothing, if the object doesn't exist.
+     */
+    async download(key: string, path: string): Promise<boolean> {
+      let res;
+      try {
+        res = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+      } catch (err) {
+        if (err instanceof NoSuchKey) return false;
+        throw err;
+      }
+      if (!res.Body) throw new Error('storage returned no body');
+      // In Node the body is an IncomingMessage, but the SDK types it as a union with browser
+      // stream types.
+      await pipeline(res.Body as Readable, createWriteStream(path));
+      return true;
+    },
+
+    /** Uploads a local file (streamed, not read into memory), replacing any object at `key`. */
+    async upload(key: string, path: string, contentType: string): Promise<void> {
+      const { size } = await stat(path);
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: createReadStream(path),
+          ContentLength: size,
+          ContentType: contentType,
+        }),
+      );
     },
 
     /**

@@ -1,6 +1,12 @@
 import { pino } from 'pino';
+import { createDb } from '@feedback/db';
+import { createStorage, loadStorageConfig } from '@feedback/storage';
 import { loadEnv } from './env.ts';
 import { captureException, flushSentry, initSentry } from './sentry.ts';
+import { startTranscodeWorker } from './transcode/worker.ts';
+
+/** How long shutdown waits for the running job; under Fly's kill_timeout (fly.staging.toml). */
+const SHUTDOWN_TIMEOUT_MS = 25_000;
 
 const env = loadEnv();
 const reporting = initSentry(env);
@@ -10,11 +16,17 @@ const log = pino({
     transport: { target: 'pino-pretty', options: { translateTime: 'HH:MM:ss' } },
   }),
 });
+const db = createDb(env.DATABASE_URL);
+const storage = createStorage(loadStorageConfig());
 
-// BullMQ consumers (ffmpeg pipeline) are added in Phase 2. Until then the process just idles
-// so `pnpm dev` exercises the same three-process layout as production.
-const keepAlive = setInterval(() => {}, 1 << 30);
-log.info({ errorReporting: reporting }, 'worker started (no queues registered yet)');
+const transcoder = startTranscodeWorker(
+  { db, storage, log },
+  {
+    redisUrl: env.REDIS_URL,
+    report: (err, context) => captureException(err, { extra: context }),
+  },
+);
+log.info({ errorReporting: reporting }, 'worker started');
 
 // Checks error reporting end to end without crashing the worker (see docs/staging.md).
 if (env.MONITORING_TEST_ERRORS) {
@@ -25,7 +37,16 @@ if (env.MONITORING_TEST_ERRORS) {
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
     log.info({ signal }, 'shutting down');
-    clearInterval(keepAlive);
-    void flushSentry(2000);
+    // Waits for the running job to finish, but not forever: closing also waits on Redis, which
+    // may be down. A job cut off here stalls and runs again later, which is safe.
+    setTimeout(() => {
+      log.warn('shutdown timed out; exiting');
+      process.exit(1);
+    }, SHUTDOWN_TIMEOUT_MS).unref();
+    void transcoder
+      .close()
+      .then(() => Promise.all([db.close(), storage.close()]))
+      .then(() => flushSentry(2000))
+      .then(() => process.exit(0));
   });
 }

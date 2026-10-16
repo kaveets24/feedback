@@ -10,7 +10,7 @@ import type { Env } from './env.ts';
 
 /**
  * Starts Sentry if `SENTRY_DSN` is set. It reports uncaught exceptions and unhandled rejections
- * on its own; job failures will report through `Sentry.captureException` once queues exist.
+ * on its own; a job that fails for good reports through `captureException`.
  * Returns whether reporting is on.
  */
 export function initSentry(env: Env): boolean {

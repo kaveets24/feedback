@@ -40,6 +40,8 @@ jobs:
       # as local dev. (Service containers can't pass storage a command.) Tests create their own
       # buckets and use Redis database 1.
       - run: docker compose up -d --wait storage redis
+      # The worker's tests run real ffmpeg (the image has its own static build).
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - run: pnpm test
 
   # Builds the API/worker server image (see docs/decisions/0003), checks that it migrates a fresh
@@ -88,12 +90,16 @@ jobs:
       - name: Smoke test
         run: |
           docker run --rm --network host -e DATABASE_URL "$IMAGE" node packages/db/src/scripts/migrate.ts
-          # Storage and Redis aren't running here; the api starts without reaching either.
-          docker run -d --name api --network host -e DATABASE_URL -e CLERK_SECRET_KEY=sk_test_ci \
-            -e REDIS_URL=redis://localhost:6379 -e STORAGE_ENDPOINT=http://localhost:8333 \
-            -e STORAGE_REGION=us-east-1 -e STORAGE_BUCKET=ci -e STORAGE_ACCESS_KEY_ID=ci \
-            -e STORAGE_SECRET_ACCESS_KEY=ci "$IMAGE"
-          docker run -d --name worker --network host "$IMAGE" node apps/worker/src/index.ts
+          # Storage and Redis aren't running here; the api and worker start without reaching either.
+          server_env=(-e DATABASE_URL -e REDIS_URL=redis://localhost:6379
+            -e STORAGE_ENDPOINT=http://localhost:8333 -e STORAGE_REGION=us-east-1
+            -e STORAGE_BUCKET=ci -e STORAGE_ACCESS_KEY_ID=ci -e STORAGE_SECRET_ACCESS_KEY=ci)
+          docker run -d --name api --network host "${server_env[@]}" -e CLERK_SECRET_KEY=sk_test_ci \
+            "$IMAGE"
+          docker run -d --name worker --network host "${server_env[@]}" "$IMAGE" \
+            node apps/worker/src/index.ts
+          # The worker's audio pipeline needs both binaries.
+          docker run --rm "$IMAGE" sh -c 'ffmpeg -version && ffprobe -version' > /dev/null
           for i in $(seq 1 20); do curl -fsS localhost:4000/v1/health && break; sleep 1; done
           curl -fsS localhost:4000/v1/health
           test "$(docker inspect -f '{{.State.Running}}' worker)" = true
