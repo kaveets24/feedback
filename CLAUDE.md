@@ -124,14 +124,14 @@ pnpm image:build              # build the api/worker server image locally (feedb
 pnpm staging:deploy <sha>     # redeploy an earlier main commit to staging via CI (rollback)
 pnpm staging:admin approve <email> [--by <admin-email>]   # same, on staging (runs inside Fly)
 pnpm staging:admin reject <email>
-pnpm staging:redis:deploy     # redeploy staging Redis by hand after its config changes (not part of CI deploys)
+pnpm staging:redis:deploy     # redeploy staging Redis by hand after its config changes merge (not part of CI deploys); starts it if left stopped
 ```
 
 Staging (deploys, rollback, secrets, setup) is documented in [docs/staging.md](docs/staging.md).
 
 Env vars: each app reads its own env file (`.env` for api, worker, and db scripts; `apps/web/.env.local` for web). Turbo runs tasks in strict env mode, so a var exported only in your shell (e.g. `FOO=1 pnpm dev`) never reaches the app; put it in the env file. `turbo.json` declares only what the web build reads from the process env on Vercel (see the comment there).
 
-Local URLs: web http://localhost:3000, API http://localhost:4000 (`/v1/health`, `/v1/openapi.json`), pgweb http://localhost:8081 (browses the `feedback` database; its connect screen can switch to a `feedback_test_*` database), object storage (S3 API) http://localhost:8333 with a file browser at http://localhost:8888/buckets/.
+Local URLs: web http://localhost:3000, API http://localhost:4000 (`/v1/health`, `/v1/health/queue`, `/v1/openapi.json`), pgweb http://localhost:8081 (browses the `feedback` database; its connect screen can switch to a `feedback_test_*` database), object storage (S3 API) http://localhost:8333 with a file browser at http://localhost:8888/buckets/.
 
 Before saying a task is done: `pnpm lint && pnpm typecheck && pnpm test` must pass.
 

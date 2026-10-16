@@ -54,7 +54,7 @@ export async function buildApp(env: Env, deps: AppDeps) {
 
   await app.register(
     async (v1) => {
-      await v1.register(healthRoutes);
+      await v1.register(healthRoutes(deps.queue));
       await v1.register(meRoutes(deps.db));
       await v1.register(uploadRoutes(deps));
       await v1.register(versionRoutes(deps.db));

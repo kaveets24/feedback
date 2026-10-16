@@ -6,7 +6,7 @@ import { buildApp } from '../app.ts';
 import type { AuthPort } from '../auth/port.ts';
 import { loadEnv } from '../env.ts';
 import type { ErrorReporter } from '../monitoring/port.ts';
-import type { JobQueue } from '../queue.ts';
+import type { JobQueue, QueueHealth } from '../queue.ts';
 
 /**
  * Fake auth for tests: `test|<providerId>|<email>` is a valid token, anything else is invalid.
@@ -28,6 +28,8 @@ export interface FakeQueue extends JobQueue {
   transcodes: string[];
   /** When set, enqueueing rejects with this error. */
   failWith: Error | null;
+  /** What `health()` reports. */
+  status: QueueHealth;
 }
 
 /** A job queue that records what was queued instead of using Redis. */
@@ -35,9 +37,13 @@ export function fakeQueue(): FakeQueue {
   const queue: FakeQueue = {
     transcodes: [],
     failWith: null,
+    status: { redis: true, workers: 1 },
     async enqueueTranscode(versionId) {
       if (queue.failWith) throw queue.failWith;
       queue.transcodes.push(versionId);
+    },
+    async health() {
+      return queue.status;
     },
     onError() {},
     async close() {},
