@@ -149,8 +149,8 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 
 **Music**
 
-- `projects`: id, owner_id, title, description, cover_url, status (`idea | demo | mixing | done`), visibility, deleted_at
-- `tracks`: id, owner_id, project_id (nullable: a track without one is a "loose" track), title, notes, position (nullable, only meaningful in a project), visibility (default `private`; a loose track's own visibility), current_version_id (the newest `ready` version), visibility_override (nullable), deleted_at. `project_id`, `position`, and `visibility_override` arrive with the `projects` table in Phase 3; Phase 2 tracks are all loose.
+- `projects`: id, owner_id, title, description, cover_key (arrives with cover art upload later in Phase 3), status (`idea | demo | mixing | done`, default `idea`), visibility, deleted_at. Deleting a project soft-deletes it and leaves its tracks loose, with their versions; it never deletes songs.
+- `tracks`: id, owner_id, project_id (nullable: a track without one is a "loose" track), title, notes, position (nullable, only meaningful in a project), visibility (default `private`; a loose track's own visibility), current_version_id (the newest `ready` version), visibility_override (nullable; nothing reads it until Phase 4, see section 13), deleted_at. A track can only join a project with the same owner (a composite foreign key on `(project_id, owner_id)` enforces it). Positions sort ascending and may have gaps; they aren't unique in the database, so changes to an owner's project membership and order take a lock on that owner's `users` row (`packages/db/src/projects.ts`).
 - `track_versions`: id, track_id, version_number, change_notes, feedback_prompt (what the artist wants feedback on), status (`uploading | processing | ready | failed`), failure_reason (shown to the artist), original_key, original_filename, original_content_type, original_size_bytes, stream_key, duration_ms, waveform_peaks (jsonb `number[]`), created_at
 - Versions are **immutable** once `ready`. New edits = new version.
 - A version belongs to its track, never directly to a project. `(track_id, version_number)` is unique; numbers count up per track and are **never reused** (a failed v3 stays v3, the next upload is v4). Everything else refers to a version by its `id`.
@@ -262,7 +262,7 @@ Client                API                      B2/S3              Worker
 - Errors use a consistent shape: `{ error: { code, message, details? } }`.
 - Pagination: cursor-based (`?cursor=&limit=`), never offset for feed-like lists.
 - No business logic in route handlers beyond orchestration; put it in service modules (`apps/api/src/modules/<domain>/`).
-- Each module: `routes.ts`, `service.ts`, `repo.ts`, `*.test.ts`. Queries the worker also runs (tracks and versions) live in `packages/db` instead, and those modules have no `repo.ts`.
+- Each module: `routes.ts`, `service.ts`, `repo.ts`, `*.test.ts`. Queries the worker also runs (tracks, versions, and projects, whose cover art it processes) live in `packages/db` instead, and those modules have no `repo.ts`.
 
 ---
 
@@ -392,7 +392,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 ### Phase 3: Projects and versions
 
-- [ ] Projects CRUD, cover art upload, status field
+- [ ] Projects CRUD, cover art upload, status field _(deleting a project leaves its tracks loose. Cover art is re-encoded by ffmpeg in the worker: cropped square, resized, and stripped of all metadata, since photo EXIF can hold GPS location. Decided 2026-10-19)_
 - [ ] Add/reorder tracks in a project
 - [ ] Upload new version of a track, version history UI, change notes
 - [ ] A/B switch between versions in the player
@@ -479,7 +479,7 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 - Handle format rules
 - Max upload size and per-user storage quota
 - Whether tracks can be shared individually in Phase 4 or only whole projects at first
-- How a project track's own `visibility` relates to `visibility_override` and the project's visibility (rule 7) once tracks can join projects (Phase 3/4)
+- How a project track's own `visibility` relates to `visibility_override` and the project's visibility (rule 7). Deferred to Phase 4 (2026-10-19): the column exists from Phase 3, but access is owner-only until then, so nothing reads it
 - Email provider for notification digests (Resend or Postmark)
 - Moderation approach for public content
 - Donations: payment provider (Stripe Connect?), and how to handle fees. Card fees (roughly 30¢ + ~3%) take about a third of a $1 donation. Options include having the donor cover fees, batching, or accepting the loss at first.
