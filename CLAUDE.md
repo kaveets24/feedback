@@ -71,6 +71,7 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 ```
 .
 ├── CLAUDE.md
+├── PRODUCT.md          # product context for design tools (Impeccable); CLAUDE.md wins on conflicts
 ├── docker-compose.yml
 ├── turbo.json
 ├── pnpm-workspace.yaml
@@ -279,6 +280,8 @@ Client                API                      B2/S3              Worker
 ### Visual style: Y2K / Winamp / LimeWire
 
 > **Styling is deferred.** Don't add CSS, Tailwind classes, design tokens, or themed primitives until asked. Build pages with plain semantic HTML (accessibility rules above still apply). The direction below is the future plan, not current work.
+
+**Design tooling:** design work uses the [Impeccable](https://impeccable.style) agent skill, installed per developer as a Claude Code plugin (nothing vendored in the repo). Its product context lives in `PRODUCT.md`, which repeats this file's product facts; keep the two in sync. Its `DESIGN.md` and detector hooks wait until styling starts, and `DESIGN.md` must follow the direction below.
 
 The app should feel like a late-90s/early-2000s desktop music app reimagined for Gen Z and Gen Alpha: nostalgic and playful, but clean enough to use every day. It's a nod to that era, not a costume.
 
