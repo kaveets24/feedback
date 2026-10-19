@@ -154,6 +154,23 @@ describe('moveTrackToProject', () => {
     expect(await moveTrackToProject(db, track.id, mine.id)).toBeNull();
   });
 
+  it('moves nothing when `from` no longer matches where the track is', async () => {
+    const owner = await newUser();
+    const a = await createProject(db, { ownerId: owner.id, title: 'A' });
+    const b = await createProject(db, { ownerId: owner.id, title: 'B' });
+    const track = await newTrack(owner.id);
+    await moveTrackToProject(db, track.id, b.id);
+
+    expect(await moveTrackToProject(db, track.id, null, { from: a.id })).toBeNull();
+    expect(await findTrack(db, track.id)).toMatchObject({ projectId: b.id });
+
+    expect(await moveTrackToProject(db, track.id, null, { from: b.id })).toMatchObject({
+      projectId: null,
+      position: null,
+    });
+    expect(await moveTrackToProject(db, track.id, null, { from: b.id })).toBeNull();
+  });
+
   it('gives concurrent moves into one project distinct positions', async () => {
     const owner = await newUser();
     const project = await createProject(db, { ownerId: owner.id, title: 'EP' });

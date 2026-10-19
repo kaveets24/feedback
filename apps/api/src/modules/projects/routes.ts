@@ -2,20 +2,28 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { Db } from '@feedback/db';
 import {
+  addProjectTrackRequestSchema,
   createProjectRequestSchema,
   errorResponseSchema,
   projectListQuerySchema,
   projectListResponseSchema,
   projectParamsSchema,
   projectResponseSchema,
+  projectTrackParamsSchema,
+  projectTracksResponseSchema,
+  reorderProjectTracksRequestSchema,
   updateProjectRequestSchema,
 } from '@feedback/shared';
 import { httpError } from '../../errors.ts';
 import {
+  addProjectTrack,
   createProject,
   deleteProject,
   getProject,
+  getProjectTracks,
   listMyProjects,
+  removeProjectTrack,
+  reorderProjectTracks,
   updateProject,
 } from './service.ts';
 
@@ -82,6 +90,62 @@ export function projectRoutes(db: Db): FastifyPluginAsyncZod {
       },
       async (request, reply) => {
         await deleteProject(db, request.actor, request.params.projectId);
+        return reply.status(204).send(null);
+      },
+    );
+
+    app.get(
+      '/projects/:projectId/tracks',
+      {
+        schema: {
+          params: projectParamsSchema,
+          response: { 200: projectTracksResponseSchema, 404: errorResponseSchema },
+        },
+      },
+      (request) => getProjectTracks(db, request.actor, request.params.projectId),
+    );
+
+    app.post(
+      '/projects/:projectId/tracks',
+      {
+        schema: {
+          params: projectParamsSchema,
+          body: addProjectTrackRequestSchema,
+          response: { 200: projectTracksResponseSchema, 404: errorResponseSchema },
+        },
+      },
+      (request) =>
+        addProjectTrack(db, request.actor, request.params.projectId, request.body.trackId),
+    );
+
+    app.put(
+      '/projects/:projectId/tracks',
+      {
+        schema: {
+          params: projectParamsSchema,
+          body: reorderProjectTracksRequestSchema,
+          response: {
+            200: projectTracksResponseSchema,
+            404: errorResponseSchema,
+            409: errorResponseSchema,
+          },
+        },
+      },
+      (request) =>
+        reorderProjectTracks(db, request.actor, request.params.projectId, request.body.trackIds),
+    );
+
+    app.delete(
+      '/projects/:projectId/tracks/:trackId',
+      {
+        schema: {
+          params: projectTrackParamsSchema,
+          response: { 204: z.null().describe('Removed'), 404: errorResponseSchema },
+        },
+      },
+      async (request, reply) => {
+        const { projectId, trackId } = request.params;
+        await removeProjectTrack(db, request.actor, projectId, trackId);
         return reply.status(204).send(null);
       },
     );

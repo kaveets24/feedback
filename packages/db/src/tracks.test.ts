@@ -12,6 +12,7 @@ import {
   markVersionFailed,
   markVersionProcessing,
   markVersionReady,
+  withLatestVersions,
 } from './tracks.ts';
 import { upsertUserFromAuth } from './users.ts';
 
@@ -218,6 +219,21 @@ describe('listTracksForOwner', () => {
       before = page.at(-1)!.track.id;
     }
     expect(seen).toEqual(['6', '5', '4', '3', '2', '1']);
+  });
+});
+
+describe('withLatestVersions', () => {
+  it('keeps the order it was given, and returns nothing for no tracks', async () => {
+    const a = await newTrack();
+    const b = await newTrack();
+    const v2 = await addVersion(a.track.id, 2);
+
+    const paired = await withLatestVersions(db, [b.track, a.track]);
+    expect(paired.map(({ track, latestVersion }) => [track.id, latestVersion.id])).toEqual([
+      [b.track.id, b.version.id],
+      [a.track.id, v2.id],
+    ]);
+    expect(await withLatestVersions(db, [])).toEqual([]);
   });
 });
 

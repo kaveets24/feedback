@@ -66,6 +66,8 @@ export type StreamResponse = z.infer<typeof streamResponseSchema>;
 export const trackSummarySchema = z.object({
   id: z.uuid(),
   title: z.string(),
+  /** The project it's in, or null for a loose track. */
+  projectId: z.uuid().nullable(),
   visibility: visibilitySchema,
   createdAt: z.iso.datetime(),
   /** The newest `ready` version, the one that plays. Null until one is ready. */
@@ -103,6 +105,7 @@ export const trackParamsSchema = z.object({ trackId: z.uuid() });
 export const trackResponseSchema = z.object({
   id: z.uuid(),
   title: z.string(),
+  projectId: z.uuid().nullable(),
   notes: z.string().nullable(),
   visibility: visibilitySchema,
   createdAt: z.iso.datetime(),

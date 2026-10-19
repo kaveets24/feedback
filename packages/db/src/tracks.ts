@@ -77,7 +77,15 @@ export async function listTracksForOwner(
     )
     .orderBy(desc(tracks.id))
     .limit(limit);
-  if (page.length === 0) return [];
+  return withLatestVersions(db, page);
+}
+
+/** Pairs each track with its newest version, keeping the tracks' order. */
+export async function withLatestVersions(
+  db: Db,
+  list: Track[],
+): Promise<{ track: Track; latestVersion: VersionSummary }[]> {
+  if (list.length === 0) return [];
 
   const latest = await db
     .selectDistinctOn([trackVersions.trackId], {
@@ -91,14 +99,14 @@ export async function listTracksForOwner(
     .where(
       inArray(
         trackVersions.trackId,
-        page.map((t) => t.id),
+        list.map((t) => t.id),
       ),
     )
     .orderBy(trackVersions.trackId, desc(trackVersions.versionNumber));
   const byTrack = new Map(latest.map(({ trackId, ...version }) => [trackId, version]));
 
   // Every track is created with its v1 in one transaction, so each has a latest version.
-  return page.flatMap((track) => {
+  return list.flatMap((track) => {
     const latestVersion = byTrack.get(track.id);
     return latestVersion ? [{ track, latestVersion }] : [];
   });
