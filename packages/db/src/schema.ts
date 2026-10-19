@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   bigint,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -9,16 +10,18 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { v7 as uuidv7 } from 'uuid';
 import { VISIBILITIES } from '@feedback/authz';
-import { ACCESS_STATUSES, VERSION_STATUSES } from '@feedback/shared';
+import { ACCESS_STATUSES, PROJECT_STATUSES, VERSION_STATUSES } from '@feedback/shared';
 
 export const accessStatus = pgEnum('access_status', ACCESS_STATUSES);
 export const visibility = pgEnum('visibility', VISIBILITIES);
+export const projectStatus = pgEnum('project_status', PROJECT_STATUSES);
 export const trackVersionStatus = pgEnum('track_version_status', VERSION_STATUSES);
 
 const timestamps = {
@@ -69,8 +72,37 @@ export const profiles = pgTable(
 export type Profile = typeof profiles.$inferSelect;
 
 /**
- * A song. Tracks belong to their owner directly; `project_id` (nullable, a "loose" track has
- * none) arrives with the projects table in Phase 3.
+ * An artist's own body of work (album, EP, idea folder). Projects are only soft-deleted; deleting
+ * one leaves its tracks loose rather than deleting them.
+ */
+export const projects = pgTable(
+  'projects',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    description: text('description'),
+    status: projectStatus('status').notNull().default('idea'),
+    visibility: visibility('visibility').notNull().default('private'),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    index('projects_owner_id_id_idx').on(t.ownerId, t.id),
+    // Target of the tracks foreign key below, which keeps a track in its own owner's projects.
+    unique('projects_id_owner_id_unique').on(t.id, t.ownerId),
+  ],
+);
+
+export type Project = typeof projects.$inferSelect;
+
+/**
+ * A song. A track with no `project_id` is "loose". A track in a project has a `position` there
+ * (sorted ascending; gaps are fine) and always shares the project's owner.
  */
 export const tracks = pgTable(
   'tracks',
@@ -81,9 +113,17 @@ export const tracks = pgTable(
     ownerId: uuid('owner_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id'),
+    position: integer('position'),
     title: text('title').notNull(),
     notes: text('notes'),
+    /** A loose track's own visibility. */
     visibility: visibility('visibility').notNull().default('private'),
+    /**
+     * Per-track override of the project's visibility. How it combines with the project's is
+     * settled in Phase 4 (CLAUDE.md section 6, rule 7); until then nothing reads it.
+     */
+    visibilityOverride: visibility('visibility_override'),
     /** Newest `ready` version; one still processing or failed never replaces it. */
     currentVersionId: uuid('current_version_id').references((): AnyPgColumn => trackVersions.id, {
       onDelete: 'set null',
@@ -91,7 +131,20 @@ export const tracks = pgTable(
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     ...timestamps,
   },
-  (t) => [index('tracks_owner_id_created_at_idx').on(t.ownerId, t.createdAt)],
+  (t) => [
+    index('tracks_owner_id_created_at_idx').on(t.ownerId, t.createdAt),
+    index('tracks_project_id_position_idx').on(t.projectId, t.position),
+    // Includes owner_id so a track can only join a project with the same owner. Not unique on
+    // position: a reorder rewrites positions row by row, which a plain unique index would trip
+    // over mid-statement; the query helpers keep positions distinct under a project row lock.
+    foreignKey({
+      name: 'tracks_project_owner_fk',
+      columns: [t.projectId, t.ownerId],
+      foreignColumns: [projects.id, projects.ownerId],
+    }),
+    check('tracks_position_iff_project', sql`(${t.projectId} is null) = (${t.position} is null)`),
+    check('tracks_position_non_negative', sql`${t.position} >= 0`),
+  ],
 );
 
 export type Track = typeof tracks.$inferSelect;

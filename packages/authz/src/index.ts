@@ -13,9 +13,12 @@ export type Action = (typeof ACTIONS)[number];
 /** Who is asking. Anonymous actors have no session. */
 export type Actor = { kind: 'anonymous' } | { kind: 'user'; userId: string };
 
+export const RESOURCE_KINDS = ['project', 'track'] as const;
+export type ResourceKind = (typeof RESOURCE_KINDS)[number];
+
 /** What they're asking about, with its effective visibility already worked out by the caller. */
 export interface Resource {
-  kind: 'track';
+  kind: ResourceKind;
   ownerId: string;
   visibility: Visibility;
 }
@@ -23,7 +26,7 @@ export interface Resource {
 /**
  * Whether `actor` may perform `action` on `resource`.
  *
- * Phase 2 (everything is private): the owner may do anything, and everyone else is denied at
+ * Until Phase 4 (everything is private): the owner may do anything, and everyone else is denied at
  * every visibility. Share links and public access arrive in Phase 4, with exhaustive
  * tests written first. Until then this fails closed.
  */

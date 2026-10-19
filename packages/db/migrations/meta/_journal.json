@@ -15,6 +15,13 @@
       "when": 1792092274155,
       "tag": "0001_tracks",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792451195485,
+      "tag": "0002_projects",
+      "breakpoints": true
     }
   ]
 }

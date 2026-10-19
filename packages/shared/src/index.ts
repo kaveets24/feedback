@@ -2,6 +2,7 @@ export * from './client.ts';
 export * from './schemas/common.ts';
 export * from './schemas/health.ts';
 export * from './schemas/me.ts';
+export * from './schemas/projects.ts';
 export * from './schemas/tracks.ts';
 export * from './schemas/jobs.ts';
 export * from './schemas/uploads.ts';
