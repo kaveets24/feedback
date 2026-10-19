@@ -392,7 +392,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 ### Phase 3: Projects and versions
 
-- [ ] Projects CRUD, cover art upload, status field _(deleting a project leaves its tracks loose. Cover art is re-encoded by ffmpeg in the worker: cropped square, resized, and stripped of all metadata, since photo EXIF can hold GPS location. Decided 2026-10-19)_
+- [ ] Projects CRUD, cover art upload, status field _(deleting a project leaves its tracks loose. Cover art is re-encoded by ffmpeg in the worker: cropped square, resized, and stripped of all metadata, since photo EXIF can hold GPS location. Decided 2026-10-19. API: `POST /v1/projects`, `GET /v1/projects`, `GET`/`PATCH`/`DELETE /v1/projects/:projectId`; visibility isn't editable until Phase 4)_
 - [ ] Add/reorder tracks in a project
 - [ ] Upload new version of a track, version history UI, change notes
 - [ ] A/B switch between versions in the player

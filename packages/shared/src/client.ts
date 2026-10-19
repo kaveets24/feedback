@@ -1,6 +1,13 @@
-import type { z } from 'zod';
+import { z } from 'zod';
 import { errorResponseSchema } from './schemas/common.ts';
 import { meResponseSchema } from './schemas/me.ts';
+import {
+  projectListResponseSchema,
+  projectResponseSchema,
+  type CreateProjectRequest,
+  type ProjectListQuery,
+  type UpdateProjectRequest,
+} from './schemas/projects.ts';
 import {
   streamResponseSchema,
   trackListResponseSchema,
@@ -40,7 +47,7 @@ export function createApiClient({ baseUrl, getToken, fetch = globalThis.fetch }:
     if (token) headers.set('authorization', `Bearer ${token}`);
 
     const res = await fetch(new URL(path, baseUrl), { ...init, headers });
-    const body: unknown = await res.json().catch(() => null);
+    const body: unknown = res.status === 204 ? undefined : await res.json().catch(() => null);
 
     if (!res.ok) {
       const parsed = errorResponseSchema.safeParse(body);
@@ -53,14 +60,23 @@ export function createApiClient({ baseUrl, getToken, fetch = globalThis.fetch }:
     return schema.parse(body);
   }
 
-  const post = <T>(path: string, schema: z.ZodType<T>, body?: unknown) =>
+  const send = <T>(method: string, path: string, schema: z.ZodType<T>, body?: unknown) =>
     request(path, schema, {
-      method: 'POST',
+      method,
       ...(body !== undefined && {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
       }),
     });
+  const post = <T>(path: string, schema: z.ZodType<T>, body?: unknown) =>
+    send('POST', path, schema, body);
+
+  const pageQuery = ({ cursor, limit }: TrackListQuery | ProjectListQuery) => {
+    const query = new URLSearchParams();
+    if (cursor) query.set('cursor', cursor);
+    if (limit !== undefined) query.set('limit', String(limit));
+    return query.size ? `?${query}` : '';
+  };
 
   return {
     getMe: () => request('/v1/me', meResponseSchema),
@@ -76,15 +92,29 @@ export function createApiClient({ baseUrl, getToken, fetch = globalThis.fetch }:
     getStream: (versionId: string) =>
       request(`/v1/versions/${encodeURIComponent(versionId)}/stream`, streamResponseSchema),
     /** The signed-in user's tracks, newest first. Pass `nextCursor` back as `cursor` for more. */
-    listTracks: ({ cursor, limit }: TrackListQuery = {}) => {
-      const query = new URLSearchParams();
-      if (cursor) query.set('cursor', cursor);
-      if (limit !== undefined) query.set('limit', String(limit));
-      const search = query.size ? `?${query}` : '';
-      return request(`/v1/tracks${search}`, trackListResponseSchema);
-    },
+    listTracks: (query: TrackListQuery = {}) =>
+      request(`/v1/tracks${pageQuery(query)}`, trackListResponseSchema),
     getTrack: (trackId: string) =>
       request(`/v1/tracks/${encodeURIComponent(trackId)}`, trackResponseSchema),
+    /** The signed-in user's projects, newest first. Pass `nextCursor` back as `cursor` for more. */
+    listProjects: (query: ProjectListQuery = {}) =>
+      request(`/v1/projects${pageQuery(query)}`, projectListResponseSchema),
+    getProject: (projectId: string) =>
+      request(`/v1/projects/${encodeURIComponent(projectId)}`, projectResponseSchema),
+    /** Creates a private project. */
+    createProject: (input: CreateProjectRequest) =>
+      post('/v1/projects', projectResponseSchema, input),
+    /** Changes only the fields given. */
+    updateProject: (projectId: string, changes: UpdateProjectRequest) =>
+      send(
+        'PATCH',
+        `/v1/projects/${encodeURIComponent(projectId)}`,
+        projectResponseSchema,
+        changes,
+      ),
+    /** Deletes the project. Its tracks become loose; no songs are deleted. */
+    deleteProject: (projectId: string) =>
+      send('DELETE', `/v1/projects/${encodeURIComponent(projectId)}`, z.undefined()),
   };
 }
 

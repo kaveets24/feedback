@@ -17,6 +17,7 @@ import { loggerOptions } from './logger.ts';
 import { debugRoutes } from './modules/debug/routes.ts';
 import { healthRoutes } from './modules/health/routes.ts';
 import { meRoutes } from './modules/me/routes.ts';
+import { projectRoutes } from './modules/projects/routes.ts';
 import { uploadRoutes } from './modules/uploads/routes.ts';
 import { trackRoutes } from './modules/tracks/routes.ts';
 import { versionRoutes } from './modules/versions/routes.ts';
@@ -60,6 +61,7 @@ export async function buildApp(env: Env, deps: AppDeps) {
       await v1.register(uploadRoutes(deps));
       await v1.register(versionRoutes(deps));
       await v1.register(trackRoutes(deps.db));
+      await v1.register(projectRoutes(deps.db));
       if (env.MONITORING_TEST_ERRORS) await v1.register(debugRoutes);
       v1.get('/openapi.json', { schema: { hide: true }, config: { allowUnapproved: true } }, () =>
         app.swagger(),
