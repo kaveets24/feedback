@@ -279,9 +279,9 @@ Client                API                      B2/S3              Worker
 
 ### Visual style: Y2K / Winamp / LimeWire
 
-> **Styling is deferred.** Don't add CSS, Tailwind classes, design tokens, or themed primitives until asked. Build pages with plain semantic HTML (accessibility rules above still apply). The direction below is the future plan, not current work.
+> **Styling is deferred, except the player.** The waveform player and mini-player (`apps/web/app/_player/`) were styled in Phase 2 (2026-10-19), with the first tokens and primitives in `globals.css` and the system recorded in `apps/web/DESIGN.md`. Everything else stays plain semantic HTML until asked: don't add CSS, Tailwind classes, design tokens, or themed primitives elsewhere (accessibility rules above still apply). The direction below is the plan for the rest.
 
-**Design tooling:** design work uses the [Impeccable](https://impeccable.style) agent skill, installed per developer as a Claude Code plugin (nothing vendored in the repo). Its product context lives in `PRODUCT.md`, which repeats this file's product facts; keep the two in sync. Its `DESIGN.md` and detector hooks wait until styling starts, and `DESIGN.md` must follow the direction below.
+**Design tooling:** design work uses the [Impeccable](https://impeccable.style) agent skill, installed per developer as a Claude Code plugin (nothing vendored in the repo). Its product context lives in `PRODUCT.md`, which repeats this file's product facts; keep the two in sync. Its `apps/web/DESIGN.md` describes the styled parts so far and must follow the direction below; per-surface briefs live in `apps/web/.impeccable/surfaces/`. The plugin's detector hook checks UI files as they're edited.
 
 The app should feel like a late-90s/early-2000s desktop music app reimagined for Gen Z and Gen Alpha: nostalgic and playful, but clean enough to use every day. It's a nod to that era, not a costume.
 
@@ -384,7 +384,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 - [x] S3-compatible object storage in docker-compose (SeaweedFS, stands in for B2 locally; moved from Phase 0)
 - [x] Presigned upload flow, `track_versions` state machine _(API: `POST /v1/uploads`, `POST /v1/uploads/:versionId/complete`, `GET /v1/versions/:versionId`; the web upload form comes with the track page)_
 - [x] Worker: ffmpeg to AAC, duration, waveform peaks _(BullMQ consumer; ffmpeg ships in the server image as a pinned static build)_
-- [ ] Waveform player component, global mini-player _(API: `GET /v1/versions/:versionId/stream` issues a 10-minute signed URL after `canAccess(..., 'listen')`; the player fetches a new one when it expires)_
+- [x] Waveform player component, global mini-player _(API: `GET /v1/versions/:versionId/stream` issues a 10-minute signed URL after `canAccess(..., 'listen')`; the player fetches a new one before resuming on an expired URL, or when playback fails, and carries on from the same spot. One audio store in `apps/web/lib/audio-store.ts`; the mini-player sits in the root layout. First styled surface, see section 9)_
 - [x] Track page (owner only; everything private) _(home page lists your tracks and has the upload form; `/tracks/[trackId]` shows versions and polls while one processes. API: `GET /v1/tracks`, `GET /v1/tracks/:trackId`. The player is added with the next item)_
 - **Done when:** I can upload a file, watch it go `processing` to `ready`, and play it with a waveform. Pipeline has integration tests including a failure case.
 
@@ -463,7 +463,7 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 - Make **small, reviewable changes**. Prefer several focused PRs/commits over one giant one.
 - **Work on feature branches**, one PR per coherent change, each with a detailed description (see section 11). Never commit to `main` directly.
 - **Schema and authz first.** Show me migrations and `canAccess` changes before building UI on top of them.
-- **No styling yet.** Web pages are plain semantic HTML until I ask for styling (see "Visual style" in section 9).
+- **No styling yet, beyond the player.** Web pages are plain semantic HTML until I ask for styling (see "Visual style" in section 9).
 - **Every developer command is a root `package.json` script** (see section 4). Add the script when you add the need.
 - **Write tests with the code**, and run `pnpm lint && pnpm typecheck && pnpm test` before declaring done.
 - Don't add dependencies without saying why. Prefer well-maintained, widely used packages.

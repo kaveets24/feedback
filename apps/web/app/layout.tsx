@@ -1,6 +1,8 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { MiniPlayer } from './_player/mini-player';
+import { lcdFont } from './fonts';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -10,12 +12,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body className="min-h-dvh bg-neutral-950 text-neutral-100 antialiased">
+    <html lang="en" className={lcdFont.variable}>
+      <body className="flex min-h-dvh flex-col bg-canvas text-ink antialiased">
         {/* Set here, not only via NEXT_PUBLIC_CLERK_SIGN_*_URL: those are inlined at build time, and
             when one is missing Clerk links to its hosted Account Portal (accounts.<domain>). */}
         <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
-          {children}
+          <div className="flex-1">{children}</div>
+          {/* Outside the pages, so playback carries on across navigation. */}
+          <MiniPlayer />
         </ClerkProvider>
       </body>
     </html>
