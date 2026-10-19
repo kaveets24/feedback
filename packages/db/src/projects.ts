@@ -110,12 +110,15 @@ export async function listProjectTracks(db: Queryable, projectId: string): Promi
  * into the project it's already in leaves it where it is.
  *
  * Null if the track or project doesn't exist or was deleted, or they have different owners
- * (callers check access to both first; this is the backstop, along with the foreign key).
+ * (callers check access to both first; this is the backstop, along with the foreign key). With
+ * `from`, also null (and nothing moves) unless the track is still in that project, so a
+ * "remove from A" that loses a race with "move to B" doesn't take it out of B.
  */
 export async function moveTrackToProject(
   db: Db,
   trackId: string,
   projectId: string | null,
+  { from }: { from?: string | null } = {},
 ): Promise<Track | null> {
   return db.transaction(async (tx) => {
     const [found] = await tx
@@ -127,6 +130,7 @@ export async function moveTrackToProject(
 
     const [track] = await tx.select().from(tracks).where(eq(tracks.id, trackId));
     if (!track) return null;
+    if (from !== undefined && track.projectId !== from) return null;
     if (track.projectId === projectId) return track;
 
     let position: number | null = null;

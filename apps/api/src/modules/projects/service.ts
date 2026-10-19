@@ -4,7 +4,11 @@ import {
   deleteProject as softDeleteProject,
   findProject,
   listProjectsForOwner,
+  listProjectTracks,
+  moveTrackToProject,
+  reorderProjectTracks as saveTrackOrder,
   updateProject as saveProject,
+  withLatestVersions,
   type Db,
   type Project,
   type ProjectChanges,
@@ -15,11 +19,13 @@ import {
   type CreateProjectRequest,
   type ProjectListResponse,
   type ProjectResponse,
+  type ProjectTracksResponse,
   type UpdateProjectRequest,
 } from '@feedback/shared';
 import { authzActor, projectResource } from '../../auth/authz.ts';
 import type { Actor } from '../../auth/plugin.ts';
 import { httpError } from '../../errors.ts';
+import { loadTrackFor, toTrackSummaries } from '../tracks/service.ts';
 
 export function toProjectResponse(project: Project): ProjectResponse {
   return {
@@ -119,4 +125,74 @@ export async function updateProject(
 export async function deleteProject(db: Db, actor: Actor, projectId: string): Promise<void> {
   await loadProjectFor(db, actor, projectId, 'manage');
   if (!(await softDeleteProject(db, projectId))) throw httpError(404, 'NOT_FOUND', 'Not found');
+}
+
+async function trackList(db: Db, actor: Actor, projectId: string): Promise<ProjectTracksResponse> {
+  const rows = await withLatestVersions(db, await listProjectTracks(db, projectId));
+  return { tracks: toTrackSummaries(actor, rows) };
+}
+
+/** A project's tracks in order. */
+export async function getProjectTracks(
+  db: Db,
+  actor: Actor,
+  projectId: string,
+): Promise<ProjectTracksResponse> {
+  await loadProjectFor(db, actor, projectId, 'view');
+  return trackList(db, actor, projectId);
+}
+
+/**
+ * Adds a track to the end of a project, moving it out of any other. Changing a project's tracks
+ * takes `manage` on both the project and the track.
+ */
+export async function addProjectTrack(
+  db: Db,
+  actor: Actor,
+  projectId: string,
+  trackId: string,
+): Promise<ProjectTracksResponse> {
+  await loadProjectFor(db, actor, projectId, 'manage');
+  await loadTrackFor(db, actor, trackId, 'manage');
+  // Null only if either was deleted since the checks above.
+  if (!(await moveTrackToProject(db, trackId, projectId))) {
+    throw httpError(404, 'NOT_FOUND', 'Not found');
+  }
+  return trackList(db, actor, projectId);
+}
+
+/** Takes a track out of a project, leaving it loose. A 404 if it isn't in this project. */
+export async function removeProjectTrack(
+  db: Db,
+  actor: Actor,
+  projectId: string,
+  trackId: string,
+): Promise<void> {
+  await loadProjectFor(db, actor, projectId, 'manage');
+  await loadTrackFor(db, actor, trackId, 'manage');
+  if (!(await moveTrackToProject(db, trackId, null, { from: projectId }))) {
+    throw httpError(404, 'NOT_FOUND', 'Not found');
+  }
+}
+
+/** Puts a project's tracks in a new order; see `reorderProjectTracksRequestSchema`. */
+export async function reorderProjectTracks(
+  db: Db,
+  actor: Actor,
+  projectId: string,
+  trackIds: string[],
+): Promise<ProjectTracksResponse> {
+  // A project only ever holds its owner's tracks (the foreign key sees to it), so `manage` on the
+  // project covers them.
+  await loadProjectFor(db, actor, projectId, 'manage');
+  const result = await saveTrackOrder(db, projectId, trackIds);
+  if (!result.ok && result.reason === 'not-found') throw httpError(404, 'NOT_FOUND', 'Not found');
+  if (!result.ok) {
+    throw httpError(
+      409,
+      'STALE_TRACK_ORDER',
+      "The project's tracks changed since they were loaded. Reload and try again.",
+    );
+  }
+  return { tracks: toTrackSummaries(actor, await withLatestVersions(db, result.tracks)) };
 }

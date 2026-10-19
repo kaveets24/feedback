@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { visibilitySchema } from './tracks.ts';
+import { trackSummarySchema, visibilitySchema } from './tracks.ts';
 
 /** Where a project is at, set by the artist. Purely descriptive: it gates nothing. */
 export const PROJECT_STATUSES = ['idea', 'demo', 'mixing', 'done'] as const;
@@ -62,3 +62,24 @@ export const projectListResponseSchema = z.object({
 export type ProjectListResponse = z.infer<typeof projectListResponseSchema>;
 
 export const projectParamsSchema = z.object({ projectId: z.uuid() });
+
+export const projectTrackParamsSchema = z.object({ projectId: z.uuid(), trackId: z.uuid() });
+
+/**
+ * `POST /v1/projects/:projectId/tracks`: adds one of your tracks to the end of the project. A
+ * track in another project moves here; one already here stays where it is.
+ */
+export const addProjectTrackRequestSchema = z.object({ trackId: z.uuid() });
+export type AddProjectTrackRequest = z.infer<typeof addProjectTrackRequestSchema>;
+
+/**
+ * `PUT /v1/projects/:projectId/tracks`: the project's tracks in their new order. It must name
+ * every track in the project exactly once, as last loaded; otherwise it's a 409 and nothing
+ * changes, so two edits at once can't scramble the order.
+ */
+export const reorderProjectTracksRequestSchema = z.object({ trackIds: z.array(z.uuid()) });
+export type ReorderProjectTracksRequest = z.infer<typeof reorderProjectTracksRequestSchema>;
+
+/** A project's tracks in order. Projects hold tens of tracks, so this isn't paged. */
+export const projectTracksResponseSchema = z.object({ tracks: z.array(trackSummarySchema) });
+export type ProjectTracksResponse = z.infer<typeof projectTracksResponseSchema>;

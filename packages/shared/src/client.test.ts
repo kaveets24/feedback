@@ -167,6 +167,31 @@ describe('createApiClient', () => {
     expect(init.method).toBe('DELETE');
   });
 
+  it('adds, reorders, and removes project tracks', async () => {
+    const trackId = '01890a5d-ac96-774b-bcce-b302099a8057';
+    const fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) =>
+      init?.method === 'DELETE'
+        ? new Response(null, { status: 204 })
+        : Response.json({ tracks: [] }),
+    );
+    const api = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+    await expect(api.addProjectTrack(project.id, trackId)).resolves.toEqual({ tracks: [] });
+    await api.reorderProjectTracks(project.id, [trackId]);
+    await expect(api.removeProjectTrack(project.id, trackId)).resolves.toBeUndefined();
+
+    const calls = fetch.mock.calls.map(([url, init]) => [
+      init?.method,
+      String(url),
+      init?.body && JSON.parse(init.body as string),
+    ]);
+    expect(calls).toEqual([
+      ['POST', `http://api.test/v1/projects/${project.id}/tracks`, { trackId }],
+      ['PUT', `http://api.test/v1/projects/${project.id}/tracks`, { trackIds: [trackId] }],
+      ['DELETE', `http://api.test/v1/projects/${project.id}/tracks/${trackId}`, undefined],
+    ]);
+  });
+
   it('throws when a success response does not match the schema', async () => {
     const api = createApiClient({ baseUrl: 'http://api.test', fetch: fakeFetch(200, { id: 1 }) });
     await expect(api.getMe()).rejects.toThrow();

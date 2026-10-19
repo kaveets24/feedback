@@ -63,6 +63,7 @@ describe('track routes', () => {
       expect(body.tracks[1]).toEqual({
         id: first.track.id,
         title: 'First',
+        projectId: null,
         visibility: 'private',
         createdAt: first.track.createdAt.toISOString(),
         currentVersionId: null,
@@ -125,6 +126,7 @@ describe('track routes', () => {
       expect(body).toMatchObject({
         id: track.id,
         title: 'Idea',
+        projectId: null,
         notes: null,
         currentVersionId: null,
       });

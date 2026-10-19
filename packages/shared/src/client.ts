@@ -4,6 +4,7 @@ import { meResponseSchema } from './schemas/me.ts';
 import {
   projectListResponseSchema,
   projectResponseSchema,
+  projectTracksResponseSchema,
   type CreateProjectRequest,
   type ProjectListQuery,
   type UpdateProjectRequest,
@@ -115,6 +116,32 @@ export function createApiClient({ baseUrl, getToken, fetch = globalThis.fetch }:
     /** Deletes the project. Its tracks become loose; no songs are deleted. */
     deleteProject: (projectId: string) =>
       send('DELETE', `/v1/projects/${encodeURIComponent(projectId)}`, z.undefined()),
+    /** A project's tracks in order. */
+    listProjectTracks: (projectId: string) =>
+      request(`/v1/projects/${encodeURIComponent(projectId)}/tracks`, projectTracksResponseSchema),
+    /** Adds a track to the end of the project (moving it out of any other). Returns the new list. */
+    addProjectTrack: (projectId: string, trackId: string) =>
+      post(`/v1/projects/${encodeURIComponent(projectId)}/tracks`, projectTracksResponseSchema, {
+        trackId,
+      }),
+    /**
+     * Sets the order. Pass every track in the project, as last loaded; if they've changed since,
+     * it throws an `ApiError` with status 409 and nothing moves.
+     */
+    reorderProjectTracks: (projectId: string, trackIds: string[]) =>
+      send(
+        'PUT',
+        `/v1/projects/${encodeURIComponent(projectId)}/tracks`,
+        projectTracksResponseSchema,
+        { trackIds },
+      ),
+    /** Takes a track out of the project; it stays in your tracks. */
+    removeProjectTrack: (projectId: string, trackId: string) =>
+      send(
+        'DELETE',
+        `/v1/projects/${encodeURIComponent(projectId)}/tracks/${encodeURIComponent(trackId)}`,
+        z.undefined(),
+      ),
   };
 }
 
