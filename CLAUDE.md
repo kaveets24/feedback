@@ -381,11 +381,13 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 ### Phase 2: Upload and playback (vertical slice)
 
+**Complete** (2026-10-19).
+
 - [x] S3-compatible object storage in docker-compose (SeaweedFS, stands in for B2 locally; moved from Phase 0)
 - [x] Presigned upload flow, `track_versions` state machine _(API: `POST /v1/uploads`, `POST /v1/uploads/:versionId/complete`, `GET /v1/versions/:versionId`; the web upload form comes with the track page)_
 - [x] Worker: ffmpeg to AAC, duration, waveform peaks _(BullMQ consumer; ffmpeg ships in the server image as a pinned static build)_
 - [x] Waveform player component, global mini-player _(API: `GET /v1/versions/:versionId/stream` issues a 10-minute signed URL after `canAccess(..., 'listen')`; the player fetches a new one before resuming on an expired URL, or when playback fails, and carries on from the same spot. One audio store in `apps/web/lib/audio-store.ts`; the mini-player sits in the root layout. First styled surface, see section 9)_
-- [x] Track page (owner only; everything private) _(home page lists your tracks and has the upload form; `/tracks/[trackId]` shows versions and polls while one processes. API: `GET /v1/tracks`, `GET /v1/tracks/:trackId`. The player is added with the next item)_
+- [x] Track page (owner only; everything private) _(home page lists your tracks and has the upload form; `/tracks/[trackId]` shows versions and polls while one processes. API: `GET /v1/tracks`, `GET /v1/tracks/:trackId`. The player sits on the track page)_
 - **Done when:** I can upload a file, watch it go `processing` to `ready`, and play it with a waveform. Pipeline has integration tests including a failure case.
 
 ### Phase 3: Projects and versions
