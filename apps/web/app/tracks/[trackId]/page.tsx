@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { ApiError, type TrackResponse, type VersionResponse } from '@feedback/shared';
 import { serverApi } from '../../../lib/api';
 import { formatDate, formatDuration, STATUS_LABELS } from '../../../lib/format';
+import { TrackPlayer } from '../../_player/track-player';
 import { ProcessingStatus } from './processing-status';
 
 async function loadTrack(trackId: string): Promise<TrackResponse> {
@@ -27,17 +28,24 @@ export default async function TrackPage({ params }: { params: Promise<{ trackId:
   const current = track.versions.find((v) => v.id === track.currentVersionId);
 
   return (
-    <main>
+    <main className="mx-auto max-w-3xl px-4 py-6">
       <p>
         <Link href="/">Your tracks</Link>
       </p>
       <h1>{track.title}</h1>
       <p>Private: only you can see and hear this track.</p>
 
-      {current?.durationMs != null && (
-        <p>
-          Current version: v{current.versionNumber}, {formatDuration(current.durationMs)}
-        </p>
+      {current?.durationMs != null && current.waveformPeaks && (
+        <TrackPlayer
+          item={{
+            versionId: current.id,
+            trackId: track.id,
+            title: track.title,
+            versionNumber: current.versionNumber,
+            durationMs: current.durationMs,
+            peaks: current.waveformPeaks,
+          }}
+        />
       )}
       {latest && <LatestVersion version={latest} />}
 

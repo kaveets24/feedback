@@ -17,3 +17,8 @@ next-env.d.ts
 .DS_Store
 *.log
 .neon
+
+# Impeccable review captures, detector cache, and per-machine config
+**/.impeccable/review/
+**/.impeccable/config.local.json
+**/.impeccable/hook.cache.json

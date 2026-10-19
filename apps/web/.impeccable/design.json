@@ -1,0 +1,439 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-19T16:50:42.154Z",
+  "title": "Design System: Feedback",
+  "extensions": {
+    "colorMeta": {
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Green Black",
+        "canonical": "#0b0e0c",
+        "oklch": "oklch(16.0% 0.006 156.4)",
+        "tonalRamp": [
+          "oklch(15.0% 0.006 156.4)",
+          "oklch(26.4% 0.006 156.4)",
+          "oklch(37.9% 0.006 156.4)",
+          "oklch(49.3% 0.006 156.4)",
+          "oklch(60.7% 0.006 156.4)",
+          "oklch(72.1% 0.006 156.4)",
+          "oklch(83.6% 0.006 156.4)",
+          "oklch(95.0% 0.006 156.4)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Pale Mint Ink",
+        "canonical": "#e4eae5",
+        "oklch": "oklch(93.1% 0.009 150.7)",
+        "tonalRamp": [
+          "oklch(15.0% 0.009 150.7)",
+          "oklch(26.4% 0.009 150.7)",
+          "oklch(37.9% 0.009 150.7)",
+          "oklch(49.3% 0.009 150.7)",
+          "oklch(60.7% 0.009 150.7)",
+          "oklch(72.1% 0.009 150.7)",
+          "oklch(83.6% 0.009 150.7)",
+          "oklch(95.0% 0.009 150.7)"
+        ]
+      },
+      "chrome-hi": {
+        "role": "neutral",
+        "displayName": "Graphite High",
+        "canonical": "#454d48",
+        "oklch": "oklch(41.1% 0.013 158.4)",
+        "tonalRamp": [
+          "oklch(15.0% 0.013 158.4)",
+          "oklch(26.4% 0.013 158.4)",
+          "oklch(37.9% 0.013 158.4)",
+          "oklch(49.3% 0.013 158.4)",
+          "oklch(60.7% 0.013 158.4)",
+          "oklch(72.1% 0.013 158.4)",
+          "oklch(83.6% 0.013 158.4)",
+          "oklch(95.0% 0.013 158.4)"
+        ]
+      },
+      "chrome-lo": {
+        "role": "neutral",
+        "displayName": "Graphite Low",
+        "canonical": "#1d211f",
+        "oklch": "oklch(24.3% 0.007 164.4)",
+        "tonalRamp": [
+          "oklch(15.0% 0.007 164.4)",
+          "oklch(26.4% 0.007 164.4)",
+          "oklch(37.9% 0.007 164.4)",
+          "oklch(49.3% 0.007 164.4)",
+          "oklch(60.7% 0.007 164.4)",
+          "oklch(72.1% 0.007 164.4)",
+          "oklch(83.6% 0.007 164.4)",
+          "oklch(95.0% 0.007 164.4)"
+        ]
+      },
+      "chrome-edge": {
+        "role": "neutral",
+        "displayName": "Chrome Edge",
+        "canonical": "#050605",
+        "oklch": "oklch(12.0% 0.004 145.3)",
+        "tonalRamp": [
+          "oklch(15.0% 0.004 145.3)",
+          "oklch(26.4% 0.004 145.3)",
+          "oklch(37.9% 0.004 145.3)",
+          "oklch(49.3% 0.004 145.3)",
+          "oklch(60.7% 0.004 145.3)",
+          "oklch(72.1% 0.004 145.3)",
+          "oklch(83.6% 0.004 145.3)",
+          "oklch(95.0% 0.004 145.3)"
+        ]
+      },
+      "chrome-lip": {
+        "role": "neutral",
+        "displayName": "Chrome Lip",
+        "canonical": "#555d58",
+        "oklch": "oklch(47.0% 0.013 158.5)",
+        "tonalRamp": [
+          "oklch(15.0% 0.013 158.5)",
+          "oklch(26.4% 0.013 158.5)",
+          "oklch(37.9% 0.013 158.5)",
+          "oklch(49.3% 0.013 158.5)",
+          "oklch(60.7% 0.013 158.5)",
+          "oklch(72.1% 0.013 158.5)",
+          "oklch(83.6% 0.013 158.5)",
+          "oklch(95.0% 0.013 158.5)"
+        ]
+      },
+      "button-hi": {
+        "role": "neutral",
+        "displayName": "Button High",
+        "canonical": "#4b534e",
+        "oklch": "oklch(43.3% 0.013 158.4)",
+        "tonalRamp": [
+          "oklch(15.0% 0.013 158.4)",
+          "oklch(26.4% 0.013 158.4)",
+          "oklch(37.9% 0.013 158.4)",
+          "oklch(49.3% 0.013 158.4)",
+          "oklch(60.7% 0.013 158.4)",
+          "oklch(72.1% 0.013 158.4)",
+          "oklch(83.6% 0.013 158.4)",
+          "oklch(95.0% 0.013 158.4)"
+        ]
+      },
+      "button-lo": {
+        "role": "neutral",
+        "displayName": "Button Low",
+        "canonical": "#262b28",
+        "oklch": "oklch(28.3% 0.009 159.5)",
+        "tonalRamp": [
+          "oklch(15.0% 0.009 159.5)",
+          "oklch(26.4% 0.009 159.5)",
+          "oklch(37.9% 0.009 159.5)",
+          "oklch(49.3% 0.009 159.5)",
+          "oklch(60.7% 0.009 159.5)",
+          "oklch(72.1% 0.009 159.5)",
+          "oklch(83.6% 0.009 159.5)",
+          "oklch(95.0% 0.009 159.5)"
+        ]
+      },
+      "lcd": {
+        "role": "neutral",
+        "displayName": "LCD Black",
+        "canonical": "#07140c",
+        "oklch": "oklch(17.6% 0.025 156.3)",
+        "tonalRamp": [
+          "oklch(15.0% 0.025 156.3)",
+          "oklch(26.4% 0.025 156.3)",
+          "oklch(37.9% 0.025 156.3)",
+          "oklch(49.3% 0.025 156.3)",
+          "oklch(60.7% 0.025 156.3)",
+          "oklch(72.1% 0.025 156.3)",
+          "oklch(83.6% 0.025 156.3)",
+          "oklch(95.0% 0.025 156.3)"
+        ]
+      },
+      "lcd-ink": {
+        "role": "primary",
+        "displayName": "Phosphor Lime",
+        "canonical": "#b9f45c",
+        "oklch": "oklch(89.8% 0.190 127.8)",
+        "tonalRamp": [
+          "oklch(15.0% 0.044 127.8)",
+          "oklch(26.4% 0.072 127.8)",
+          "oklch(37.9% 0.102 127.8)",
+          "oklch(49.3% 0.132 127.8)",
+          "oklch(60.7% 0.162 127.8)",
+          "oklch(72.1% 0.190 127.8)",
+          "oklch(83.6% 0.190 127.8)",
+          "oklch(95.0% 0.144 127.8)"
+        ]
+      },
+      "lcd-dim": {
+        "role": "neutral",
+        "displayName": "Dim Phosphor",
+        "canonical": "color-mix(in oklab, var(--color-lcd-ink) 42%, var(--color-lcd))",
+        "approxHex": "#49682e",
+        "oklch": "oklch(47.9% 0.092 132.3)",
+        "tonalRamp": [
+          "oklch(15.0% 0.046 132.3)",
+          "oklch(26.4% 0.078 132.3)",
+          "oklch(37.9% 0.092 132.3)",
+          "oklch(49.3% 0.092 132.3)",
+          "oklch(60.7% 0.092 132.3)",
+          "oklch(72.1% 0.092 132.3)",
+          "oklch(83.6% 0.092 132.3)",
+          "oklch(95.0% 0.092 132.3)"
+        ]
+      },
+      "lcd-cell": {
+        "role": "neutral",
+        "displayName": "Unlit Cell",
+        "canonical": "color-mix(in oklab, var(--color-lcd-ink) 9%, var(--color-lcd))",
+        "approxHex": "#132413",
+        "oklch": "oklch(24.0% 0.039 144.2)",
+        "tonalRamp": [
+          "oklch(15.0% 0.039 144.2)",
+          "oklch(26.4% 0.039 144.2)",
+          "oklch(37.9% 0.039 144.2)",
+          "oklch(49.3% 0.039 144.2)",
+          "oklch(60.7% 0.039 144.2)",
+          "oklch(72.1% 0.039 144.2)",
+          "oklch(83.6% 0.039 144.2)",
+          "oklch(95.0% 0.039 144.2)"
+        ]
+      },
+      "lcd-ghost": {
+        "role": "neutral",
+        "displayName": "Ghost Segment",
+        "canonical": "color-mix(in oklab, var(--color-lcd-ink) 16%, var(--color-lcd))",
+        "approxHex": "#1e3219",
+        "oklch": "oklch(29.2% 0.051 139.5)",
+        "tonalRamp": [
+          "oklch(15.0% 0.051 139.5)",
+          "oklch(26.4% 0.051 139.5)",
+          "oklch(37.9% 0.051 139.5)",
+          "oklch(49.3% 0.051 139.5)",
+          "oklch(60.7% 0.051 139.5)",
+          "oklch(72.1% 0.051 139.5)",
+          "oklch(83.6% 0.051 139.5)",
+          "oklch(95.0% 0.051 139.5)"
+        ]
+      },
+      "lcd-cyan": {
+        "role": "secondary",
+        "displayName": "LCD Cyan",
+        "canonical": "#6fe3f5",
+        "oklch": "oklch(85.5% 0.108 208.8)",
+        "tonalRamp": [
+          "oklch(15.0% 0.030 208.8)",
+          "oklch(26.4% 0.050 208.8)",
+          "oklch(37.9% 0.070 208.8)",
+          "oklch(49.3% 0.088 208.8)",
+          "oklch(60.7% 0.108 208.8)",
+          "oklch(72.1% 0.108 208.8)",
+          "oklch(83.6% 0.108 208.8)",
+          "oklch(95.0% 0.086 208.8)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Signal Lime",
+        "canonical": "#a8f03f",
+        "oklch": "oklch(87.6% 0.212 129.6)",
+        "tonalRamp": [
+          "oklch(15.0% 0.044 129.6)",
+          "oklch(26.4% 0.076 129.6)",
+          "oklch(37.9% 0.106 129.6)",
+          "oklch(49.3% 0.136 129.6)",
+          "oklch(60.7% 0.166 129.6)",
+          "oklch(72.1% 0.198 129.6)",
+          "oklch(83.6% 0.212 129.6)",
+          "oklch(95.0% 0.138 129.6)"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Soft Coral",
+        "canonical": "#ff8a7a",
+        "oklch": "oklch(75.8% 0.145 29.0)",
+        "tonalRamp": [
+          "oklch(15.0% 0.065 29.0)",
+          "oklch(26.4% 0.113 29.0)",
+          "oklch(37.9% 0.145 29.0)",
+          "oklch(49.3% 0.145 29.0)",
+          "oklch(60.7% 0.145 29.0)",
+          "oklch(72.1% 0.145 29.0)",
+          "oklch(83.6% 0.097 29.0)",
+          "oklch(95.0% 0.031 29.0)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "lcd-display": {
+        "displayName": "LCD Display",
+        "purpose": "Elapsed time on the track page player, in fixed-width digit cells over ghost 8s."
+      },
+      "lcd-display-sm-up": {
+        "displayName": "LCD Display (sm and up)",
+        "purpose": "The same readout from the 640px breakpoint."
+      },
+      "lcd-secondary": {
+        "displayName": "LCD Secondary",
+        "purpose": "\"/ total\" in cyan (1rem from sm)."
+      },
+      "lcd-label": {
+        "displayName": "LCD Label",
+        "purpose": "Mini-player time line; version and state word (uppercase) on the track player."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Track title link in the mini-player."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Page text and error lines; the rest of the app is still unstyled."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-panel",
+        "value": "inset 0 1px 0 rgb(255 255 255 / 0.1), 0 2px 8px rgb(0 0 0 / 0.5)",
+        "purpose": "Raised graphite housing: player panel and mini-player."
+      },
+      {
+        "name": "shadow-lcd",
+        "value": "inset 0 2px 5px rgb(0 0 0 / 0.75), 0 1px 0 rgb(255 255 255 / 0.07)",
+        "purpose": "Recessed LCD well; the lcd utility adds a 2px chrome-lo lip and a 3px chrome-lip ring."
+      },
+      {
+        "name": "shadow-bevel",
+        "value": "inset 0 1px 0 rgb(255 255 255 / 0.16), 0 1px 2px rgb(0 0 0 / 0.6)",
+        "purpose": "Transport button at rest."
+      },
+      {
+        "name": "shadow-bevel-pressed",
+        "value": "inset 0 2px 4px rgb(0 0 0 / 0.65)",
+        "purpose": "Transport button while pressed (gradient flips)."
+      },
+      {
+        "name": "shadow-focus-glow",
+        "value": "0 0 10px color-mix(in oklab, var(--color-accent) 55%, transparent)",
+        "purpose": "Paired with the 2px accent outline at 2px offset on every themed control."
+      }
+    ],
+    "motion": [],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      }
+    ],
+    "waveformGeometry": {
+      "barSlotPx": 6,
+      "barGapPx": 2,
+      "segmentPx": 4,
+      "segmentGapPx": 1,
+      "maxDisplayGain": 4,
+      "source": "lib/waveform.ts"
+    }
+  },
+  "components": [
+    {
+      "name": "Transport Button (large)",
+      "kind": "button",
+      "refersTo": "transport-button-lg",
+      "description": "Play/pause on the track page player: a chunky bevel button that sinks when pressed.",
+      "html": "<button class=\"ds-transport\" aria-label=\"Play Night drive\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M7 3.5v17a.5.5 0 0 0 .77.42l13-8.5a.5.5 0 0 0 0-.84l-13-8.5A.5.5 0 0 0 7 3.5z\"/></svg></button>",
+      "css": ".ds-transport { display: inline-grid; place-items: center; width: 56px; height: 56px; color: var(--color-ink); background: linear-gradient(to bottom, var(--color-button-hi), var(--color-button-lo)); border: 1px solid var(--color-chrome-edge); border-radius: 0.375rem; box-shadow: var(--shadow-bevel); cursor: pointer; } .ds-transport:hover { color: var(--color-accent); } .ds-transport:active { background: linear-gradient(to top, var(--color-button-hi), var(--color-button-lo)); box-shadow: var(--shadow-bevel-pressed); } .ds-transport:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-bevel), var(--shadow-focus-glow); }"
+    },
+    {
+      "name": "Transport Button (playing)",
+      "kind": "button",
+      "refersTo": "transport-button-active",
+      "description": "The mini-player size (44px) while playing or loading: pause icon in Signal Lime.",
+      "html": "<button class=\"ds-transport-md\" aria-label=\"Pause Night drive\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M6 4h4v16H6zM14 4h4v16h-4z\"/></svg></button>",
+      "css": ".ds-transport-md { display: inline-grid; place-items: center; width: 44px; height: 44px; color: var(--color-accent); background: linear-gradient(to bottom, var(--color-button-hi), var(--color-button-lo)); border: 1px solid var(--color-chrome-edge); border-radius: 0.375rem; box-shadow: var(--shadow-bevel); cursor: pointer; } .ds-transport-md:active { background: linear-gradient(to top, var(--color-button-hi), var(--color-button-lo)); box-shadow: var(--shadow-bevel-pressed); } .ds-transport-md:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-bevel), var(--shadow-focus-glow); }"
+    },
+    {
+      "name": "LCD Readout",
+      "kind": "custom",
+      "refersTo": "lcd-window",
+      "description": "Recessed LCD window: elapsed time over ghost 8s, total and state in cyan.",
+      "html": "<div class=\"ds-lcd\"><span class=\"ds-lcd-time\"><span class=\"ds-cell\"><i>8</i>1</span><span class=\"ds-cell ds-colon\"><i>:</i>:</span><span class=\"ds-cell\"><i>8</i>1</span><span class=\"ds-cell\"><i>8</i>2</span></span><span class=\"ds-lcd-total\">/ 3:30</span><span class=\"ds-lcd-state\">V2 PLAYING</span></div>",
+      "css": ".ds-lcd { display: flex; align-items: baseline; gap: 8px; padding: 6px 12px; background: var(--color-lcd); border: 1px solid var(--color-chrome-edge); border-radius: 0.25rem; box-shadow: var(--shadow-lcd), 0 0 0 2px var(--color-chrome-lo), 0 0 0 3px var(--color-chrome-lip); font-family: var(--font-lcd); } .ds-lcd-time { display: inline-flex; font-size: 1.875rem; color: var(--color-lcd-ink); } .ds-cell { position: relative; display: inline-block; width: 0.8em; text-align: right; } .ds-cell.ds-colon { width: 0.45em; text-align: center; } .ds-cell i { position: absolute; inset: 0; font-style: normal; color: var(--color-lcd-ghost); } .ds-lcd-total { font-size: 1rem; color: var(--color-lcd-cyan); } .ds-lcd-state { margin-left: auto; font-size: 0.75rem; text-transform: uppercase; color: var(--color-lcd-cyan); }"
+    },
+    {
+      "name": "Waveform Window",
+      "kind": "custom",
+      "refersTo": "waveform-window",
+      "description": "Segmented LCD waveform slider: lit played segments, dim remaining, unlit cells, cyan playhead.",
+      "html": "<div class=\"ds-wave\" role=\"slider\" tabindex=\"0\" aria-label=\"Seek in Night drive v2\" aria-valuemin=\"0\" aria-valuemax=\"210\" aria-valuenow=\"72\"><div class=\"ds-wave-played\"></div><div class=\"ds-wave-head\"></div></div>",
+      "css": ".ds-wave { position: relative; height: 96px; overflow: hidden; cursor: pointer; background-color: var(--color-lcd); background-image: repeating-linear-gradient(to bottom, transparent 0 1px, var(--color-lcd-cell) 1px 4px); border: 1px solid var(--color-chrome-edge); border-radius: 0.25rem; box-shadow: var(--shadow-lcd), 0 0 0 2px var(--color-chrome-lo), 0 0 0 3px var(--color-chrome-lip); } .ds-wave::after { content: \"\"; position: absolute; inset: 0; background: repeating-linear-gradient(to right, transparent 0 4px, var(--color-lcd) 4px 6px), repeating-linear-gradient(to bottom, var(--color-lcd) 0 1px, transparent 1px 4px); } .ds-wave-played { position: absolute; left: 0; top: 25%; bottom: 25%; width: 34%; background: var(--color-lcd-ink); } .ds-wave-head { position: absolute; top: 0; bottom: 0; left: calc(34% - 1px); width: 2px; z-index: 1; background: var(--color-lcd-cyan); } .ds-wave:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); }"
+    },
+    {
+      "name": "Player Panel",
+      "kind": "card",
+      "refersTo": "player-panel",
+      "description": "The graphite hardware housing for the track page player.",
+      "html": "<section class=\"ds-panel\" aria-label=\"Player for v2\"><p class=\"ds-panel-error\" role=\"alert\">Couldn’t play v2. Press play to try again.</p></section>",
+      "css": ".ds-panel { padding: 12px; min-height: 120px; background: linear-gradient(to bottom, var(--color-chrome-hi), var(--color-chrome-lo)); border: 1px solid var(--color-chrome-edge); border-radius: 0.5rem; box-shadow: var(--shadow-panel); } .ds-panel-error { margin: 80px 0 0; padding: 4px 8px; border-radius: 0.25rem; background: var(--color-chrome-lo); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; color: var(--color-danger); }"
+    },
+    {
+      "name": "Mini-Player",
+      "kind": "nav",
+      "refersTo": "mini-player",
+      "description": "Graphite bar stuck to the bottom of every page once something has played.",
+      "html": "<aside class=\"ds-mini\" aria-label=\"Now playing\"><a class=\"ds-mini-title\" href=\"#\">Night drive</a><p class=\"ds-mini-time\">1:12 <span>/ 3:30 · v2</span></p></aside>",
+      "css": ".ds-mini { padding: 8px 16px; background: var(--color-chrome-lo); border-top: 1px solid var(--color-chrome-edge); box-shadow: var(--shadow-panel); } .ds-mini-title { display: block; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--color-ink); text-decoration: none; border-radius: 0.25rem; } .ds-mini-title:hover { color: var(--color-accent); } .ds-mini-title:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); } .ds-mini-time { margin: 0; font-family: var(--font-lcd); font-size: 0.75rem; color: var(--color-lcd-ink); } .ds-mini-time span { color: var(--color-lcd-cyan); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Hardware Player",
+    "overview": "Feedback borrows the late-90s desktop music player: a graphite hardware housing, a recessed LCD window with lime phosphor ink, and chunky bevel buttons that sink when pressed. The waveform sits inside the LCD as segmented bars. The part you've already heard is lit, the rest shows as dim lime, and the empty cells stay faintly visible behind both, like the unlit segments on a real LCD.\n\n**Scope so far: only the player surface exists.** That means the track page's waveform player and the global mini-player. Every other page is deliberately plain semantic HTML on the dark canvas until the owner asks for styling. The direction for everything not built yet (glossy LimeWire toolbars, results tables, striped progress bars, window panels, Aqua surfaces, light mode, skins) is in CLAUDE.md section 9, \"Visual style: Y2K / Winamp / LimeWire\". It is not recorded here because none of it exists in code. When one of those surfaces gets built, add it to this file from the shipped code.\n\nThe player is quiet and practical: dark only, no decorative motion, and one bright signature (the lit LCD) per screen. All tokens live in `app/globals.css` under `@theme`, and components use them, never one-off hex values.",
+    "keyCharacteristics": [
+      "Graphite chrome housing, raised by a 1px top highlight and a soft drop.",
+      "Recessed deep green-black LCD windows set into the panel with a dark lip and a faint outer highlight.",
+      "Lit, dim, and unlit segments: the LCD always shows its unlit cells.",
+      "Lime for content inside the LCD, a slightly different lime for interaction, cyan for secondary readouts and the playhead.",
+      "Bitmap face for LCD readouts only; clean system sans for everything else.",
+      "No animation anywhere in the player."
+    ],
+    "rules": [
+      {
+        "name": "The Lit and Unlit Rule",
+        "body": "The LCD always shows its unlit state: played audio is `lcd-ink`, audio still to play is `lcd-dim`, empty cells are `lcd-cell`, and every digit sits over a ghost \"8\" in `lcd-ghost`. Never draw LCD content on a blank window.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Limes Rule",
+        "body": "`lcd-ink` is what the LCD displays; `accent` is what responds to you (focus, hover, active, selection). Don't swap them.",
+        "section": "colors"
+      },
+      {
+        "name": "The Cyan Channel Rule",
+        "body": "Cyan appears only in LCD contexts: the playhead and secondary readouts. It is never a button, link, or body color.",
+        "section": "colors"
+      },
+      {
+        "name": "The Bitmap for Readouts Rule",
+        "body": "Silkscreen is for LCD readouts only: times, version numbers, state words. Titles, errors, forms, comments, and body text use the sans.",
+        "section": "typography"
+      },
+      {
+        "name": "The Housed Hardware Rule",
+        "body": "Shadows describe hardware: raised housing, recessed windows, buttons that sink. Nothing else on the page gets a shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** build new styled surfaces from the tokens in `app/globals.css`, never one-off hex values.",
+      "**Do** keep the LCD's unlit state visible: ghost \"8\"s behind digits, `lcd-cell` behind the waveform.",
+      "**Do** use `accent` for focus (2px outline, 2px offset, plus the glow) on every themed control.",
+      "**Do** keep the player still: no marquees, visualizers, or animated effects.",
+      "**Do** put text on a solid backing (`chrome-lo`, `lcd`, or `canvas`), never on a gradient (CLAUDE.md section 9).",
+      "**Do** check CLAUDE.md section 9 for the direction of any surface not recorded here, and record it here once it ships."
+    ],
+    "donts": [
+      "**Don't** set titles, errors, or body text in Silkscreen.",
+      "**Don't** use `lcd-cyan` or `lcd-ink` for buttons or links; interaction color is `accent`.",
+      "**Don't** add shadows or chrome to anything that isn't player hardware. The rest of the app stays plain until the owner asks for styling.",
+      "**Don't** copy Winamp, LimeWire, Microsoft, or Apple names, logos, skins, or assets."
+    ]
+  }
+}

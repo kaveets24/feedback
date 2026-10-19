@@ -1,1 +1,95 @@
 @import 'tailwindcss';
+
+/*
+ * Theme tokens (CLAUDE.md section 9). Components use these, never one-off colors. Dark only for
+ * now. So far only the player is styled; the rest of the app is still plain HTML.
+ */
+@theme {
+  --color-canvas: #0b0e0c;
+  --color-ink: #e4eae5;
+
+  /* Graphite "hardware" chrome around the player. */
+  --color-chrome-hi: #454d48;
+  --color-chrome-lo: #1d211f;
+  --color-chrome-edge: #050605;
+  --color-chrome-lip: #555d58;
+  --color-button-hi: #4b534e;
+  --color-button-lo: #262b28;
+
+  /* The LCD window: lime ink, dim lime for audio still to play, faint unlit cells. */
+  --color-lcd: #07140c;
+  --color-lcd-ink: #b9f45c;
+  --color-lcd-dim: color-mix(in oklab, var(--color-lcd-ink) 42%, var(--color-lcd));
+  --color-lcd-cell: color-mix(in oklab, var(--color-lcd-ink) 9%, var(--color-lcd));
+  /* Unlit digit segments behind LCD readouts. */
+  --color-lcd-ghost: color-mix(in oklab, var(--color-lcd-ink) 16%, var(--color-lcd));
+  --color-lcd-cyan: #6fe3f5;
+
+  --color-accent: #a8f03f;
+  --color-danger: #ff8a7a;
+
+  --shadow-bevel: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 1px 2px rgb(0 0 0 / 0.6);
+  --shadow-bevel-pressed: inset 0 2px 4px rgb(0 0 0 / 0.65);
+  --shadow-panel: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 2px 8px rgb(0 0 0 / 0.5);
+  --shadow-lcd: inset 0 2px 5px rgb(0 0 0 / 0.75), 0 1px 0 rgb(255 255 255 / 0.07);
+  --shadow-focus-glow: 0 0 10px color-mix(in oklab, var(--color-accent) 55%, transparent);
+}
+
+@theme inline {
+  /* Bitmap display face, for LCD readouts only (never body text). Loaded in app/fonts.ts. */
+  --font-lcd: var(--font-silkscreen), ui-monospace, monospace;
+}
+
+/* A bevelled hardware panel: the player's housing. */
+@utility panel {
+  background: linear-gradient(to bottom, var(--color-chrome-hi), var(--color-chrome-lo));
+  border: 1px solid var(--color-chrome-edge);
+  box-shadow: var(--shadow-panel);
+}
+
+/* A recessed LCD window for readouts and the waveform. */
+@utility lcd {
+  background: var(--color-lcd);
+  border: 1px solid var(--color-chrome-edge);
+  border-radius: var(--radius-sm);
+  /* A dark lip, then a faint highlight: the window is set into the panel. */
+  box-shadow:
+    var(--shadow-lcd),
+    0 0 0 2px var(--color-chrome-lo),
+    0 0 0 3px var(--color-chrome-lip);
+}
+
+/* The bright focus ring every themed control uses. */
+@utility focus-glow {
+  &:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    box-shadow: var(--shadow-focus-glow);
+  }
+}
+
+/* A chunky transport button that sinks when pressed. */
+@utility bevel-button {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--color-ink);
+  background: linear-gradient(to bottom, var(--color-button-hi), var(--color-button-lo));
+  border: 1px solid var(--color-chrome-edge);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-bevel);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-accent);
+  }
+  &:active {
+    background: linear-gradient(to top, var(--color-button-hi), var(--color-button-lo));
+    box-shadow: var(--shadow-bevel-pressed);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    box-shadow: var(--shadow-bevel), var(--shadow-focus-glow);
+  }
+}
