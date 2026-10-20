@@ -1,10 +1,9 @@
-import { SignOutButton } from '@clerk/nextjs';
 import { auth } from '@clerk/nextjs/server';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { z } from 'zod';
-import type { TrackSummary } from '@feedback/shared';
-import { serverApi } from '../lib/api';
-import { formatDuration, STATUS_LABELS } from '../lib/format';
+import { getMe, serverApi } from '../lib/api';
+import { TrackLength, TrackSubtitle } from './_shell/track-meta';
 import { UploadForm } from './upload-form';
 
 export default async function HomePage({
@@ -16,40 +15,47 @@ export default async function HomePage({
 
   if (!isAuthenticated) {
     return (
-      <main className="mx-auto max-w-3xl px-4 py-6">
-        <h1>Feedback</h1>
-        <p>
+      <main className="mx-auto max-w-3xl px-4 pt-16 pb-16">
+        {/* The wordmark already says "Feedback" right above, so the name is for screen readers
+            and the pitch leads. */}
+        <h1 className="sr-only">Feedback</h1>
+        <p className="max-w-[24ch] text-3xl font-semibold text-balance">
           Share rough song ideas, control who hears them, and collect feedback pinned to the moment.
         </p>
-        <p>
-          <Link href="/sign-in">Sign in</Link> or <Link href="/sign-up">create an account</Link>
-        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link href="/sign-in" className="btn btn-primary">
+            Sign in
+          </Link>
+          <Link href="/sign-up" className="btn">
+            Create an account
+          </Link>
+        </div>
       </main>
     );
   }
 
-  const me = await serverApi().getMe();
+  const me = await getMe();
 
   if (me.accessStatus === 'pending') {
     return (
-      <main className="mx-auto max-w-3xl px-4 py-6">
-        <h1>You&apos;re on the list</h1>
+      <Message title="You’re on the list">
         <p>
-          Feedback is invite-only for now. Your account ({me.email}) is waiting for approval.
-          We&apos;ll let you in as soon as it&apos;s approved; check back here.
+          Feedback is invite-only for now. Your account (
+          <span className="font-medium text-ink">{me.email}</span>) is waiting for approval. We’ll
+          let you in as soon as it’s approved; check back here.
         </p>
-        <SignOutButton />
-      </main>
+      </Message>
     );
   }
 
   if (me.accessStatus === 'rejected') {
     return (
-      <main className="mx-auto max-w-3xl px-4 py-6">
-        <h1>Account not approved</h1>
-        <p>Your account ({me.email}) wasn&apos;t approved for access.</p>
-        <SignOutButton />
-      </main>
+      <Message title="Account not approved">
+        <p>
+          Your account (<span className="font-medium text-ink">{me.email}</span>) wasn’t approved
+          for access.
+        </p>
+      </Message>
     );
   }
 
@@ -58,41 +64,65 @@ export default async function HomePage({
   const page = await serverApi().listTracks(z.uuid().safeParse(cursor).success ? { cursor } : {});
 
   return (
-    // Layout only: the header's column. The rest of this page is still plain HTML.
-    <main className="mx-auto max-w-3xl px-4 py-6">
-      <h1>Your tracks</h1>
-      <UploadForm />
+    <main className="mx-auto max-w-3xl px-4 pt-6 pb-16">
+      <h1 className="text-3xl font-semibold">Your tracks</h1>
+      <div className="mt-6">
+        <UploadForm />
+      </div>
 
-      <section aria-labelledby="tracks-heading">
-        <h2 id="tracks-heading">{cursor ? 'Older tracks' : 'Tracks'}</h2>
+      <section aria-labelledby="tracks-heading" className="mt-12">
+        <h2 id="tracks-heading" className="mb-3 text-lg font-semibold">
+          {cursor ? 'Older tracks' : 'Tracks'}
+        </h2>
         {page.tracks.length === 0 ? (
-          <p>{cursor ? 'No older tracks.' : 'No tracks yet. Upload one above.'}</p>
+          <p className="border-y border-rule py-6 text-muted">
+            {cursor ? 'No older tracks.' : 'No tracks yet. Upload one above.'}
+          </p>
         ) : (
-          <ul>
+          <ul className="border-t border-rule">
             {page.tracks.map((track) => (
-              <li key={track.id}>
-                <Link href={`/tracks/${track.id}`}>{track.title}</Link> <TrackState track={track} />
+              <li
+                key={track.id}
+                className="relative flex items-center gap-4 border-b border-rule py-3 hover:bg-chrome-lo/60"
+              >
+                <div className="min-w-0 flex-1">
+                  {/* The link's hit area covers the whole row. */}
+                  <Link
+                    href={`/tracks/${track.id}`}
+                    className="row-link line-clamp-2 font-medium break-words sm:line-clamp-1"
+                  >
+                    {track.title}
+                  </Link>
+                  <TrackSubtitle track={track} />
+                </div>
+                <TrackLength track={track} />
               </li>
             ))}
           </ul>
         )}
-        <nav aria-label="More tracks">
-          {cursor && <Link href="/">Newest tracks</Link>}{' '}
-          {page.nextCursor && <Link href={`/?cursor=${page.nextCursor}`}>Older tracks</Link>}
+        <nav aria-label="More tracks" className="mt-4 flex gap-4 text-sm">
+          {cursor && (
+            <Link href="/" className="link">
+              Newest tracks
+            </Link>
+          )}
+          {page.nextCursor && (
+            <Link href={`/?cursor=${page.nextCursor}`} className="link">
+              Older tracks
+            </Link>
+          )}
         </nav>
       </section>
     </main>
   );
 }
 
-/** The newest version's state, e.g. "v2 · Processing" or "v1 · 3:30". */
-function TrackState({ track }: { track: TrackSummary }) {
-  const { versionNumber, status, durationMs } = track.latestVersion;
-  const detail =
-    status === 'ready' && durationMs !== null ? formatDuration(durationMs) : STATUS_LABELS[status];
+/** A screen with one thing to say: the waiting-list and not-approved notices. */
+function Message({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <span>
-      (v{versionNumber} · {detail})
-    </span>
+    <main className="mx-auto max-w-3xl px-4 pt-16 pb-16">
+      <h1 className="text-3xl font-semibold text-balance">{title}</h1>
+      <div className="mt-3 max-w-[60ch] text-muted">{children}</div>
+    </main>
   );
 }

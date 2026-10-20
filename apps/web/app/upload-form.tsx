@@ -11,6 +11,7 @@ import {
 } from '@feedback/shared';
 import { putFile } from '../lib/put-file';
 import { completeUploadAction, startUploadAction } from './upload-actions';
+import { UploadProgress } from './upload-progress';
 
 type State =
   | { step: 'idle' }
@@ -98,15 +99,21 @@ export function UploadForm() {
 
   return (
     <form onSubmit={onSubmit} aria-labelledby="upload-heading">
-      <h2 id="upload-heading">Upload a track</h2>
-      <p>
+      <h2 id="upload-heading" className="text-lg font-semibold">
+        Upload a track
+      </h2>
+      <p className="mt-1 max-w-[65ch] text-sm text-muted">
         New tracks are private: only you can see and hear them. mp3, wav, m4a, aac, flac, or ogg, up
         to {MAX_MB} MB and {MAX_MINUTES} minutes.
       </p>
-      <p>
-        <label>
-          Audio file{' '}
+
+      <div className="mt-4 max-w-xl space-y-4">
+        <div>
+          <label htmlFor="upload-file" className="mb-1 block text-sm font-medium">
+            Audio file
+          </label>
           <input
+            id="upload-file"
             type="file"
             name="file"
             required
@@ -117,43 +124,43 @@ export function UploadForm() {
               setFile(chosen);
               if (chosen && !title.trim()) setTitle(titleFromFilename(chosen.name));
             }}
+            className="focus-glow block w-fit max-w-full rounded-md text-sm text-muted file:mr-3 file:min-h-10 file:cursor-pointer file:rounded-md file:border file:border-field-edge file:bg-chrome-lo file:px-4 file:text-sm file:font-medium file:text-ink enabled:hover:file:border-accent enabled:hover:file:text-accent disabled:cursor-not-allowed disabled:file:cursor-not-allowed disabled:file:border-rule disabled:file:text-muted"
           />
-        </label>
-      </p>
-      <p>
-        <label>
-          Title{' '}
-          <input
-            type="text"
-            name="title"
-            required
-            maxLength={200}
-            disabled={busy}
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-          />
-        </label>
-      </p>
-      <p>
-        <button type="submit" disabled={busy || !file}>
-          Upload
-        </button>
-      </p>
-
-      {state.step === 'uploading' && (
-        <p>
-          <label>
-            Uploading{' '}
-            <progress max={1} value={state.progress}>
-              {Math.round(state.progress * 100)}%
-            </progress>
+        </div>
+        <div>
+          <label htmlFor="upload-title" className="mb-1 block text-sm font-medium">
+            Title
           </label>
+          <div className="flex gap-2">
+            <input
+              id="upload-title"
+              type="text"
+              name="title"
+              required
+              maxLength={200}
+              disabled={busy}
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="Fills in from the file name"
+              className="field min-w-0"
+            />
+            <button type="submit" className="btn btn-primary" disabled={busy || !file}>
+              {busy ? 'Uploading…' : 'Upload'}
+            </button>
+          </div>
+        </div>
+
+        {state.step === 'uploading' && <UploadProgress progress={state.progress} />}
+        {state.step === 'finishing' && <UploadProgress progress={1} />}
+        <p role="status" className="text-sm text-muted empty:hidden">
+          {state.step === 'finishing' ? 'Upload complete. Starting processing…' : ''}
         </p>
-      )}
-      <p role="status">
-        {state.step === 'finishing' ? 'Upload complete. Starting processing…' : ''}
-      </p>
-      {state.step === 'error' && <p role="alert">{state.message}</p>}
+        {state.step === 'error' && (
+          <p role="alert" className="text-sm text-danger">
+            {state.message}
+          </p>
+        )}
+      </div>
     </form>
   );
 }

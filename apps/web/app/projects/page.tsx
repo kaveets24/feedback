@@ -51,7 +51,7 @@ export default async function ProjectsPage({
                   {/* The link's hit area covers the whole row. */}
                   <Link
                     href={`/projects/${project.id}`}
-                    className="link block truncate font-medium no-underline after:absolute after:inset-0"
+                    className="row-link line-clamp-2 font-medium break-words sm:line-clamp-1"
                   >
                     {project.title}
                   </Link>

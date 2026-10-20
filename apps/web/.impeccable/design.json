@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-20T00:58:04.668Z",
+  "generatedAt": "2026-10-20T02:03:46.554346Z",
   "title": "Design System: Feedback",
   "extensions": {
     "colorMeta": {
@@ -347,7 +347,11 @@
       },
       "lcd-figure": {
         "displayName": "LCD Figure",
-        "purpose": "Tabular figures set on the canvas: track numbers (muted), track lengths (ink), the project total."
+        "purpose": "Tabular figures at 1rem: track lengths (ink) on home and project rows, the project page's track numbers (muted), and the upload percent (lcd-ink)."
+      },
+      "lcd-figure-sm": {
+        "displayName": "LCD Figure Small",
+        "purpose": "Tabular figures at 0.875rem: the project's total length, inline in the small Tracks count line."
       },
       "lcd-label": {
         "displayName": "LCD Label",
@@ -355,11 +359,11 @@
       },
       "headline": {
         "displayName": "Headline",
-        "purpose": "Page H1: \"Projects\", the project title, \"Edit project\"."
+        "purpose": "Page H1: \"Your tracks\", \"Projects\", the project title, \"Edit project\", the pending and rejected notices; the signed-out pitch at 24ch."
       },
       "section-title": {
         "displayName": "Section Title",
-        "purpose": "H2s such as \"Your projects\" and \"Tracks\"."
+        "purpose": "H2s such as \"Upload a track\", \"Tracks\", and \"Your projects\"."
       },
       "title": {
         "displayName": "Title",
@@ -367,7 +371,7 @@
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Page text, field text, confirmation sentences; descriptions in muted at 65ch."
+        "purpose": "Page text, field text, confirmation sentences; descriptions in muted at 65ch, the pending and rejected notices at 60ch."
       },
       "label": {
         "displayName": "Label",
@@ -383,7 +387,7 @@
       {
         "name": "shadow-lcd",
         "value": "inset 0 2px 5px rgb(0 0 0 / 0.75), 0 1px 0 rgb(255 255 255 / 0.07)",
-        "purpose": "Recessed LCD well on every LCD window (readout, waveform, status meter, status badge); the lcd utility adds a 2px chrome-lo lip and a 3px chrome-lip ring."
+        "purpose": "Recessed LCD well on every LCD window (readout, waveform, status meter, status badge, upload progress bar); the lcd utility adds a 2px chrome-lo lip and a 3px chrome-lip ring."
       },
       {
         "name": "shadow-bevel",
@@ -398,7 +402,7 @@
       {
         "name": "shadow-focus-glow",
         "value": "0 0 10px color-mix(in oklab, var(--color-accent) 55%, transparent)",
-        "purpose": "Paired with the 2px accent outline at 2px offset on buttons, links, nav items, the wordmark, and player controls."
+        "purpose": "Paired with the 2px accent outline at 2px offset on buttons, links, nav items, the wordmark, the file picker, whole list rows, and player controls; also the primary button hover."
       },
       {
         "name": "nav-underline",
@@ -406,7 +410,13 @@
         "purpose": "The current nav item's 2px accent underline (a line, not depth)."
       }
     ],
-    "motion": [],
+    "motion": [
+      {
+        "name": "progress-stripes-drift",
+        "value": "background-position 0 to 16.97px, 0.8s linear infinite",
+        "purpose": "The upload bar's lit stripes, only while an upload or processing start is in progress; animation none under prefers-reduced-motion. The one ambient motion; not a general license to animate."
+      }
+    ],
     "breakpoints": [
       {
         "name": "sm",
@@ -515,7 +525,7 @@
       "name": "App Header",
       "kind": "nav",
       "refersTo": "app-header",
-      "description": "Wordmark, main nav with an accent underline on the current item, account link.",
+      "description": "Wordmark, main nav with an accent underline on the current item, account link. Pending and rejected accounts see only the wordmark and Sign out.",
       "html": "<header class=\"ds-header\"><a class=\"ds-wordmark\" href=\"#\">Feedback</a><nav aria-label=\"Main\"><a href=\"#\">Tracks</a><a href=\"#\" aria-current=\"page\">Projects</a></nav><a class=\"ds-signout\" href=\"#\">Sign out</a></header>",
       "css": ".ds-header { display: flex; align-items: stretch; gap: 16px; height: 56px; padding: 0 16px; background: var(--color-canvas); border-bottom: 1px solid var(--color-rule); } .ds-wordmark { display: flex; align-items: center; font-family: var(--font-lcd); font-size: 1.125rem; color: var(--color-lcd-ink); text-decoration: none; border-radius: 0.25rem; } .ds-header nav { display: flex; align-items: stretch; gap: 4px; } .ds-header nav a { display: flex; align-items: center; padding: 0 12px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--color-muted); text-decoration: none; border-radius: 0.25rem; } .ds-header nav a:hover { color: var(--color-accent); } .ds-header nav a[aria-current] { color: var(--color-ink); box-shadow: inset 0 -2px 0 var(--color-accent); } .ds-signout { margin-left: auto; align-self: center; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; color: var(--color-muted); text-decoration: underline; text-decoration-color: var(--color-field-edge); text-underline-offset: 3px; } .ds-signout:hover { color: var(--color-accent); } .ds-header a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); }"
     },
@@ -541,12 +551,28 @@
       "refersTo": "track-row-dragging",
       "description": "A running-order row on a 1px rule, shown while dragged: chrome-lo fill and accent outline.",
       "html": "<ol class=\"ds-rows\"><li class=\"ds-row ds-dragging\"><span class=\"ds-grip\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M8 4h3v3H8zM13 4h3v3h-3zM8 10.5h3v3H8zM13 10.5h3v3h-3zM8 17h3v3H8zM13 17h3v3h-3z\"/></svg></span><span class=\"ds-num\">03</span><div class=\"ds-main\"><a href=\"#\">Night drive</a><p>v2</p></div><span class=\"ds-len\">3:30</span><div class=\"ds-acts\"><button class=\"ds-ghost\" aria-label=\"Move Night drive up\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 6l8 8-2.5 2.5L12 11l-5.5 5.5L4 14z\"/></svg></button><button class=\"ds-ghost\" aria-label=\"Move Night drive down\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 18l-8-8 2.5-2.5L12 13l5.5-5.5L20 10z\"/></svg></button><button class=\"ds-ghost\" aria-label=\"Remove Night drive from this project\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M6.4 4.3L12 9.9l5.6-5.6 2.1 2.1-5.6 5.6 5.6 5.6-2.1 2.1-5.6-5.6-5.6 5.6-2.1-2.1 5.6-5.6-5.6-5.6z\"/></svg></button></div></li></ol>",
-      "css": ".ds-rows { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-rule); } .ds-row { display: grid; grid-template-columns: 2rem 2.5rem 1fr 4rem auto; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--color-rule); font-family: ui-sans-serif, system-ui, sans-serif; } .ds-row.ds-dragging { position: relative; z-index: 1; background: var(--color-chrome-lo); border-radius: 0.25rem; outline: 2px solid var(--color-accent); } .ds-grip { display: flex; height: 40px; align-items: center; justify-content: center; color: var(--color-field-edge); cursor: grab; } .ds-dragging .ds-grip { color: var(--color-accent); cursor: grabbing; } .ds-num { font-family: var(--font-lcd); font-size: 0.875rem; color: var(--color-muted); } .ds-main { min-width: 0; } .ds-main a { font-weight: 500; color: var(--color-ink); text-decoration: none; } .ds-main a:hover { color: var(--color-accent); } .ds-main p { margin: 0; font-size: 0.875rem; color: var(--color-muted); } .ds-len { text-align: right; font-family: var(--font-lcd); font-size: 0.875rem; color: var(--color-ink); } .ds-acts { display: flex; gap: 4px; } .ds-ghost { display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0; color: var(--color-muted); background: transparent; border: 1px solid transparent; border-radius: 0.375rem; cursor: pointer; } .ds-ghost:hover { color: var(--color-accent); background: var(--color-chrome-lo); border-color: var(--color-field-edge); } .ds-ghost:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); }"
+      "css": ".ds-rows { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-rule); } .ds-row { display: grid; grid-template-columns: 2rem 2.5rem 1fr 4rem auto; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--color-rule); font-family: ui-sans-serif, system-ui, sans-serif; } .ds-row.ds-dragging { position: relative; z-index: 1; background: var(--color-chrome-lo); border-radius: 0.25rem; outline: 2px solid var(--color-accent); } .ds-grip { display: flex; height: 40px; align-items: center; justify-content: center; color: var(--color-field-edge); cursor: grab; } .ds-dragging .ds-grip { color: var(--color-accent); cursor: grabbing; } .ds-num { font-family: var(--font-lcd); font-size: 0.875rem; color: var(--color-muted); } .ds-main { min-width: 0; } .ds-main a { font-weight: 500; color: var(--color-ink); text-decoration: none; } .ds-main a:hover { color: var(--color-accent); } .ds-main p { margin: 0; font-size: 0.875rem; color: var(--color-muted); } .ds-len { text-align: right; font-family: var(--font-lcd); font-size: 1rem; color: var(--color-ink); } .ds-acts { display: flex; gap: 4px; } .ds-ghost { display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0; color: var(--color-muted); background: transparent; border: 1px solid transparent; border-radius: 0.375rem; cursor: pointer; } .ds-ghost:hover { color: var(--color-accent); background: var(--color-chrome-lo); border-color: var(--color-field-edge); } .ds-ghost:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); }"
+    },
+    {
+      "name": "Upload Progress",
+      "kind": "custom",
+      "refersTo": "upload-progress",
+      "description": "Progressbar in an LCD window: lit drifting lime stripes over still unlit stripes, percent in Silkscreen.",
+      "html": "<div class=\"ds-progress\" role=\"progressbar\" aria-label=\"Uploading\" aria-valuemin=\"0\" aria-valuemax=\"100\" aria-valuenow=\"62\"><div class=\"ds-progress-track\"><div class=\"ds-progress-fill\" style=\"width: 62%\"></div></div><span class=\"ds-progress-pct\" aria-hidden=\"true\">62%</span></div>",
+      "css": ".ds-progress { display: flex; align-items: center; gap: 12px; margin: 3px; padding: 8px 12px; background: var(--color-lcd); border: 1px solid var(--color-chrome-edge); border-radius: 0.25rem; box-shadow: var(--shadow-lcd), 0 0 0 2px var(--color-chrome-lo), 0 0 0 3px var(--color-chrome-lip); } .ds-progress-track { flex: 1; height: 12px; overflow: hidden; border-radius: 2px; background-image: repeating-linear-gradient(-45deg, var(--color-lcd-ghost) 0 6px, var(--color-lcd-cell) 6px 12px); background-size: 16.97px 16.97px; } .ds-progress-fill { height: 100%; background-image: repeating-linear-gradient(-45deg, var(--color-lcd-ink) 0 6px, var(--color-lcd-dim) 6px 12px); background-size: 16.97px 16.97px; animation: ds-stripes 0.8s linear infinite; } @keyframes ds-stripes { to { background-position: 16.97px 0; } } @media (prefers-reduced-motion: reduce) { .ds-progress-fill { animation: none; } } .ds-progress-pct { width: 3rem; text-align: right; font-family: var(--font-lcd); font-size: 1rem; font-variant-numeric: tabular-nums; color: var(--color-lcd-ink); }"
+    },
+    {
+      "name": "List Row",
+      "kind": "custom",
+      "refersTo": "list-row",
+      "description": "A home or projects-list row on rules; the title link covers the whole row and keyboard focus outlines it.",
+      "html": "<ul class=\"ds-list\"><li class=\"ds-lrow\"><div class=\"ds-lmain\"><a class=\"ds-row-link\" href=\"#\">Night drive</a><p>v2 · Processing</p></div><span class=\"ds-llen\">3:30</span></li></ul>",
+      "css": ".ds-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-rule); font-family: ui-sans-serif, system-ui, sans-serif; } .ds-lrow { position: relative; display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--color-rule); } .ds-lrow:hover { background: color-mix(in oklab, var(--color-chrome-lo) 60%, transparent); } .ds-lmain { flex: 1; min-width: 0; } .ds-lmain p { margin: 0; font-size: 0.875rem; color: var(--color-muted); } .ds-row-link { font-weight: 500; color: var(--color-ink); text-decoration: none; } .ds-row-link:hover { color: var(--color-accent); } .ds-row-link::after { content: \"\"; position: absolute; inset: 0; } .ds-row-link:focus-visible { outline: none; } .ds-row-link:focus-visible::after { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 0.25rem; box-shadow: var(--shadow-focus-glow); } .ds-llen { text-align: right; font-family: var(--font-lcd); font-size: 1rem; font-variant-numeric: tabular-nums; color: var(--color-ink); }"
     }
   ],
   "narrative": {
     "northStar": "The Hardware Player",
-    "overview": "Feedback borrows the late-90s desktop music player: a graphite hardware housing, a recessed LCD window with lime phosphor ink, and chunky bevel buttons that sink when pressed. The waveform sits inside the LCD as segmented bars. The part you've already heard is lit, the rest shows as dim lime, and the empty cells stay faintly visible behind both, like the unlit segments on a real LCD.\n\n**Scope so far: the player, the app header, and the project pages.** The player means the track page's waveform player and the global mini-player. The app header sits on every page. The projects list (`/projects`) and the project page (`/projects/[projectId]`) are the first working screens: the player's world extended to forms and lists, with flat graphite controls, 1px rules between rows, and the LCD well kept for things that read out (the status meter and status badge). Every page uses the same 48rem column under the header, but the bodies of home, sign-in, sign-up, and the track page (apart from its player) are still deliberately plain semantic HTML, and so is the track page's Project selector. The direction for everything not built yet (glossy LimeWire toolbars, results tables, striped progress bars, window panels, Aqua surfaces, light mode, skins) is in CLAUDE.md section 9, \"Visual style: Y2K / Winamp / LimeWire\". It is not recorded here because none of it exists in code. When one of those surfaces gets built, add it to this file from the shipped code.\n\nThe system is quiet and practical: dark only, no decorative motion, and one bright signature per screen (the lit LCD of the player, or the status meter on a project). All tokens live in `app/globals.css` under `@theme`, and components use them, never one-off hex values.",
+    "overview": "Feedback borrows the late-90s desktop music player: a graphite hardware housing, a recessed LCD window with lime phosphor ink, and chunky bevel buttons that sink when pressed. The waveform sits inside the LCD as segmented bars. The part you've already heard is lit, the rest shows as dim lime, and the empty cells stay faintly visible behind both, like the unlit segments on a real LCD.\n\n**Scope so far: the player, the app header, home, and the project pages.** The player means the track page's waveform player and the global mini-player. The app header sits on every page. Home (`/`, in all four states: signed out, pending, rejected, and signed in with the upload form and your tracks), the projects list (`/projects`), and the project page (`/projects/[projectId]`) are the working screens: the player's world extended to forms and lists, with flat graphite controls, 1px rules between rows, and the LCD well kept for things that read out (the status meter, the status badge, and the upload progress bar). Every page uses the same 48rem column under the header, but the bodies of sign-in, sign-up, and the track page (apart from its player) are still deliberately plain semantic HTML, and so is the track page's Project selector. The direction for everything not built yet (glossy LimeWire toolbars, results tables, window panels, Aqua surfaces, light mode, skins) is in CLAUDE.md section 9, \"Visual style: Y2K / Winamp / LimeWire\". It is not recorded here because none of it exists in code. When one of those surfaces gets built, add it to this file from the shipped code.\n\nThe system is quiet and practical: dark only, no decorative motion, and one bright signature per screen (the lit LCD of the player, the status meter on a project, or the upload bar on home while a file goes up). All tokens live in `app/globals.css` under `@theme`, and components use them, never one-off hex values.",
     "keyCharacteristics": [
       "Graphite chrome housing on the player, raised by a 1px top highlight and a soft drop.",
       "Recessed deep green-black LCD windows set into their surroundings with a dark lip and a faint outer highlight.",
@@ -554,12 +580,12 @@
       "Working screens are flat: solid graphite controls with a 1px edge, lists on 1px rules, no cards and no gradients behind text.",
       "Lime for content inside the LCD, a slightly different lime for interaction, cyan for secondary player readouts and the playhead.",
       "Bitmap face for readouts, figures, and the wordmark; clean system sans for everything else.",
-      "No animation anywhere; the only motion is a dragged row following the pointer."
+      "Still by default: the only motion is a dragged row following the pointer and the upload bar's stripes drifting while an upload is in progress (still under reduced motion)."
     ],
     "rules": [
       {
         "name": "The Lit and Unlit Rule",
-        "body": "The LCD always shows its unlit state: played audio is `lcd-ink`, audio still to play is `lcd-dim`, empty cells are `lcd-cell`, and every digit sits over a ghost \"8\" in `lcd-ghost`. Status stages work the same way: passed stages lit in `lcd-ink`, the current one solid `lcd-ink`, later ones in `lcd-unlit` (words must stay readable, so they don't drop to `lcd-cell`); the badge's pips are lit or `lcd-cell`. Never draw LCD content on a blank window.",
+        "body": "The LCD always shows its unlit state: played audio is `lcd-ink`, audio still to play is `lcd-dim`, empty cells are `lcd-cell`, and every digit sits over a ghost \"8\" in `lcd-ghost`. Status stages work the same way: passed stages lit in `lcd-ink`, the current one solid `lcd-ink`, later ones in `lcd-unlit` (words must stay readable, so they don't drop to `lcd-cell`); the badge's pips are lit or `lcd-cell`. The upload bar too: its done part is lit stripes (`lcd-ink` and `lcd-dim`), and the rest of the track shows the same stripes held still in `lcd-ghost` and `lcd-cell`. Never draw LCD content on a blank window.",
         "section": "colors"
       },
       {
@@ -574,7 +600,7 @@
       },
       {
         "name": "The Bitmap for Readouts Rule",
-        "body": "Silkscreen is for readouts and figures: times, lengths, totals, track numbers, version numbers, state and stage words, and the wordmark. Titles, labels, buttons, errors, forms, comments, and body text use the sans.",
+        "body": "Silkscreen is for readouts and figures: times, lengths, totals, track numbers, percents, version numbers, state and stage words, and the wordmark. Titles, labels, buttons, errors, forms, comments, and body text use the sans.",
         "section": "typography"
       },
       {
@@ -587,10 +613,10 @@
       "**Do** build new styled surfaces from the tokens and utilities in `app/globals.css`, never one-off hex values.",
       "**Do** keep the LCD's unlit state visible: ghost \"8\"s behind digits, `lcd-cell` behind the waveform, `lcd-unlit` for stages ahead.",
       "**Do** use `accent` for focus on every themed control: a 2px outline at 2px offset plus the glow on buttons and links, at no offset with an accent edge on fields.",
-      "**Do** keep everything still: no marquees, visualizers, or animated effects. A dragged row following the pointer is the only motion.",
+      "**Do** keep everything still: no marquees, visualizers, or animated effects. The only motion is a dragged row following the pointer and the upload bar's stripes drifting while an upload or processing start is in progress; both stay still at rest, and the stripes stop under reduced motion. Neither is a license to animate anything else.",
       "**Do** put text on a solid backing (`canvas`, `chrome-lo`, or `lcd`), never on a gradient (CLAUDE.md section 9).",
       "**Do** keep working-screen controls flat graphite with a 1px `field-edge` edge, and save the LCD well for things that read out.",
-      "**Do** separate list rows with 1px `rule` lines.",
+      "**Do** separate list rows with 1px `rule` lines, and when the title is the row's link, put keyboard focus around the whole row.",
       "**Do** keep privacy and destructive UI plain: literal wording, `danger` only for destructive actions, and a confirmation that says what stays and that it can't be undone.",
       "**Do** check CLAUDE.md section 9 for the direction of any surface not recorded here, and record it here once it ships."
     ],
@@ -599,7 +625,7 @@
       "**Don't** use `lcd-cyan` or `lcd-ink` for buttons or links; interaction color is `accent`.",
       "**Don't** put a gradient, bevel, or shadow on working-screen controls, rows, or sections; those belong to player hardware and LCD windows.",
       "**Don't** wrap list items in cards; use rows on rules.",
-      "**Don't** style the home page body, the sign-in and sign-up bodies, or the track page outside its player (including its Project selector) until the owner asks; they stay plain semantic HTML.",
+      "**Don't** style the sign-in and sign-up bodies, or the track page outside its player (including its Project selector), until the owner asks; they stay plain semantic HTML.",
       "**Don't** copy Winamp, LimeWire, Microsoft, or Apple names, logos, skins, or assets."
     ]
   }

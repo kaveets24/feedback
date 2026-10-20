@@ -12,9 +12,9 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import type { TrackSummary } from '@feedback/shared';
-import { formatDuration, STATUS_LABELS } from '../../../lib/format';
 import { dragStep, moveItem } from '../../../lib/reorder';
 import { DownIcon, GripIcon, RemoveIcon, UpIcon } from '../../_shell/icons';
+import { TrackLength, TrackSubtitle } from '../../_shell/track-meta';
 import {
   removeProjectTrackAction,
   reorderProjectTracksAction,
@@ -296,9 +296,6 @@ function TrackRow({
   onGripUp: GripHandler;
   onGripCancel: GripHandler;
 }) {
-  const { versionNumber, status, durationMs } = track.latestVersion;
-  const length = status === 'ready' && durationMs !== null ? formatDuration(durationMs) : null;
-
   return (
     <li
       data-track={track.id}
@@ -320,7 +317,7 @@ function TrackRow({
       >
         <GripIcon />
       </span>
-      <span className="font-lcd text-sm text-muted tabular-nums">
+      <span className="font-lcd text-base text-muted tabular-nums">
         {String(number).padStart(2, '0')}
       </span>
       <div className="min-w-0">
@@ -330,20 +327,9 @@ function TrackRow({
         >
           {track.title}
         </Link>
-        <p className={`text-sm ${status === 'failed' ? 'text-danger' : 'text-muted'}`}>
-          v{versionNumber}
-          {status !== 'ready' && ` · ${STATUS_LABELS[status]}`}
-          {length && (
-            <span className="sm:hidden">
-              {' · '}
-              <span className="font-lcd tabular-nums text-ink">{length}</span>
-            </span>
-          )}
-        </p>
+        <TrackSubtitle track={track} />
       </div>
-      <span className="hidden text-right font-lcd text-sm tabular-nums sm:block">
-        {length ?? <span className="text-muted">—</span>}
-      </span>
+      <TrackLength track={track} />
       <div className="flex gap-1">
         <button
           type="button"
