@@ -28,7 +28,7 @@ Read this file fully before making changes. If something here conflicts with a r
 
 **Explicitly out of scope for now** (do not build or scaffold these)
 
-- Geolocation, maps, places, PostGIS, location-based discovery or ranking
+- Geolocation, maps, places, PostGIS, location-based discovery or ranking. The one exception is a profile's optional city, a label the user picks from a fixed list that nothing filters, sorts, or ranks by (see `profiles` in section 5)
 - Audio feature extraction / ML / embeddings
 - Reputation scores, leaderboards, give-to-get credits
 - Payments and monetization, **except** $1 artist donations (see "Donations" in section 11), plus direct messaging and live streaming
@@ -145,11 +145,11 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 **Identity**
 
 - `users`: id, auth_provider_id, email, access_status (`pending | approved | rejected`, default `pending`), approved_at, approved_by, created_at
-- `profiles`: user_id, handle (unique, lowercase), display_name, bio, avatar_url, links
+- `profiles`: user_id, handle (unique, lowercase; nullable until handles get format rules, see section 13), display_name (what others see, e.g. on comments), bio, city (nullable; one of `CITIES` in `packages/shared`, decided 2026-10-20), avatar_url, links. A user has no profile row until they first save `/settings/profile`, which only they can see; others see only the display name for now.
 
 **Music**
 
-- `projects`: id, owner_id, title, description, current_cover_id (the newest `ready` cover, see `project_covers`), release_type (`single | ep | album | compilation`, default `single`; replaced the `idea | demo | mixing | done` status on 2026-10-20; the old `status` column is no longer read and a follow-up migration drops it), visibility, deleted_at. Deleting a project soft-deletes it and leaves its tracks loose, with their versions; it never deletes songs.
+- `projects`: id, owner_id, title, description, current_cover_id (the newest `ready` cover, see `project_covers`), release_type (`single | ep | album | compilation`, default `single`; replaced the `idea | demo | mixing | done` status on 2026-10-20, and the old `status` column is dropped), visibility, deleted_at. Deleting a project soft-deletes it and leaves its tracks loose, with their versions; it never deletes songs.
 - `tracks`: id, owner_id, project_id (nullable: a track without one is a "loose" track), title, notes, position (nullable, only meaningful in a project), visibility (default `private`; a loose track's own visibility), current_version_id (the newest `ready` version), visibility_override (nullable; for a track in a project, see rule 7 in section 6), deleted_at. Track lists leave out tracks whose versions are all still `uploading` (the file never arrived); Phase 7 cleans them up. A track can only join a project with the same owner (a composite foreign key on `(project_id, owner_id)` enforces it). Positions sort ascending and may have gaps; they aren't unique in the database, so changes to an owner's project membership and order take a lock on that owner's `users` row (`packages/db/src/projects.ts`).
 - `project_covers`: id, project_id, status (`uploading | processing | ready | failed`, the same lifecycle as versions), failure_reason, original_key, original_content_type, original_size_bytes, cover_key (the re-encoded JPEG). A cover becomes the project's current cover only if it's newer than the current one; removing the cover clears `current_cover_id` and keeps the rows.
 - `track_versions`: id, track_id, version_number, change_notes, feedback_prompt (what the artist wants feedback on), status (`uploading | processing | ready | failed`), failure_reason (shown to the artist), original_key, original_filename, original_content_type, original_size_bytes, stream_key, duration_ms, waveform_peaks (jsonb `number[]`), created_at
@@ -415,6 +415,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 ### Phase 5: Feedback
 
+- [x] Profile settings, so comments can show who wrote them _(page: `/settings/profile`, linked from the header as Profile, only for the signed-in user: display name, bio, and an optional city. API: `GET`/`PATCH /v1/me/profile`; the first save creates the profile. Plain HTML until it's styled)_
 - [ ] Timestamped comments on the waveform, threaded replies
 - [ ] Per-version "what I want feedback on" prompt
 - [ ] Open/resolved status, artist-only vs public comments

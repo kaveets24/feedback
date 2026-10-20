@@ -32,7 +32,12 @@ export async function AppHeader() {
           Feedback
         </Link>
         {showNav && <NavLinks />}
-        <div className="ml-auto flex items-center">
+        <div className="ml-auto flex items-center gap-4">
+          {showNav && (
+            <Link href="/settings/profile" className="link text-sm text-muted">
+              Profile
+            </Link>
+          )}
           {isAuthenticated ? (
             <SignOutButton>
               <button type="button" className="link text-sm text-muted">

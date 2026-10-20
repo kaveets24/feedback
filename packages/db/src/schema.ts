@@ -17,11 +17,12 @@ import {
 } from 'drizzle-orm/pg-core';
 import { v7 as uuidv7 } from 'uuid';
 import { LINK_ROLES, RESOURCE_KINDS, VISIBILITIES } from '@feedback/authz';
-import { ACCESS_STATUSES, RELEASE_TYPES, VERSION_STATUSES } from '@feedback/shared';
+import { ACCESS_STATUSES, CITIES, RELEASE_TYPES, VERSION_STATUSES } from '@feedback/shared';
 
 export const accessStatus = pgEnum('access_status', ACCESS_STATUSES);
 export const visibility = pgEnum('visibility', VISIBILITIES);
 export const releaseType = pgEnum('release_type', RELEASE_TYPES);
+export const city = pgEnum('city', CITIES);
 export const trackVersionStatus = pgEnum('track_version_status', VERSION_STATUSES);
 /** A cover upload goes through the same lifecycle as a version: uploading, processing, ready or failed. */
 export const coverStatus = pgEnum('cover_status', VERSION_STATUSES);
@@ -63,9 +64,12 @@ export const profiles = pgTable(
     userId: uuid('user_id')
       .primaryKey()
       .references(() => users.id, { onDelete: 'cascade' }),
-    handle: text('handle').notNull().unique(),
+    /** Null until handles get format rules (CLAUDE.md section 13); unique once set. */
+    handle: text('handle').unique(),
     displayName: text('display_name'),
     bio: text('bio'),
+    /** A label the user picks, never used to filter, sort, or rank. */
+    city: city('city'),
     avatarUrl: text('avatar_url'),
     links: jsonb('links').$type<ProfileLink[]>().notNull().default([]),
     ...timestamps,
@@ -90,8 +94,6 @@ export const projects = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     description: text('description'),
-    // The old `status` column (and its `project_status` enum) is still in the database but no
-    // longer read or written; the next migration drops it.
     releaseType: releaseType('release_type').notNull().default('single'),
     visibility: visibility('visibility').notNull().default('private'),
     /** The newest `ready` cover; one still processing or failed never replaces it. */

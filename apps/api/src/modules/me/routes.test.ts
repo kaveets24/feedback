@@ -69,3 +69,120 @@ describe('GET /v1/me', () => {
     });
   });
 });
+
+describe('/v1/me/profile', () => {
+  let app: App;
+  let db: Db;
+
+  beforeAll(async () => {
+    ({ app, db } = await buildTestApp());
+  });
+  beforeEach(() => resetDb(db));
+  afterAll(() => app.close());
+
+  const call = (method: 'GET' | 'PATCH', providerId?: string, payload?: object) =>
+    app.inject({
+      method,
+      url: '/v1/me/profile',
+      headers: providerId ? { authorization: `Bearer ${tokenFor(providerId)}` } : {},
+      ...(payload && { payload }),
+    });
+
+  async function approvedUser(providerId: string) {
+    const user = await upsertUserFromAuth(db, {
+      authProviderId: providerId,
+      email: `${providerId}@x.test`,
+    });
+    await setAccessStatus(db, { email: user.email, status: 'approved' });
+    return user;
+  }
+
+  it('is empty before the first save', async () => {
+    await approvedUser('u1');
+    const res = await call('GET', 'u1');
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ displayName: null, bio: null, city: null });
+  });
+
+  it('creates the profile on first save, without a handle', async () => {
+    const user = await approvedUser('u1');
+    const res = await call('PATCH', 'u1', {
+      displayName: '  Night Owl ',
+      bio: 'Bedroom pop.',
+      city: 'portland-or',
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      displayName: 'Night Owl',
+      bio: 'Bedroom pop.',
+      city: 'portland-or',
+    });
+
+    expect((await call('GET', 'u1')).json()).toEqual(res.json());
+    const me = await app.inject({
+      method: 'GET',
+      url: '/v1/me',
+      headers: { authorization: `Bearer ${tokenFor('u1')}` },
+    });
+    expect(me.json().profile).toEqual({ handle: null, displayName: 'Night Owl', avatarUrl: null });
+    expect(me.json().id).toBe(user.id);
+  });
+
+  it('changes only the fields sent, and null or a blank bio clears one', async () => {
+    await approvedUser('u1');
+    await call('PATCH', 'u1', { displayName: 'Night Owl', bio: 'Bedroom pop.', city: 'miami' });
+
+    expect((await call('PATCH', 'u1', { city: null })).json()).toEqual({
+      displayName: 'Night Owl',
+      bio: 'Bedroom pop.',
+      city: null,
+    });
+    expect((await call('PATCH', 'u1', { bio: '   ' })).json()).toMatchObject({ bio: null });
+    expect((await call('PATCH', 'u1', { displayName: null })).json()).toMatchObject({
+      displayName: null,
+    });
+    expect((await call('PATCH', 'u1', {})).json()).toEqual({
+      displayName: null,
+      bio: null,
+      city: null,
+    });
+  });
+
+  it("keeps each user's profile to themselves", async () => {
+    await approvedUser('u1');
+    await approvedUser('u2');
+    await call('PATCH', 'u1', { displayName: 'One', city: 'chicago' });
+    await call('PATCH', 'u2', { displayName: 'Two' });
+
+    expect((await call('GET', 'u1')).json()).toEqual({
+      displayName: 'One',
+      bio: null,
+      city: 'chicago',
+    });
+    expect((await call('GET', 'u2')).json()).toEqual({ displayName: 'Two', bio: null, city: null });
+  });
+
+  it('rejects invalid input', async () => {
+    await approvedUser('u1');
+    for (const payload of [
+      { displayName: '   ' },
+      { displayName: 'x'.repeat(51) },
+      { bio: 'x'.repeat(501) },
+      { city: 'boston' },
+      { city: 'Portland, OR' },
+    ]) {
+      expect((await call('PATCH', 'u1', payload)).statusCode).toBe(400);
+    }
+  });
+
+  it('requires signing in and approval', async () => {
+    expect((await call('GET')).statusCode).toBe(401);
+    expect((await call('PATCH', undefined, { displayName: 'X' })).statusCode).toBe(401);
+
+    await upsertUserFromAuth(db, { authProviderId: 'p1', email: 'p1@x.test' });
+    for (const res of [await call('GET', 'p1'), await call('PATCH', 'p1', { displayName: 'X' })]) {
+      expect(res.statusCode).toBe(403);
+      expect(res.json()).toMatchObject({ error: { code: 'ACCOUNT_PENDING' } });
+    }
+  });
+});

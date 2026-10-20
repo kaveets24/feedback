@@ -5,3 +5,21 @@ export async function findProfile(db: Db, userId: string): Promise<Profile | nul
   const [profile] = await db.select().from(profiles).where(eq(profiles.userId, userId));
   return profile ?? null;
 }
+
+export type ProfileChanges = Partial<Pick<Profile, 'displayName' | 'bio' | 'city'>>;
+
+/** Applies `changes` to the user's profile, creating it first if they don't have one yet. */
+export async function saveProfile(
+  db: Db,
+  userId: string,
+  changes: ProfileChanges,
+): Promise<Profile> {
+  const [profile] = await db
+    .insert(profiles)
+    .values({ userId, ...changes })
+    // `updatedAt` keeps the set non-empty when nothing else changes.
+    .onConflictDoUpdate({ target: profiles.userId, set: { ...changes, updatedAt: new Date() } })
+    .returning();
+  if (!profile) throw new Error('upsert returned no profile');
+  return profile;
+}

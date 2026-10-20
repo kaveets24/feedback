@@ -43,7 +43,7 @@ SoundCloud meets Google Docs comments, for work-in-progress music. What sets it 
 - Visibility levels: private, unlisted (link holders), public. Link roles: listen or comment. Downloads are off by default.
 - Audio plays from short-lived signed URLs. Only one track plays at a time, through a single global mini-player that keeps playing across page changes.
 - The waveform player is the centerpiece: it draws peaks, supports click-to-seek, and shows comment markers that jump to their comments.
-- Out of scope: maps and location features, audio ML, reputation or leaderboards, payments (except planned $1 donations), direct messages, live streaming.
+- Out of scope: maps and location features (a profile may name a city, as a label only), audio ML, reputation or leaderboards, payments (except planned $1 donations), direct messages, live streaming.
 - Open product questions are tracked in CLAUDE.md section 13.
 
 ## Brand Commitments

@@ -10,7 +10,8 @@ export const meResponseSchema = z.object({
   accessStatus: accessStatusSchema,
   profile: z
     .object({
-      handle: z.string(),
+      /** Null until handles get format rules (CLAUDE.md section 13). */
+      handle: z.string().nullable(),
       displayName: z.string().nullable(),
       avatarUrl: z.string().nullable(),
     })
