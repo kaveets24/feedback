@@ -27,3 +27,8 @@ export const RemoveIcon = () => (
 export const EditIcon = () => (
   <Icon d="M4 16.5L15 5.5l3.5 3.5-11 11H4zM16.5 4l1.5-1.5L21.5 6 20 7.5z" />
 );
+
+/** A square-headed eighth note: a project with no cover art yet. */
+export const NoteIcon = ({ size }: { size?: number }) => (
+  <Icon size={size} d="M14 4h6v4h-4v11H8v-5h6z" />
+);

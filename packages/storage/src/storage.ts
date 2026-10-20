@@ -1,5 +1,6 @@
 import {
   CreateBucketCommand,
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
   NoSuchKey,
@@ -153,6 +154,11 @@ export function createStorage(config: StorageConfig) {
           ContentType: contentType,
         }),
       );
+    },
+
+    /** Removes the object at `key`. Removing one that isn't there succeeds too. */
+    async delete(key: string): Promise<void> {
+      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     },
 
     /**

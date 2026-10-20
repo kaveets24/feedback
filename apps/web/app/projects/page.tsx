@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { serverApi } from '../../lib/api';
 import { loadOrNotFound } from '../../lib/load';
 import { NewProjectForm } from './new-project-form';
+import { ProjectCover } from './project-cover';
 import { StatusBadge } from './status-badge';
 
 export default async function ProjectsPage({
@@ -47,6 +48,7 @@ export default async function ProjectsPage({
                 key={project.id}
                 className="relative flex items-center gap-4 border-b border-rule py-3 hover:bg-chrome-lo/60"
               >
+                <ProjectCover cover={project.cover} size="list" />
                 <div className="min-w-0 flex-1">
                   {/* The link's hit area covers the whole row. */}
                   <Link

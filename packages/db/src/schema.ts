@@ -23,6 +23,8 @@ export const accessStatus = pgEnum('access_status', ACCESS_STATUSES);
 export const visibility = pgEnum('visibility', VISIBILITIES);
 export const projectStatus = pgEnum('project_status', PROJECT_STATUSES);
 export const trackVersionStatus = pgEnum('track_version_status', VERSION_STATUSES);
+/** A cover upload goes through the same lifecycle as a version: uploading, processing, ready or failed. */
+export const coverStatus = pgEnum('cover_status', VERSION_STATUSES);
 
 const timestamps = {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -88,6 +90,10 @@ export const projects = pgTable(
     description: text('description'),
     status: projectStatus('status').notNull().default('idea'),
     visibility: visibility('visibility').notNull().default('private'),
+    /** The newest `ready` cover; one still processing or failed never replaces it. */
+    currentCoverId: uuid('current_cover_id').references((): AnyPgColumn => projectCovers.id, {
+      onDelete: 'set null',
+    }),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     ...timestamps,
   },
@@ -194,3 +200,42 @@ export const trackVersions = pgTable(
 );
 
 export type TrackVersion = typeof trackVersions.$inferSelect;
+
+/**
+ * A cover art upload for a project. The original is never shown: the worker re-encodes it into a
+ * square JPEG with every bit of metadata dropped (photo EXIF can hold GPS location), stores that at
+ * `cover_key`, and deletes the original.
+ */
+export const projectCovers = pgTable(
+  'project_covers',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    status: coverStatus('status').notNull().default('uploading'),
+    /** Shown to the artist when status is `failed`. */
+    failureReason: text('failure_reason'),
+    originalKey: text('original_key').notNull(),
+    originalContentType: text('original_content_type').notNull(),
+    originalSizeBytes: bigint('original_size_bytes', { mode: 'number' }).notNull(),
+    /** The re-encoded JPEG, once `ready`. */
+    coverKey: text('cover_key'),
+    ...timestamps,
+  },
+  (t) => [
+    index('project_covers_project_id_id_idx').on(t.projectId, t.id),
+    check(
+      'project_covers_ready_has_cover',
+      sql`${t.status} <> 'ready' or ${t.coverKey} is not null`,
+    ),
+    check(
+      'project_covers_failed_has_reason',
+      sql`${t.status} <> 'failed' or ${t.failureReason} is not null`,
+    ),
+  ],
+);
+
+export type ProjectCover = typeof projectCovers.$inferSelect;

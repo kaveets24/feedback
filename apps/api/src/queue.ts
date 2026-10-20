@@ -1,5 +1,5 @@
 import { Queue } from 'bullmq';
-import { TRANSCODE_QUEUE, type TranscodeJob } from '@feedback/shared';
+import { COVER_QUEUE, TRANSCODE_QUEUE, type CoverJob, type TranscodeJob } from '@feedback/shared';
 
 /** Where the API hands work to the worker. Tests swap in a fake. */
 export interface JobQueue {
@@ -8,6 +8,8 @@ export interface JobQueue {
    * same version again while its job still exists does nothing.
    */
   enqueueTranscode(versionId: string): Promise<void>;
+  /** Queues re-encoding for an uploaded cover; the cover id is the job id, likewise. */
+  enqueueCover(coverId: string): Promise<void>;
   /** Whether Redis answers, and how many workers are consuming the transcode queue. */
   health(): Promise<QueueHealth>;
   /** Called with connection errors, which happen in the background (e.g. Redis restarting). */
@@ -61,26 +63,36 @@ export function bullmqJobQueue(
     prefix?: string;
   } = {},
 ): JobQueue {
-  const transcode = new Queue<TranscodeJob>(TRANSCODE_QUEUE, {
+  const queueOptions = {
     connection: { url: redisUrl, maxRetriesPerRequest: null },
     ...(prefix && { prefix }),
     skipWaitingForReady: true,
     defaultJobOptions: {
       attempts: 3,
-      backoff: { type: 'exponential', delay: 10_000 },
+      backoff: { type: 'exponential' as const, delay: 10_000 },
       // Kept for a while to look into, then dropped so Redis doesn't fill up (it never evicts).
       removeOnComplete: { age: 24 * 60 * 60 },
       removeOnFail: { age: 7 * 24 * 60 * 60 },
     },
-  });
+  };
+  const transcode = new Queue<TranscodeJob>(TRANSCODE_QUEUE, queueOptions);
+  const cover = new Queue<CoverJob>(COVER_QUEUE, queueOptions);
   // An EventEmitter without an 'error' listener crashes the process, so listen from the start.
   let report: (err: Error) => void = () => {};
   transcode.on('error', (err) => report(err));
+  cover.on('error', (err) => report(err));
 
   return {
     async enqueueTranscode(versionId) {
       await withTimeout(
         transcode.add('transcode', { versionId }, { jobId: versionId }),
+        enqueueTimeoutMs,
+        'Timed out adding a job; is Redis reachable?',
+      );
+    },
+    async enqueueCover(coverId) {
+      await withTimeout(
+        cover.add('cover', { coverId }, { jobId: coverId }),
         enqueueTimeoutMs,
         'Timed out adding a job; is Redis reachable?',
       );
@@ -101,6 +113,8 @@ export function bullmqJobQueue(
     onError(listener) {
       report = listener;
     },
-    close: () => transcode.close(),
+    close: async () => {
+      await Promise.all([transcode.close(), cover.close()]);
+    },
   };
 }

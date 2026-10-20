@@ -29,7 +29,10 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 Dragging a track by its grip: the row lifts (accent outline, solid graphite fill) and its neighbours swap as it crosses their midpoints, so the list is always a real order. Releasing saves the whole order. Move up and down buttons do the same from keyboard, touch or a screen reader, and a polite live region says where the track landed. If the order changed elsewhere, the list snaps back and says so. The only motion is the drag itself.
 
+## Cover art (Phase 3 PR 6)
+
+The cover sits square beside the title (96px on phones, 128px from sm), with a quiet graphite placeholder and a pixel note until there is one, and as a 48px thumbnail leading each projects-list row. "Add cover art" / "Change cover art" is a muted text link under the description (40px tall, no fill, aligned with the title column; it was a ghost button, but its hover fill touched the cover at phone width); uploading shows home's striped bar, then a plain status line while the worker crops it square and strips photo metadata (the line says so, since that's the privacy promise). A failed image says why. Removing the cover is a plain, non-destructive button in Edit mode. No chrome or LCD well around the cover: the art is the colour.
+
 ## Unresolved
 
-- Cover art arrives in PR 6; the header leaves room for it beside the title.
 - Project track counts and total length aren't in the projects list API, so the list shows title, stage and description only.

@@ -172,6 +172,7 @@ describe('createApiClient', () => {
     description: null,
     status: 'idea',
     visibility: 'private',
+    cover: null,
     createdAt: '2026-10-19T00:00:00.000Z',
   };
 
@@ -233,6 +234,38 @@ describe('createApiClient', () => {
       ['POST', `http://api.test/v1/projects/${project.id}/tracks`, { trackId }],
       ['PUT', `http://api.test/v1/projects/${project.id}/tracks`, { trackIds: [trackId] }],
       ['DELETE', `http://api.test/v1/projects/${project.id}/tracks/${trackId}`, undefined],
+    ]);
+  });
+
+  it('starts, completes, polls, and removes a cover', async () => {
+    const coverId = '01890a5d-ac96-774b-bcce-b302099a8060';
+    const state = { id: coverId, status: 'processing', failureReason: null };
+    const started = {
+      coverId,
+      upload: {
+        url: 'http://storage.test/b/cover-originals/x?sig=1',
+        method: 'PUT',
+        headers: { 'content-type': 'image/png' },
+        expiresAt: '2026-10-20T00:15:00.000Z',
+      },
+    };
+    const fetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      if (init?.method === 'DELETE') return new Response(null, { status: 204 });
+      return Response.json(String(url).endsWith('/covers') ? started : state);
+    });
+    const api = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+    await expect(
+      api.startCoverUpload(project.id, { contentType: 'image/png', sizeBytes: 10 }),
+    ).resolves.toEqual(started);
+    await expect(api.completeCoverUpload(project.id, coverId)).resolves.toEqual(state);
+    await expect(api.getCover(project.id, coverId)).resolves.toEqual(state);
+    await expect(api.removeCover(project.id)).resolves.toBeUndefined();
+    expect(fetch.mock.calls.map(([url, init]) => [init?.method ?? 'GET', String(url)])).toEqual([
+      ['POST', `http://api.test/v1/projects/${project.id}/covers`],
+      ['POST', `http://api.test/v1/projects/${project.id}/covers/${coverId}/complete`],
+      ['GET', `http://api.test/v1/projects/${project.id}/covers/${coverId}`],
+      ['DELETE', `http://api.test/v1/projects/${project.id}/cover`],
     ]);
   });
 

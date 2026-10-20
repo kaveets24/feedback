@@ -178,6 +178,8 @@ describe('project routes', () => {
         description: null,
         status: 'mixing',
         visibility: 'private',
+        cover: null,
+        coverUpload: null,
         createdAt: project.createdAt.toISOString(),
       });
     });

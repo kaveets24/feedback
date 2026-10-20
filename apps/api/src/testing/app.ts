@@ -26,6 +26,8 @@ export const tokenFor = (providerId: string, email = `${providerId}@x.test`) =>
 export interface FakeQueue extends JobQueue {
   /** Version ids queued for transcoding, in order. */
   transcodes: string[];
+  /** Cover ids queued for re-encoding, in order. */
+  covers: string[];
   /** When set, enqueueing rejects with this error. */
   failWith: Error | null;
   /** What `health()` reports. */
@@ -36,11 +38,16 @@ export interface FakeQueue extends JobQueue {
 export function fakeQueue(): FakeQueue {
   const queue: FakeQueue = {
     transcodes: [],
+    covers: [],
     failWith: null,
     status: { redis: true, workers: 1 },
     async enqueueTranscode(versionId) {
       if (queue.failWith) throw queue.failWith;
       queue.transcodes.push(versionId);
+    },
+    async enqueueCover(coverId) {
+      if (queue.failWith) throw queue.failWith;
+      queue.covers.push(coverId);
     },
     async health() {
       return queue.status;

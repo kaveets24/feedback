@@ -75,16 +75,20 @@ export const createVersionRequestSchema = createUploadRequestSchema
   .extend({ changeNotes: changeNotesSchema.optional() });
 export type CreateVersionRequest = z.infer<typeof createVersionRequestSchema>;
 
+/** Where and how the browser PUTs a file straight to storage. */
+export const presignedUploadSchema = z.object({
+  /** Presigned URL: a bearer credential, so never log it. */
+  url: z.url(),
+  method: z.literal('PUT'),
+  /** Headers the PUT must send exactly; they're signed into the URL. */
+  headers: z.object({ 'content-type': z.string() }),
+  expiresAt: z.iso.datetime(),
+});
+export type PresignedUpload = z.infer<typeof presignedUploadSchema>;
+
 export const createUploadResponseSchema = z.object({
   trackId: z.uuid(),
   versionId: z.uuid(),
-  upload: z.object({
-    /** Presigned URL: a bearer credential, so never log it. */
-    url: z.url(),
-    method: z.literal('PUT'),
-    /** Headers the PUT must send exactly; they're signed into the URL. */
-    headers: z.object({ 'content-type': z.string() }),
-    expiresAt: z.iso.datetime(),
-  }),
+  upload: presignedUploadSchema,
 });
 export type CreateUploadResponse = z.infer<typeof createUploadResponseSchema>;

@@ -4,9 +4,12 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import {
+  createCoverRequestSchema,
   createProjectRequestSchema,
   projectStatusSchema,
   updateProjectRequestSchema,
+  type CoverResponse,
+  type CreateCoverResponse,
   type ProjectResponse,
   type ProjectTracksResponse,
 } from '@feedback/shared';
@@ -172,4 +175,61 @@ export async function setTrackProjectAction(_prev: FormState, form: FormData): P
   if (to.data) revalidateProject(to.data);
   revalidatePath(`/tracks/${trackId.data}`);
   return null;
+}
+
+/** Starts uploading cover art; the browser then PUTs the image to the returned URL. */
+export async function startCoverUploadAction(
+  projectId: unknown,
+  input: unknown,
+): Promise<ActionResult<CreateCoverResponse>> {
+  const parsedId = id.safeParse(projectId);
+  const parsed = createCoverRequestSchema.safeParse(input);
+  if (!parsedId.success) return { ok: false, message: 'Unknown project.' };
+  if (!parsed.success) {
+    return { ok: false, message: 'Choose a JPEG, PNG, or WebP image up to 10 MB.' };
+  }
+  const result = await toResult(() => serverApi().startCoverUpload(parsedId.data, parsed.data));
+  return result.ok ? result : { ok: false, message: GONE };
+}
+
+/** Hands an uploaded cover to the worker. Safe to repeat. */
+export async function completeCoverUploadAction(
+  projectId: unknown,
+  coverId: unknown,
+): Promise<ActionResult<CoverResponse>> {
+  const parsedProject = id.safeParse(projectId);
+  const parsedCover = id.safeParse(coverId);
+  if (!parsedProject.success || !parsedCover.success) {
+    return { ok: false, message: 'Unknown cover.' };
+  }
+  const result = await toResult(() =>
+    serverApi().completeCoverUpload(parsedProject.data, parsedCover.data),
+  );
+  if (result.ok) revalidateProject(parsedProject.data);
+  return result.ok
+    ? result
+    : { ok: false, message: "The image uploaded, but we couldn't start processing it. Try again." };
+}
+
+/** A cover upload's state, for the project page to poll while it processes. */
+export async function getCoverAction(
+  projectId: unknown,
+  coverId: unknown,
+): Promise<ActionResult<CoverResponse>> {
+  const parsedProject = id.safeParse(projectId);
+  const parsedCover = id.safeParse(coverId);
+  if (!parsedProject.success || !parsedCover.success) {
+    return { ok: false, message: 'Unknown cover.' };
+  }
+  return toResult(() => serverApi().getCover(parsedProject.data, parsedCover.data));
+}
+
+/** Takes the project's cover art off. */
+export async function removeCoverAction(projectId: unknown): Promise<ActionResult<undefined>> {
+  const parsed = id.safeParse(projectId);
+  if (!parsed.success) return { ok: false, message: 'Unknown project.' };
+  const result = await toResult(() => serverApi().removeCover(parsed.data));
+  if (!result.ok) return { ok: false, message: GONE };
+  revalidateProject(parsed.data);
+  return result;
 }

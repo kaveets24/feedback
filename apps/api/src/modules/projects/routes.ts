@@ -1,10 +1,10 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import type { Db } from '@feedback/db';
 import {
   addProjectTrackRequestSchema,
   createProjectRequestSchema,
   errorResponseSchema,
+  projectDetailResponseSchema,
   projectListQuerySchema,
   projectListResponseSchema,
   projectParamsSchema,
@@ -15,6 +15,7 @@ import {
   updateProjectRequestSchema,
 } from '@feedback/shared';
 import { httpError } from '../../errors.ts';
+import type { CoverDeps } from '../covers/images.ts';
 import {
   addProjectTrack,
   createProject,
@@ -27,7 +28,8 @@ import {
   updateProject,
 } from './service.ts';
 
-export function projectRoutes(db: Db): FastifyPluginAsyncZod {
+export function projectRoutes(deps: CoverDeps): FastifyPluginAsyncZod {
+  const { db } = deps;
   return async (app) => {
     // No canAccess here: there's no resource yet, and a signed-in, approved user (the gate
     // checks approval) may always create their own private project.
@@ -54,7 +56,7 @@ export function projectRoutes(db: Db): FastifyPluginAsyncZod {
           response: { 200: projectListResponseSchema, 401: errorResponseSchema },
         },
       },
-      (request) => listMyProjects(db, request.actor, request.query),
+      (request) => listMyProjects(deps, request.actor, request.query),
     );
 
     app.get(
@@ -62,10 +64,10 @@ export function projectRoutes(db: Db): FastifyPluginAsyncZod {
       {
         schema: {
           params: projectParamsSchema,
-          response: { 200: projectResponseSchema, 404: errorResponseSchema },
+          response: { 200: projectDetailResponseSchema, 404: errorResponseSchema },
         },
       },
-      (request) => getProject(db, request.actor, request.params.projectId),
+      (request) => getProject(deps, request.actor, request.params.projectId),
     );
 
     app.patch(
@@ -77,7 +79,7 @@ export function projectRoutes(db: Db): FastifyPluginAsyncZod {
           response: { 200: projectResponseSchema, 404: errorResponseSchema },
         },
       },
-      (request) => updateProject(db, request.actor, request.params.projectId, request.body),
+      (request) => updateProject(deps, request.actor, request.params.projectId, request.body),
     );
 
     app.delete(

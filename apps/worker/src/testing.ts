@@ -6,7 +6,10 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { pino } from 'pino';
 import {
+  createCover,
+  createProject,
   createTrackWithFirstVersion,
+  markCoverProcessing,
   markVersionProcessing,
   upsertUserFromAuth,
   type Db,
@@ -105,4 +108,21 @@ export async function processingVersion(db: Db, storage: Storage, original?: str
   if (original) await storage.upload(version.originalKey, original, 'audio/wav');
   await markVersionProcessing(db, version.id);
   return version;
+}
+
+/**
+ * A project cover that's `processing` with `original` (a local image) uploaded, as the API leaves
+ * it once an upload is confirmed. Pass no file to leave the original missing.
+ */
+export async function processingCover(db: Db, storage: Storage, original?: string) {
+  const owner = await upsertUserFromAuth(db, { authProviderId: 'auth_owner', email: 'o@x.test' });
+  const project = await createProject(db, { ownerId: owner.id, title: 'EP' });
+  const cover = await createCover(db, {
+    projectId: project.id,
+    contentType: 'image/png',
+    sizeBytes: 1,
+  });
+  if (original) await storage.upload(cover.originalKey, original, 'image/png');
+  await markCoverProcessing(db, cover.id);
+  return cover;
 }
