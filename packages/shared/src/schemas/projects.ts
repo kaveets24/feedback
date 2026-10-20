@@ -21,12 +21,13 @@ export type CreateProjectRequest = z.infer<typeof createProjectRequestSchema>;
 
 /**
  * `PATCH /v1/projects/:projectId`: only the fields sent change; `description: null` clears it.
- * Visibility isn't editable until sharing arrives in Phase 4.
+ * `visibility` also changes who can hear the project's tracks that follow it.
  */
 export const updateProjectRequestSchema = z.object({
   title: titleSchema.optional(),
   description: descriptionSchema.optional(),
   status: projectStatusSchema.optional(),
+  visibility: visibilitySchema.optional(),
 });
 export type UpdateProjectRequest = z.infer<typeof updateProjectRequestSchema>;
 
@@ -44,7 +45,8 @@ export type ProjectResponse = z.infer<typeof projectResponseSchema>;
 
 /**
  * `GET /v1/projects/:projectId`: the project, plus its newest cover upload while that one is
- * still processing or after it failed (null otherwise, including once it's the cover).
+ * still processing or after it failed (null otherwise, including once it's the cover, and always
+ * for anyone but the owner).
  */
 export const projectDetailResponseSchema = projectResponseSchema.extend({
   coverUpload: coverResponseSchema.nullable(),

@@ -6,8 +6,9 @@ import {
   trackListResponseSchema,
   trackParamsSchema,
   trackResponseSchema,
+  updateTrackRequestSchema,
 } from '@feedback/shared';
-import { getTrack, listMyTracks } from './service.ts';
+import { getTrack, listMyTracks, updateTrack } from './service.ts';
 
 export function trackRoutes(db: Db): FastifyPluginAsyncZod {
   return async (app) => {
@@ -31,6 +32,22 @@ export function trackRoutes(db: Db): FastifyPluginAsyncZod {
         },
       },
       (request) => getTrack(db, request.actor, request.params.trackId),
+    );
+
+    app.patch(
+      '/tracks/:trackId',
+      {
+        schema: {
+          params: trackParamsSchema,
+          body: updateTrackRequestSchema,
+          response: {
+            200: trackResponseSchema,
+            404: errorResponseSchema,
+            409: errorResponseSchema,
+          },
+        },
+      },
+      (request) => updateTrack(db, request.actor, request.params.trackId, request.body),
     );
   };
 }

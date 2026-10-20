@@ -1,4 +1,9 @@
-import type { Actor as AuthzActor, Resource } from '@feedback/authz';
+import {
+  canAccess,
+  effectiveVisibility,
+  type Actor as AuthzActor,
+  type Resource,
+} from '@feedback/authz';
 import type { Project, Track } from '@feedback/db';
 import type { Actor } from './plugin.ts';
 
@@ -13,10 +18,22 @@ export function projectResource(project: Project): Resource {
 }
 
 /**
- * A track as a `canAccess` resource, with its own visibility. That's right for a loose track; for
- * one in a project, how the project's visibility and the override combine (CLAUDE.md section 6,
- * rule 7) is settled in Phase 4. It makes no difference until then: access is owner-only.
+ * A track as a `canAccess` resource, with its effective visibility (CLAUDE.md section 6, rule 7):
+ * pass the live project it's in, or null for a loose track.
  */
-export function trackResource(track: Track): Resource {
-  return { kind: 'track', ownerId: track.ownerId, visibility: track.visibility };
+export function trackResource(track: Track, project: Project | null): Resource {
+  return {
+    kind: 'track',
+    ownerId: track.ownerId,
+    visibility: effectiveVisibility(track, project),
+  };
+}
+
+/**
+ * Whether the actor may manage the resource, i.e. is its owner: what decides whether a response
+ * carries owner-only details (file names, notes, versions that aren't ready). Goes through
+ * `canAccess`, like every other decision.
+ */
+export function canManage(actor: Actor, resource: Resource): boolean {
+  return canAccess(authzActor(actor), resource, 'manage');
 }

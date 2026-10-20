@@ -1,4 +1,5 @@
-import { and, asc, desc, eq, isNull, lt, max } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, lt, max, sql } from 'drizzle-orm';
+import { effectiveVisibility, overrideOnJoin, type Visibility } from '@feedback/authz';
 import type { ProjectStatus } from '@feedback/shared';
 import type { Db } from './client.ts';
 import { projects, shareLinks, tracks, users, type Project, type Track } from './schema.ts';
@@ -35,6 +36,19 @@ export async function findProject(db: Queryable, projectId: string): Promise<Pro
   return project ?? null;
 }
 
+/** Live projects by id, for working out the effective visibility of tracks in them. */
+export async function findProjectsByIds(
+  db: Queryable,
+  projectIds: readonly string[],
+): Promise<Map<string, Project>> {
+  if (projectIds.length === 0) return new Map();
+  const rows = await db
+    .select()
+    .from(projects)
+    .where(and(inArray(projects.id, [...new Set(projectIds)]), isNull(projects.deletedAt)));
+  return new Map(rows.map((project) => [project.id, project]));
+}
+
 /**
  * An owner's projects, newest first. Pages by id like `listTracksForOwner`: pass the last id of
  * one page as `before` to get the next.
@@ -58,7 +72,9 @@ export async function listProjectsForOwner(
     .limit(limit);
 }
 
-export type ProjectChanges = Partial<Pick<Project, 'title' | 'description' | 'status'>>;
+export type ProjectChanges = Partial<
+  Pick<Project, 'title' | 'description' | 'status' | 'visibility'>
+>;
 
 /** Applies `changes` to a live project. Null if it doesn't exist or was deleted. */
 export async function updateProject(
@@ -74,7 +90,8 @@ export async function updateProject(
 /**
  * Soft-deletes a project and revokes its share links (CLAUDE.md section 6, rule 10). Its tracks
  * become loose and keep their versions, and their own links: deleting a folder never deletes
- * songs. Null if it doesn't exist or was already deleted.
+ * songs. Each keeps the visibility it had in the project, so who can hear it doesn't change
+ * (rule 7). Null if it doesn't exist or was already deleted.
  */
 export async function deleteProject(db: Db, projectId: string): Promise<Project | null> {
   return db.transaction(async (tx) => {
@@ -90,7 +107,12 @@ export async function deleteProject(db: Db, projectId: string): Promise<Project 
     if (!deleted) return null;
     await tx
       .update(tracks)
-      .set({ projectId: null, position: null, visibilityOverride: null })
+      .set({
+        projectId: null,
+        position: null,
+        visibility: sql`coalesce(${tracks.visibilityOverride}, ${deleted.visibility}::visibility)`,
+        visibilityOverride: null,
+      })
       .where(eq(tracks.projectId, projectId));
     await tx
       .update(shareLinks)
@@ -116,9 +138,10 @@ export async function listProjectTracks(db: Queryable, projectId: string): Promi
 }
 
 /**
- * Moves a track to the end of a project, or out of any project when `projectId` is null. Its
- * visibility override is cleared, since it was relative to the project it left. Moving a track
- * into the project it's already in leaves it where it is.
+ * Moves a track to the end of a project, or out of any project when `projectId` is null. Moving
+ * never lets more people hear it (CLAUDE.md section 6, rule 7): leaving a project, it keeps the
+ * visibility it had there as its own; joining a project with a wider visibility, it gets an
+ * override at its old one. Moving a track into the project it's already in leaves it where it is.
  *
  * Null if the track or project doesn't exist or was deleted, or they have different owners
  * (callers check access to both first; this is the backstop, along with the foreign key). With
@@ -144,7 +167,11 @@ export async function moveTrackToProject(
     if (from !== undefined && track.projectId !== from) return null;
     if (track.projectId === projectId) return track;
 
-    let position: number | null = null;
+    const current = effectiveVisibility(
+      track,
+      track.projectId ? await findProject(tx, track.projectId) : null,
+    );
+    let changes: Pick<Track, 'projectId' | 'position' | 'visibility' | 'visibilityOverride'>;
     if (projectId) {
       const project = await findProject(tx, projectId);
       if (!project || project.ownerId !== track.ownerId) return null;
@@ -152,14 +179,18 @@ export async function moveTrackToProject(
         .select({ position: max(tracks.position) })
         .from(tracks)
         .where(eq(tracks.projectId, projectId));
-      position = (last?.position ?? -1) + 1;
+      changes = {
+        projectId,
+        position: (last?.position ?? -1) + 1,
+        // Ignored while it's in a project; kept so leaving again restores something sensible.
+        visibility: current,
+        visibilityOverride: overrideOnJoin(current, project.visibility),
+      };
+    } else {
+      changes = { projectId: null, position: null, visibility: current, visibilityOverride: null };
     }
 
-    const [moved] = await tx
-      .update(tracks)
-      .set({ projectId, position, visibilityOverride: null })
-      .where(eq(tracks.id, trackId))
-      .returning();
+    const [moved] = await tx.update(tracks).set(changes).where(eq(tracks.id, trackId)).returning();
     return moved ?? null;
   });
 }
@@ -199,5 +230,43 @@ export async function reorderProjectTracks(
         .where(and(eq(tracks.id, id), eq(tracks.projectId, projectId)));
     }
     return { ok: true, tracks: await listProjectTracks(tx, projectId) };
+  });
+}
+
+export type SetTrackVisibilityResult =
+  { ok: true; track: Track } | { ok: false; reason: 'not-found' | 'not-in-project' };
+
+/**
+ * Sets who can hear a track. A loose track's own visibility is set; a track in a project gets an
+ * override, or with null goes back to following the project's. Null is `not-in-project` for a
+ * loose track, which has no project to follow. Runs under the owner's project lock, so a move
+ * can't land between reading where the track is and setting it.
+ */
+export async function setTrackVisibility(
+  db: Db,
+  trackId: string,
+  visibility: Visibility | null,
+): Promise<SetTrackVisibilityResult> {
+  return db.transaction(async (tx) => {
+    const [found] = await tx
+      .select({ ownerId: tracks.ownerId })
+      .from(tracks)
+      .where(and(eq(tracks.id, trackId), isNull(tracks.deletedAt)));
+    if (!found) return { ok: false, reason: 'not-found' };
+    await lockOwnerProjects(tx, found.ownerId);
+
+    const [track] = await tx.select().from(tracks).where(eq(tracks.id, trackId));
+    if (!track) return { ok: false, reason: 'not-found' };
+    let changes: Partial<Pick<Track, 'visibility' | 'visibilityOverride'>>;
+    if (track.projectId) changes = { visibilityOverride: visibility };
+    else if (visibility) changes = { visibility };
+    else return { ok: false, reason: 'not-in-project' };
+
+    const [updated] = await tx
+      .update(tracks)
+      .set(changes)
+      .where(eq(tracks.id, trackId))
+      .returning();
+    return updated ? { ok: true, track: updated } : { ok: false, reason: 'not-found' };
   });
 }

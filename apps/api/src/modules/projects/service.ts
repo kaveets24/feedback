@@ -8,10 +8,12 @@ import {
   moveTrackToProject,
   reorderProjectTracks as saveTrackOrder,
   updateProject as saveProject,
+  withCurrentVersions,
   withLatestVersions,
   type Db,
   type Project,
   type ProjectChanges,
+  type Track,
   type User,
 } from '@feedback/db';
 import {
@@ -24,7 +26,7 @@ import {
   type ProjectTracksResponse,
   type UpdateProjectRequest,
 } from '@feedback/shared';
-import { authzActor, projectResource } from '../../auth/authz.ts';
+import { authzActor, canManage, projectResource } from '../../auth/authz.ts';
 import type { Actor } from '../../auth/plugin.ts';
 import { httpError } from '../../errors.ts';
 import { coverImages, pendingCoverUpload, type CoverDeps } from '../covers/images.ts';
@@ -110,16 +112,19 @@ export async function listMyProjects(
   };
 }
 
-/** A project, with its cover and any cover upload still processing or that failed. */
+/**
+ * A project, with its cover, and for the owner any cover upload still processing or that failed.
+ */
 export async function getProject(
   deps: CoverDeps,
   actor: Actor,
   projectId: string,
 ): Promise<ProjectDetailResponse> {
   const project = await loadProjectFor(deps.db, actor, projectId, 'view');
+  const owner = canManage(actor, projectResource(project));
   const [response, coverUpload] = await Promise.all([
     respond(deps, project),
-    pendingCoverUpload(deps.db, project),
+    owner ? pendingCoverUpload(deps.db, project) : null,
   ]);
   return { ...response, coverUpload };
 }
@@ -135,6 +140,7 @@ export async function updateProject(
   if (input.title !== undefined) changes.title = input.title;
   if (input.description !== undefined) changes.description = description(input.description);
   if (input.status !== undefined) changes.status = input.status;
+  if (input.visibility !== undefined) changes.visibility = input.visibility;
 
   // Null only if it was deleted since the check above.
   const project = await saveProject(deps.db, projectId, changes);
@@ -148,9 +154,21 @@ export async function deleteProject(db: Db, actor: Actor, projectId: string): Pr
   if (!(await softDeleteProject(db, projectId))) throw httpError(404, 'NOT_FOUND', 'Not found');
 }
 
-async function trackList(db: Db, actor: Actor, projectId: string): Promise<ProjectTracksResponse> {
-  const rows = await withLatestVersions(db, await listProjectTracks(db, projectId));
-  return { tracks: toTrackSummaries(actor, rows) };
+/**
+ * A project's tracks for the actor: every track with its newest version for the owner; for
+ * anyone else, the tracks they may view that have a ready version, with that version.
+ */
+async function trackList(
+  db: Db,
+  actor: Actor,
+  project: Project,
+  list?: Track[],
+): Promise<ProjectTracksResponse> {
+  const tracks = list ?? (await listProjectTracks(db, project.id));
+  const rows = canManage(actor, projectResource(project))
+    ? await withLatestVersions(db, tracks)
+    : await withCurrentVersions(db, tracks);
+  return { tracks: toTrackSummaries(actor, rows, new Map([[project.id, project]])) };
 }
 
 /** A project's tracks in order. */
@@ -159,8 +177,8 @@ export async function getProjectTracks(
   actor: Actor,
   projectId: string,
 ): Promise<ProjectTracksResponse> {
-  await loadProjectFor(db, actor, projectId, 'view');
-  return trackList(db, actor, projectId);
+  const project = await loadProjectFor(db, actor, projectId, 'view');
+  return trackList(db, actor, project);
 }
 
 /**
@@ -173,13 +191,13 @@ export async function addProjectTrack(
   projectId: string,
   trackId: string,
 ): Promise<ProjectTracksResponse> {
-  await loadProjectFor(db, actor, projectId, 'manage');
+  const project = await loadProjectFor(db, actor, projectId, 'manage');
   await loadTrackFor(db, actor, trackId, 'manage');
   // Null only if either was deleted since the checks above.
   if (!(await moveTrackToProject(db, trackId, projectId))) {
     throw httpError(404, 'NOT_FOUND', 'Not found');
   }
-  return trackList(db, actor, projectId);
+  return trackList(db, actor, project);
 }
 
 /** Takes a track out of a project, leaving it loose. A 404 if it isn't in this project. */
@@ -205,7 +223,7 @@ export async function reorderProjectTracks(
 ): Promise<ProjectTracksResponse> {
   // A project only ever holds its owner's tracks (the foreign key sees to it), so `manage` on the
   // project covers them.
-  await loadProjectFor(db, actor, projectId, 'manage');
+  const project = await loadProjectFor(db, actor, projectId, 'manage');
   const result = await saveTrackOrder(db, projectId, trackIds);
   if (!result.ok && result.reason === 'not-found') throw httpError(404, 'NOT_FOUND', 'Not found');
   if (!result.ok) {
@@ -215,5 +233,5 @@ export async function reorderProjectTracks(
       "The project's tracks changed since they were loaded. Reload and try again.",
     );
   }
-  return { tracks: toTrackSummaries(actor, await withLatestVersions(db, result.tracks)) };
+  return trackList(db, actor, project, result.tracks);
 }

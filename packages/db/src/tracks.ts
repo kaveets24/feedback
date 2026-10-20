@@ -190,6 +190,34 @@ export async function withLatestVersions(
   });
 }
 
+/**
+ * Pairs each track with its current version (the newest `ready` one), keeping the tracks' order
+ * and leaving out tracks with none: what a listener sees, where `withLatestVersions` is what the
+ * artist sees.
+ */
+export async function withCurrentVersions(
+  db: Db,
+  list: Track[],
+): Promise<{ track: Track; latestVersion: VersionSummary }[]> {
+  const ids = list.flatMap((t) => (t.currentVersionId ? [t.currentVersionId] : []));
+  if (ids.length === 0) return [];
+
+  const current = await db
+    .select({
+      id: trackVersions.id,
+      versionNumber: trackVersions.versionNumber,
+      status: trackVersions.status,
+      durationMs: trackVersions.durationMs,
+    })
+    .from(trackVersions)
+    .where(and(inArray(trackVersions.id, ids), eq(trackVersions.status, 'ready')));
+  const byId = new Map(current.map((version) => [version.id, version]));
+  return list.flatMap((track) => {
+    const latestVersion = track.currentVersionId ? byId.get(track.currentVersionId) : undefined;
+    return latestVersion ? [{ track, latestVersion }] : [];
+  });
+}
+
 /** A track's versions, newest first. */
 export async function listVersions(db: Db, trackId: string): Promise<TrackVersion[]> {
   return db

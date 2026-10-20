@@ -129,17 +129,22 @@ function VersionMeta({ version }: { version: VersionResponse }) {
             {' · '}
           </>
         )}
-        {version.originalFilename}
+        {/* Only the owner gets the file name. */}
+        {version.originalFilename && (
+          <>
+            {version.originalFilename}
+            {' · '}
+          </>
+        )}
         {/* On phones the length column is hidden, so it rides in this line. */}
         {version.durationMs != null && (
           <span className="sm:hidden">
-            {' · '}
             <span className="font-lcd text-base text-ink tabular-nums">
               {formatDuration(version.durationMs)}
             </span>
+            {' · '}
           </span>
         )}
-        {' · '}
         <time dateTime={version.createdAt} className="whitespace-nowrap">
           {formatDate(version.createdAt)}
         </time>

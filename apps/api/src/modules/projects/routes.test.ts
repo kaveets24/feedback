@@ -238,11 +238,16 @@ describe('project routes', () => {
       }
     });
 
-    it("doesn't change visibility", async () => {
+    it('changes visibility, and rejects one that isn’t a level', async () => {
       const me = await approvedUser('u1');
       const project = await createProject(db, { ownerId: me.id, title: 'EP' });
       const res = await call('PATCH', `/v1/projects/${project.id}`, 'u1', { visibility: 'public' });
-      expect(res.json<ProjectResponse>().visibility).toBe('private');
+      expect(res.statusCode).toBe(200);
+      expect(res.json<ProjectResponse>().visibility).toBe('public');
+      const bad = await call('PATCH', `/v1/projects/${project.id}`, 'u1', {
+        visibility: 'friends',
+      });
+      expect(bad.statusCode).toBe(400);
     });
 
     it('returns 404 to anyone else and leaves the project alone', async () => {

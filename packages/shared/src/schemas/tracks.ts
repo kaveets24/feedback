@@ -44,10 +44,10 @@ export const versionResponseSchema = z.object({
   /** What changed in this version, in the artist's words. */
   changeNotes: z.string().nullable(),
   /**
-   * The name of the file the artist uploaded. Only the owner sees versions until Phase 4; names
-   * can say more than the artist means to share, so leave it out for anyone else then.
+   * The name of the file the artist uploaded. Null for anyone but the owner: file names can say
+   * more than the artist means to share.
    */
-  originalFilename: z.string(),
+  originalFilename: z.string().nullable(),
   status: versionStatusSchema,
   /** Why the version failed, in words for the artist. Null unless `failed`. */
   failureReason: z.string().nullable(),
@@ -76,17 +76,29 @@ export const streamResponseSchema = z.object({
 });
 export type StreamResponse = z.infer<typeof streamResponseSchema>;
 
+/**
+ * Who can hear a track (CLAUDE.md section 6, rule 7): `visibility` is the effective one, and
+ * `inheritsVisibility` says it comes from the track's project rather than the track itself.
+ */
+const trackVisibilityFields = {
+  visibility: visibilitySchema,
+  inheritsVisibility: z.boolean(),
+};
+
 /** A track in a list: enough to show it and its newest version's state. */
 export const trackSummarySchema = z.object({
   id: z.uuid(),
   title: z.string(),
-  /** The project it's in, or null for a loose track. */
+  /** The project it's in, or null for a loose track (or one in a project you can't see). */
   projectId: z.uuid().nullable(),
-  visibility: visibilitySchema,
+  ...trackVisibilityFields,
   createdAt: z.iso.datetime(),
   /** The newest `ready` version, the one that plays. Null until one is ready. */
   currentVersionId: z.uuid().nullable(),
-  /** The newest version in any status, so a list can show one still processing or failed. */
+  /**
+   * For the owner, the newest version in any status, so a list can show one still processing or
+   * failed. For anyone else, the current version: listeners only ever see ready versions.
+   */
   latestVersion: versionResponseSchema.pick({
     id: true,
     versionNumber: true,
@@ -115,15 +127,29 @@ export type TrackListResponse = z.infer<typeof trackListResponseSchema>;
 
 export const trackParamsSchema = z.object({ trackId: z.uuid() });
 
-/** A track with all its versions, newest first. */
+/**
+ * A track with its versions, newest first. The owner gets every version; anyone else only the
+ * ready ones, with no notes and no file names.
+ */
 export const trackResponseSchema = z.object({
   id: z.uuid(),
   title: z.string(),
+  /** Null for a loose track, or for anyone who can't see the project it's in. */
   projectId: z.uuid().nullable(),
+  /** The artist's own notes on the track. Null for anyone but the owner. */
   notes: z.string().nullable(),
-  visibility: visibilitySchema,
+  ...trackVisibilityFields,
   createdAt: z.iso.datetime(),
   currentVersionId: z.uuid().nullable(),
   versions: z.array(versionResponseSchema),
 });
 export type TrackResponse = z.infer<typeof trackResponseSchema>;
+
+/**
+ * `PATCH /v1/tracks/:trackId`: who can hear the track (owner only). For a loose track, its own
+ * visibility. For a track in a project, an override of the project's, which may be wider (the
+ * owner's explicit choice, rule 7); null goes back to following the project, and is a 409 for a
+ * loose track.
+ */
+export const updateTrackRequestSchema = z.object({ visibility: visibilitySchema.nullable() });
+export type UpdateTrackRequest = z.infer<typeof updateTrackRequestSchema>;

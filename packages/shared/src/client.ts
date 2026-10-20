@@ -21,6 +21,7 @@ import {
   trackResponseSchema,
   versionResponseSchema,
   type TrackListQuery,
+  type UpdateTrackRequest,
   type UpdateVersionRequest,
 } from './schemas/tracks.ts';
 import {
@@ -119,6 +120,9 @@ export function createApiClient({ baseUrl, getToken, fetch = globalThis.fetch }:
       request(`/v1/tracks${pageQuery(query)}`, trackListResponseSchema),
     getTrack: (trackId: string) =>
       request(`/v1/tracks/${encodeURIComponent(trackId)}`, trackResponseSchema),
+    /** Sets who can hear a track; null makes a project's track follow the project again. */
+    updateTrack: (trackId: string, changes: UpdateTrackRequest) =>
+      send('PATCH', `/v1/tracks/${encodeURIComponent(trackId)}`, trackResponseSchema, changes),
     /** The signed-in user's projects, newest first. Pass `nextCursor` back as `cursor` for more. */
     listProjects: (query: ProjectListQuery = {}) =>
       request(`/v1/projects${pageQuery(query)}`, projectListResponseSchema),
