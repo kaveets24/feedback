@@ -131,15 +131,16 @@ describe('encodeCover', () => {
 
     const small = join(dir, 'small-out.jpg');
     await encodeCover(await image('small.png', 'color=green:s=301x157'), small);
-    // Odd sizes stay square: nothing rounds one side to an even number.
-    expect(await size(small)).toBe('157,157');
+    // Square at an even size, rounded down, whatever the ffmpeg version does with odd ones.
+    expect(await size(small)).toBe('156,156');
   });
 
   it('reads WebP, and PNG with transparency', async () => {
     const webp = join(dir, 'in.webp');
     await writeFile(webp, Buffer.from(WEBP_1X1, 'base64'));
     await encodeCover(webp, join(dir, 'webp-out.jpg'));
-    expect(await size(join(dir, 'webp-out.jpg'))).toBe('1,1');
+    // The smallest output is 2x2.
+    expect(await size(join(dir, 'webp-out.jpg'))).toBe('2,2');
 
     const alpha = await image('alpha.png', 'color=red@0.5:s=64x64,format=rgba');
     await encodeCover(alpha, join(dir, 'alpha-out.jpg'));

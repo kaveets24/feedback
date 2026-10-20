@@ -42,14 +42,18 @@ export class UnusableImageError extends Error {
 /**
  * Turns the image at `input` into the cover at `output`: rotated upright (ffmpeg applies EXIF
  * orientation itself), centre-cropped to a square, scaled down to at most `COVER_MAX_SIZE` a side
- * (never up), and written as a JPEG with no metadata. Throws `UnusableImageError` if the image is
+ * (never up, apart from rounding to an even size of at least 2), and written as a JPEG with no
+ * metadata. Throws `UnusableImageError` if the image is
  * the problem, and a plain Error for anything else (worth retrying).
  */
 export async function encodeCover(input: string, output: string): Promise<void> {
   const demuxer = await probe(input);
   const square = `crop='min(iw,ih)':'min(iw,ih)'`;
-  // After the crop width and height are equal, so this keeps it square at any size, odd included.
-  const scale = `scale='min(${COVER_MAX_SIZE},iw)':'min(${COVER_MAX_SIZE},ih)':flags=lanczos`;
+  // After the crop width and height are equal; both get the same even size (rounded down, at
+  // least 2). Even, because ffmpeg versions disagree on odd sizes for 4:2:0 JPEG (some round
+  // them, some keep them), and the output should be the same wherever the worker runs.
+  const side = `max(2,trunc(min(${COVER_MAX_SIZE},iw)/2)*2)`;
+  const scale = `scale='${side}':'${side}':flags=lanczos`;
   const result = await run(
     'ffmpeg',
     [
