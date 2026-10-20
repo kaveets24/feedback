@@ -38,8 +38,8 @@ export function toProjectResponse(project: Project, cover: CoverImage | null): P
     title: project.title,
     description: project.description,
     releaseType: project.releaseType,
-    // Deprecated: kept one release for the web app that's live during a deploy.
-    status: project.status,
+    // Deprecated and fixed: only so the web app that's live during a deploy still parses this.
+    status: 'idea',
     visibility: project.visibility,
     cover,
     createdAt: project.createdAt.toISOString(),
@@ -84,7 +84,6 @@ export async function createProject(
     title: input.title,
     description: description(input.description),
     releaseType: input.releaseType,
-    status: input.status,
   });
   // New projects have no cover yet.
   return toProjectResponse(project, null);
@@ -142,7 +141,6 @@ export async function updateProject(
   if (input.title !== undefined) changes.title = input.title;
   if (input.description !== undefined) changes.description = description(input.description);
   if (input.releaseType !== undefined) changes.releaseType = input.releaseType;
-  if (input.status !== undefined) changes.status = input.status;
   if (input.visibility !== undefined) changes.visibility = input.visibility;
 
   // Null only if it was deleted since the check above.

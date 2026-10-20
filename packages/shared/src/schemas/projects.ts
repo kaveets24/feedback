@@ -8,8 +8,9 @@ export const releaseTypeSchema = z.enum(RELEASE_TYPES);
 export type ReleaseType = z.infer<typeof releaseTypeSchema>;
 
 /**
- * Replaced by `RELEASE_TYPES` (2026-10-20). Still returned and accepted for one release, so the
- * web app that's live while the API deploys keeps working; removed in the next.
+ * Replaced by `RELEASE_TYPES` (2026-10-20). Responses still carry a fixed `status: 'idea'` for one
+ * release, so the web app that's live while the API deploys keeps parsing them; removed in the
+ * next.
  * @deprecated
  */
 export const PROJECT_STATUSES = ['idea', 'demo', 'mixing', 'done'] as const;
@@ -27,8 +28,6 @@ export const createProjectRequestSchema = z.object({
   title: titleSchema,
   description: descriptionSchema.optional(),
   releaseType: releaseTypeSchema.optional(),
-  /** @deprecated See `PROJECT_STATUSES`. */
-  status: projectStatusSchema.optional(),
 });
 export type CreateProjectRequest = z.infer<typeof createProjectRequestSchema>;
 
@@ -40,8 +39,6 @@ export const updateProjectRequestSchema = z.object({
   title: titleSchema.optional(),
   description: descriptionSchema.optional(),
   releaseType: releaseTypeSchema.optional(),
-  /** @deprecated See `PROJECT_STATUSES`. */
-  status: projectStatusSchema.optional(),
   visibility: visibilitySchema.optional(),
 });
 export type UpdateProjectRequest = z.infer<typeof updateProjectRequestSchema>;
@@ -51,7 +48,7 @@ export const projectResponseSchema = z.object({
   title: z.string(),
   description: z.string().nullable(),
   releaseType: releaseTypeSchema,
-  /** @deprecated See `PROJECT_STATUSES`. */
+  /** @deprecated Always `'idea'`; see `PROJECT_STATUSES`. */
   status: projectStatusSchema,
   visibility: visibilitySchema,
   /** The cover art, or null when there's none. */
