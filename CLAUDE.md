@@ -28,7 +28,7 @@ Read this file fully before making changes. If something here conflicts with a r
 
 **Explicitly out of scope for now** (do not build or scaffold these)
 
-- Geolocation, maps, places, PostGIS, location-based discovery or ranking
+- Geolocation, maps, places, PostGIS, location-based discovery or ranking. The one exception is a profile's optional city, a label the user picks from a fixed list that nothing filters, sorts, or ranks by (see `profiles` in section 5)
 - Audio feature extraction / ML / embeddings
 - Reputation scores, leaderboards, give-to-get credits
 - Payments and monetization, **except** $1 artist donations (see "Donations" in section 11), plus direct messaging and live streaming
@@ -145,7 +145,7 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 **Identity**
 
 - `users`: id, auth_provider_id, email, access_status (`pending | approved | rejected`, default `pending`), approved_at, approved_by, created_at
-- `profiles`: user_id, handle (unique, lowercase), display_name, bio, avatar_url, links
+- `profiles`: user_id, handle (unique, lowercase; nullable until handles get format rules, see section 13), display_name (what others see, e.g. on comments), bio, city (nullable; one of `CITIES` in `packages/shared`, decided 2026-10-20), avatar_url, links. A user has no profile row until they first save `/settings/profile`, which only they can see; others see only the display name for now.
 
 **Music**
 
@@ -415,6 +415,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 ### Phase 5: Feedback
 
+- [x] Profile settings, so comments can show who wrote them _(page: `/settings/profile`, linked from the header as Profile, only for the signed-in user: display name, bio, and an optional city. API: `GET`/`PATCH /v1/me/profile`; the first save creates the profile. Plain HTML until it's styled)_
 - [ ] Timestamped comments on the waveform, threaded replies
 - [ ] Per-version "what I want feedback on" prompt
 - [ ] Open/resolved status, artist-only vs public comments

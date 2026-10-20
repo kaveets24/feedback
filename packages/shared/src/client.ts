@@ -6,6 +6,7 @@ import {
   type CreateCoverRequest,
 } from './schemas/covers.ts';
 import { meResponseSchema } from './schemas/me.ts';
+import { profileResponseSchema, type UpdateProfileRequest } from './schemas/profiles.ts';
 import {
   createShareLinkResponseSchema,
   SHARE_TOKEN_HEADER,
@@ -108,6 +109,11 @@ export function createApiClient({
 
   return {
     getMe: () => request('/v1/me', meResponseSchema),
+    /** The signed-in user's own profile; empty fields until they first save it. */
+    getProfile: () => request('/v1/me/profile', profileResponseSchema),
+    /** Changes the signed-in user's profile (null clears a field), creating it on first save. */
+    updateProfile: (changes: UpdateProfileRequest) =>
+      send('PATCH', '/v1/me/profile', profileResponseSchema, changes),
     /** Starts an upload: creates the track and its v1, and returns where to PUT the file. */
     createUpload: (input: CreateUploadRequest) =>
       post('/v1/uploads', createUploadResponseSchema, input),
