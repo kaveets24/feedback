@@ -37,6 +37,8 @@ export function toProjectResponse(project: Project, cover: CoverImage | null): P
     id: project.id,
     title: project.title,
     description: project.description,
+    releaseType: project.releaseType,
+    // Deprecated: kept one release for the web app that's live during a deploy.
     status: project.status,
     visibility: project.visibility,
     cover,
@@ -81,6 +83,7 @@ export async function createProject(
     ownerId: owner.id,
     title: input.title,
     description: description(input.description),
+    releaseType: input.releaseType,
     status: input.status,
   });
   // New projects have no cover yet.
@@ -138,6 +141,7 @@ export async function updateProject(
   const changes: ProjectChanges = {};
   if (input.title !== undefined) changes.title = input.title;
   if (input.description !== undefined) changes.description = description(input.description);
+  if (input.releaseType !== undefined) changes.releaseType = input.releaseType;
   if (input.status !== undefined) changes.status = input.status;
   if (input.visibility !== undefined) changes.visibility = input.visibility;
 

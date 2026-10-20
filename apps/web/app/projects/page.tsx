@@ -5,7 +5,7 @@ import { serverApi } from '../../lib/api';
 import { loadOrNotFound } from '../../lib/load';
 import { NewProjectForm } from './new-project-form';
 import { ProjectCover } from './project-cover';
-import { StatusBadge } from './status-badge';
+import { ReleaseTypeBadge } from './release-type-badge';
 
 export default async function ProjectsPage({
   searchParams,
@@ -63,7 +63,7 @@ export default async function ProjectsPage({
                     </p>
                   )}
                 </div>
-                <StatusBadge status={project.status} />
+                <ReleaseTypeBadge releaseType={project.releaseType} />
               </li>
             ))}
           </ul>

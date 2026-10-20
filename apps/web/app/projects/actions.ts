@@ -6,7 +6,7 @@ import { z } from 'zod';
 import {
   createCoverRequestSchema,
   createProjectRequestSchema,
-  projectStatusSchema,
+  releaseTypeSchema,
   updateProjectRequestSchema,
   type CoverResponse,
   type CreateCoverResponse,
@@ -63,13 +63,13 @@ export async function updateProjectAction(
   return result;
 }
 
-export async function setProjectStatusAction(
+export async function setReleaseTypeAction(
   projectId: unknown,
-  status: unknown,
+  releaseType: unknown,
 ): Promise<ActionResult<ProjectResponse>> {
-  const parsed = projectStatusSchema.safeParse(status);
-  if (!parsed.success) return { ok: false, message: 'Unknown status.' };
-  return updateProjectAction(projectId, { status: parsed.data });
+  const parsed = releaseTypeSchema.safeParse(releaseType);
+  if (!parsed.success) return { ok: false, message: 'Unknown release type.' };
+  return updateProjectAction(projectId, { releaseType: parsed.data });
 }
 
 /** Deletes the project and goes back to the list. Its tracks stay, loose. */

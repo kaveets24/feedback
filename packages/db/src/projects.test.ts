@@ -71,14 +71,14 @@ async function findLink(id: string) {
 }
 
 describe('createProject', () => {
-  it('creates a private project with status idea', async () => {
+  it('creates a private single', async () => {
     const owner = await newUser();
     const project = await createProject(db, { ownerId: owner.id, title: 'Summer EP' });
     expect(project).toMatchObject({
       ownerId: owner.id,
       title: 'Summer EP',
       description: null,
-      status: 'idea',
+      releaseType: 'single',
       visibility: 'private',
       deletedAt: null,
     });
@@ -110,12 +110,12 @@ describe('updateProject', () => {
     const updated = await updateProject(db, project.id, {
       title: 'Summer EP',
       description: 'Five songs',
-      status: 'mixing',
+      releaseType: 'ep',
     });
     expect(updated).toMatchObject({
       title: 'Summer EP',
       description: 'Five songs',
-      status: 'mixing',
+      releaseType: 'ep',
     });
     expect(await updateProject(db, project.id, {})).toMatchObject({ title: 'Summer EP' });
   });

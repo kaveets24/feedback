@@ -2,19 +2,32 @@ import { z } from 'zod';
 import { coverImageSchema, coverResponseSchema } from './covers.ts';
 import { trackSummarySchema, visibilitySchema } from './tracks.ts';
 
-/** Where a project is at, set by the artist. Purely descriptive: it gates nothing. */
+/** What kind of release a project is, set by the artist. Purely descriptive: it gates nothing. */
+export const RELEASE_TYPES = ['single', 'ep', 'album', 'compilation'] as const;
+export const releaseTypeSchema = z.enum(RELEASE_TYPES);
+export type ReleaseType = z.infer<typeof releaseTypeSchema>;
+
+/**
+ * Replaced by `RELEASE_TYPES` (2026-10-20). Still returned and accepted for one release, so the
+ * web app that's live while the API deploys keeps working; removed in the next.
+ * @deprecated
+ */
 export const PROJECT_STATUSES = ['idea', 'demo', 'mixing', 'done'] as const;
+/** @deprecated See `PROJECT_STATUSES`. */
 export const projectStatusSchema = z.enum(PROJECT_STATUSES);
+/** @deprecated See `PROJECT_STATUSES`. */
 export type ProjectStatus = z.infer<typeof projectStatusSchema>;
 
 const titleSchema = z.string().trim().min(1).max(200);
 /** Empty (after trimming) is saved as no description. */
 const descriptionSchema = z.string().trim().max(2000).nullable();
 
-/** `POST /v1/projects`. New projects are private (CLAUDE.md section 6, rule 1). */
+/** `POST /v1/projects`. New projects are private (CLAUDE.md section 6, rule 1) and singles. */
 export const createProjectRequestSchema = z.object({
   title: titleSchema,
   description: descriptionSchema.optional(),
+  releaseType: releaseTypeSchema.optional(),
+  /** @deprecated See `PROJECT_STATUSES`. */
   status: projectStatusSchema.optional(),
 });
 export type CreateProjectRequest = z.infer<typeof createProjectRequestSchema>;
@@ -26,6 +39,8 @@ export type CreateProjectRequest = z.infer<typeof createProjectRequestSchema>;
 export const updateProjectRequestSchema = z.object({
   title: titleSchema.optional(),
   description: descriptionSchema.optional(),
+  releaseType: releaseTypeSchema.optional(),
+  /** @deprecated See `PROJECT_STATUSES`. */
   status: projectStatusSchema.optional(),
   visibility: visibilitySchema.optional(),
 });
@@ -35,6 +50,8 @@ export const projectResponseSchema = z.object({
   id: z.uuid(),
   title: z.string(),
   description: z.string().nullable(),
+  releaseType: releaseTypeSchema,
+  /** @deprecated See `PROJECT_STATUSES`. */
   status: projectStatusSchema,
   visibility: visibilitySchema,
   /** The cover art, or null when there's none. */

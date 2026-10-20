@@ -8,23 +8,23 @@ import { CoverControl } from './cover-control';
 
 /**
  * The project's cover, name, and description, with an Edit mode for the words and, inside it,
- * removing the cover and deleting the project. `status` is the status meter, usable in either
- * mode.
+ * removing the cover and deleting the project. `releaseType` is the release type picker, usable
+ * in either mode.
  */
 export function ProjectDetails({
   project,
   trackCount,
-  status,
+  releaseType,
 }: {
   project: ProjectDetailResponse;
   trackCount: number;
-  status: ReactNode;
+  releaseType: ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
 
-  const statusRow = (
+  const typeRow = (
     <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
-      {status}
+      {releaseType}
       <p className="text-sm text-muted">Private: only you can see this project.</p>
       {!editing && (
         <button type="button" className="btn ml-auto" onClick={() => setEditing(true)}>
@@ -39,7 +39,7 @@ export function ProjectDetails({
       <EditForm
         project={project}
         trackCount={trackCount}
-        statusRow={statusRow}
+        typeRow={typeRow}
         onDone={() => setEditing(false)}
       />
     );
@@ -67,21 +67,21 @@ export function ProjectDetails({
           </div>
         </div>
       </div>
-      {statusRow}
+      {typeRow}
     </div>
   );
 }
 
-/** The fields, then the status (still live), then deleting, last and set apart. */
+/** The fields, then the release type (still live), then deleting, last and set apart. */
 function EditForm({
   project,
   trackCount,
-  statusRow,
+  typeRow,
   onDone,
 }: {
   project: ProjectDetailResponse;
   trackCount: number;
-  statusRow: ReactNode;
+  typeRow: ReactNode;
   onDone: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
@@ -160,7 +160,7 @@ function EditForm({
         </div>
       </form>
 
-      {statusRow}
+      {typeRow}
 
       {project.cover && <RemoveCover projectId={project.id} cover={project.cover} />}
 

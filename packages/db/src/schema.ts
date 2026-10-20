@@ -17,11 +17,18 @@ import {
 } from 'drizzle-orm/pg-core';
 import { v7 as uuidv7 } from 'uuid';
 import { LINK_ROLES, RESOURCE_KINDS, VISIBILITIES } from '@feedback/authz';
-import { ACCESS_STATUSES, PROJECT_STATUSES, VERSION_STATUSES } from '@feedback/shared';
+import {
+  ACCESS_STATUSES,
+  PROJECT_STATUSES,
+  RELEASE_TYPES,
+  VERSION_STATUSES,
+} from '@feedback/shared';
 
 export const accessStatus = pgEnum('access_status', ACCESS_STATUSES);
 export const visibility = pgEnum('visibility', VISIBILITIES);
+/** Replaced by `release_type`; dropped once no running release reads it. */
 export const projectStatus = pgEnum('project_status', PROJECT_STATUSES);
+export const releaseType = pgEnum('release_type', RELEASE_TYPES);
 export const trackVersionStatus = pgEnum('track_version_status', VERSION_STATUSES);
 /** A cover upload goes through the same lifecycle as a version: uploading, processing, ready or failed. */
 export const coverStatus = pgEnum('cover_status', VERSION_STATUSES);
@@ -90,7 +97,9 @@ export const projects = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     description: text('description'),
+    /** Replaced by `release_type` (2026-10-20); dropped in a later migration. */
     status: projectStatus('status').notNull().default('idea'),
+    releaseType: releaseType('release_type').notNull().default('single'),
     visibility: visibility('visibility').notNull().default('private'),
     /** The newest `ready` cover; one still processing or failed never replaces it. */
     currentCoverId: uuid('current_cover_id').references((): AnyPgColumn => projectCovers.id, {

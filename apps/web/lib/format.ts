@@ -1,4 +1,4 @@
-import type { ProjectStatus, TrackSummary, VersionStatus } from '@feedback/shared';
+import type { ReleaseType, TrackSummary, VersionStatus } from '@feedback/shared';
 
 /** A duration as m:ss (or h:mm:ss), e.g. 210000 → "3:30". */
 export function formatDuration(ms: number): string {
@@ -34,12 +34,12 @@ export function formatDate(iso: string): string {
   return DATE_FORMAT.format(new Date(iso));
 }
 
-/** A project's status in words. */
-export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
-  idea: 'Idea',
-  demo: 'Demo',
-  mixing: 'Mixing',
-  done: 'Done',
+/** A project's release type in words. */
+export const RELEASE_TYPE_LABELS: Record<ReleaseType, string> = {
+  single: 'Single',
+  ep: 'EP',
+  album: 'Album',
+  compilation: 'Compilation',
 };
 
 /** The combined length of the tracks whose newest version is ready (others have no length yet). */

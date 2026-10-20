@@ -65,37 +65,37 @@ describe('project routes', () => {
       expect(body).toMatchObject({
         title: 'First EP',
         description: null,
-        status: 'idea',
+        releaseType: 'single',
         visibility: 'private',
       });
       expect(await findProject(db, body.id)).toMatchObject({ title: 'First EP' });
     });
 
-    it('takes a description and status, and saves a blank description as none', async () => {
+    it('takes a description and release type, and saves a blank description as none', async () => {
       await approvedUser('u1');
 
       const full = await call('POST', '/v1/projects', 'u1', {
         title: 'EP',
         description: 'Summer songs',
-        status: 'demo',
+        releaseType: 'album',
       });
       expect(full.json<ProjectResponse>()).toMatchObject({
         description: 'Summer songs',
-        status: 'demo',
+        releaseType: 'album',
       });
 
       const blank = await call('POST', '/v1/projects', 'u1', { title: 'EP', description: '   ' });
       expect(blank.json<ProjectResponse>().description).toBeNull();
     });
 
-    it('rejects a missing or overlong title, an unknown status, or a visibility', async () => {
+    it('rejects a missing or overlong title, an unknown release type, or a visibility', async () => {
       await approvedUser('u1');
       for (const payload of [
         {},
         { title: '   ' },
         { title: 'x'.repeat(201) },
         { title: 'EP', description: 'x'.repeat(2001) },
-        { title: 'EP', status: 'released' },
+        { title: 'EP', releaseType: 'mixtape' },
       ]) {
         expect((await call('POST', '/v1/projects', 'u1', payload)).statusCode).toBe(400);
       }
@@ -168,7 +168,7 @@ describe('project routes', () => {
   describe('GET /v1/projects/:projectId', () => {
     it('returns the project to its owner', async () => {
       const me = await approvedUser('u1');
-      const project = await createProject(db, { ownerId: me.id, title: 'EP', status: 'mixing' });
+      const project = await createProject(db, { ownerId: me.id, title: 'EP', releaseType: 'ep' });
 
       const res = await call('GET', `/v1/projects/${project.id}`, 'u1');
       expect(res.statusCode).toBe(200);
@@ -176,7 +176,8 @@ describe('project routes', () => {
         id: project.id,
         title: 'EP',
         description: null,
-        status: 'mixing',
+        releaseType: 'ep',
+        status: 'idea',
         visibility: 'private',
         cover: null,
         coverUpload: null,
@@ -208,12 +209,12 @@ describe('project routes', () => {
       });
       const url = `/v1/projects/${project.id}`;
 
-      const renamed = await call('PATCH', url, 'u1', { title: 'Summer EP', status: 'demo' });
+      const renamed = await call('PATCH', url, 'u1', { title: 'Summer EP', releaseType: 'ep' });
       expect(renamed.statusCode).toBe(200);
       expect(renamed.json<ProjectResponse>()).toMatchObject({
         title: 'Summer EP',
         description: 'Summer songs',
-        status: 'demo',
+        releaseType: 'ep',
       });
 
       const cleared = await call('PATCH', url, 'u1', { description: null });
@@ -225,14 +226,14 @@ describe('project routes', () => {
       const unchanged = await call('PATCH', url, 'u1', {});
       expect(unchanged.json<ProjectResponse>()).toMatchObject({
         title: 'Summer EP',
-        status: 'demo',
+        releaseType: 'ep',
       });
     });
 
     it('rejects invalid changes', async () => {
       const me = await approvedUser('u1');
       const project = await createProject(db, { ownerId: me.id, title: 'EP' });
-      for (const payload of [{ title: '' }, { title: null }, { status: 'released' }]) {
+      for (const payload of [{ title: '' }, { title: null }, { releaseType: 'mixtape' }]) {
         const res = await call('PATCH', `/v1/projects/${project.id}`, 'u1', payload);
         expect(res.statusCode).toBe(400);
       }
