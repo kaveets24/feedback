@@ -73,7 +73,7 @@ export function TrackView({
                 versionId={version.id}
                 versionNumber={version.versionNumber}
                 notes={version.changeNotes}
-                meta={<VersionMeta version={version} current={version.id === current?.id} />}
+                meta={<VersionMeta version={version} />}
                 length={
                   <span className="hidden pt-0.5 text-right font-lcd text-base tabular-nums sm:block">
                     {version.durationMs != null ? (
@@ -111,14 +111,24 @@ function playerItem(track: TrackResponse, version: VersionResponse): PlayerItem 
   };
 }
 
-/** "Current · Ready · 3:42 · 2026-10-20", and why it failed when it did. */
-function VersionMeta({ version, current }: { version: VersionResponse; current: boolean }) {
+/**
+ * "night-drive-v3.wav · October 20, 2026", led by the status unless it's ready, and why it failed
+ * when it did.
+ */
+function VersionMeta({ version }: { version: VersionResponse }) {
   const failed = version.status === 'failed';
   return (
     <>
-      <p className="mt-1 text-sm text-muted">
-        {current && <span className="font-medium text-ink">Current · </span>}
-        <span className={failed ? 'text-danger' : undefined}>{STATUS_LABELS[version.status]}</span>
+      <p className="mt-1 text-sm text-muted wrap-anywhere">
+        {version.status !== 'ready' && (
+          <>
+            <span className={failed ? 'text-danger' : undefined}>
+              {STATUS_LABELS[version.status]}
+            </span>
+            {' · '}
+          </>
+        )}
+        {version.originalFilename}
         {/* On phones the length column is hidden, so it rides in this line. */}
         {version.durationMs != null && (
           <span className="sm:hidden">
@@ -129,7 +139,9 @@ function VersionMeta({ version, current }: { version: VersionResponse; current: 
           </span>
         )}
         {' · '}
-        <time dateTime={version.createdAt}>{formatDate(version.createdAt)}</time>
+        <time dateTime={version.createdAt} className="whitespace-nowrap">
+          {formatDate(version.createdAt)}
+        </time>
       </p>
       {failed && version.failureReason && (
         <p className="mt-1 text-sm text-pretty text-danger">{version.failureReason}</p>

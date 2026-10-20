@@ -74,6 +74,7 @@ describe('version routes', () => {
       trackId: track.id,
       versionNumber: 1,
       changeNotes: null,
+      originalFilename: 'idea.wav',
       status: 'uploading',
       failureReason: null,
       durationMs: null,

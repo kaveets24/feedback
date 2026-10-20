@@ -43,6 +43,11 @@ export const versionResponseSchema = z.object({
   versionNumber: z.number().int().positive(),
   /** What changed in this version, in the artist's words. */
   changeNotes: z.string().nullable(),
+  /**
+   * The name of the file the artist uploaded. Only the owner sees versions until Phase 4; names
+   * can say more than the artist means to share, so leave it out for anyone else then.
+   */
+  originalFilename: z.string(),
   status: versionStatusSchema,
   /** Why the version failed, in words for the artist. Null unless `failed`. */
   failureReason: z.string().nullable(),

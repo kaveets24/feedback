@@ -294,11 +294,11 @@ A green-tinted near-black world: graphite chrome, a deeper green-black LCD, lime
 - **Section Title** (600, 1.125rem): H2s ("Upload a track", "Tracks", "Your projects", "Versions", "Upload a new version"); in a project's Edit mode the "Cover art" and "Delete project" H2s drop to 1rem.
 - **Title** (500, 0.875rem): the track title link in the mini-player. List titles use body size at 500.
 - **Body** (400, 1rem): page text, field text, and the confirmation sentence; descriptions and the upload privacy line run in `muted` at 65ch, and the pending and rejected notices in `muted` at 60ch with the email in `ink` at 500. A version's change notes run in `ink` with their line breaks kept, or a muted "No change notes." Small text (0.875rem) carries form labels (500; an "(optional)" note inside a label drops to 400 `muted`), counts, subtitles, the privacy line, status lines, the version meta line, and errors; the mini-player's error is 0.75rem.
-- **Current marker** (500, 0.875rem, sans): "Current" leads the current version's meta line in `ink`, followed by the status and date in `muted` (and the length on phones) (a failed status in `danger`). It is a word in the sentence, not a readout, so it stays in the sans.
+- **Version meta line** (400, 0.875rem, sans, `muted`): the original file name and the date ("October 20, 2026", kept on one line), plus the length on phones. A version that isn't ready leads with its status (a failed one in `danger`). Long file names break anywhere rather than widen the row.
 
 ### Named Rules
 
-**The Bitmap for Readouts Rule.** Silkscreen is for readouts and figures: times, lengths, totals, track numbers, percents, version numbers, state and stage words, and the wordmark. Titles, labels, buttons, errors, forms, comments, and body text use the sans. In sentence-like lines (subtitles, the version meta line, status lines) only the length switches to Silkscreen; "Current", status words, dates, and an inline "v4" stay sans.
+**The Bitmap for Readouts Rule.** Silkscreen is for readouts and figures: times, lengths, totals, track numbers, percents, version numbers, state and stage words, and the wordmark. Titles, labels, buttons, errors, forms, comments, and body text use the sans. In sentence-like lines (subtitles, the version meta line, status lines) only the length switches to Silkscreen; file names, status words, dates, and an inline "v4" stay sans.
 
 ## Layout
 
@@ -441,7 +441,7 @@ One row of a project's running order (see Layout for the grid): a drag grip (a b
 
 ### Version Row
 
-One row of a track's version history (see Layout for the grid), read like a track listing: the LCD V-number in `ink`, then the artist's change notes, then the meta line ("Current · Ready · 2026-10-13", see Typography), the LCD length in its own right-aligned column from `sm` (so lengths line up down the history, like a J-card), and a 40px ghost icon button with the pencil (`aria-label` "Edit notes for v3"). Under a failed version, its reason is a small `danger` line. Rows sit on 1px `rule` lines with no hover fill, since the row isn't a link. It's an unordered list: the V-number is the order, and failed uploads leave gaps in it.
+One row of a track's version history (see Layout for the grid), read like a track listing: the LCD V-number in `ink`, then the artist's change notes, then the meta line ("night-drive-v3.wav · October 13, 2026", see Typography), the LCD length in its own right-aligned column from `sm` (so lengths line up down the history, like a J-card), and a 40px ghost icon button with the pencil (`aria-label` "Edit notes for v3"). Under a failed version, its reason is a small `danger` line. Rows sit on 1px `rule` lines with no hover fill, since the row isn't a link. It's an unordered list: the V-number is the order, and failed uploads leave gaps in it.
 
 **Notes editor.** The pencil turns the notes into a form in place: the meta line first (the version's facts stay on top), a "What changed in v3?" label, the textarea (focused on open), any save error as a `danger` line, then Save (primary) and Cancel (default) 8px apart, closing the form; the parts stack 12px apart. Escape cancels (except while a save is under way), and on save or cancel focus returns to the pencil. While saving, both buttons are disabled and Save reads "Saving…".
 
