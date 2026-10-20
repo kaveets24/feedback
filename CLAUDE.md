@@ -188,9 +188,9 @@ Index for the hot paths: `tracks(project_id, position)`, `track_versions(track_i
 
 Applied to projects (and optionally overridden per track):
 
-- `private`: owner only
-- `unlisted`: anyone holding a valid share link
-- `public`: anyone; appears on profile and in discovery
+- `private`: owner only. Share links do nothing: making something private shuts its links off without revoking them
+- `unlisted`: anyone holding an active share link, with the link's role
+- `public`: anyone may view and listen, and signed-in users may also comment; appears on profile and in discovery
 
 ### Roles
 
@@ -203,13 +203,14 @@ Applied to projects (and optionally overridden per track):
 1. **Default is `private`.** New projects and tracks are private unless the user changes it.
 2. **All authorization goes through `canAccess(actor, resource, action)` in `packages/authz`.** No route handler or UI component makes its own ad-hoc permission decisions.
 3. Actions: `view`, `listen`, `comment`, `manage`, `download`.
-4. **Downloads are off by default** and require an explicit per-project setting. Never expose original files to non-owners.
+4. **Downloads are off by default** and require an explicit per-project setting. Never expose original files to non-owners. Until that setting exists (it's not part of Phase 4), only the owner can download.
 5. **Audio is served via short-lived signed URLs** (target: 5 to 15 minutes). The API issues a signed URL only after `canAccess(..., 'listen')` passes. Never return permanent public URLs for non-public audio.
-6. Share links: unguessable (at least 128 bits of entropy), stored hashed, support expiry and revocation. Revoking takes effect immediately.
-7. A track inherits its project's visibility unless `visibility_override` is set. An override can only be **more restrictive** than the project unless the owner explicitly widens it. A loose track (no project) uses its own `visibility`.
+6. Share links: unguessable (at least 128 bits of entropy), stored hashed, support expiry and revocation. Revoking takes effect immediately. A link carries a role (`listen` or `comment`, never `owner`) and is made for a track or a project; a project's link reaches only those of its tracks that aren't private (decided 2026-10-20).
+7. A track inherits its project's visibility unless `visibility_override` is set. An override can only be **more restrictive** than the project unless the owner explicitly widens it. A loose track (no project) uses its own `visibility`; a project track's own `visibility` is ignored (`effectiveVisibility()`). **Moving a track never widens who can hear it:** joining a project with a wider visibility gives the track an override at its old visibility (`overrideOnJoin()`), and leaving a project sets its own `visibility` to the effective one it had (decided 2026-10-20).
 8. `artist_only` feedback is visible only to the track owner and the feedback's author.
 9. Unauthenticated access to a non-public resource returns `404`, not `403`, to avoid leaking existence.
 10. Deleting a project or track revokes all share links and invalidates outstanding signed URLs as soon as practical.
+11. Commenting needs a signed-in user, whatever a link's role: anonymous link holders can view and listen only.
 
 ### Invite-only access (launch mode)
 
@@ -402,7 +403,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 ### Phase 4: Sharing and permissions
 
-- [ ] `packages/authz` with `canAccess` and exhaustive tests (write these **first**)
+- [x] `packages/authz` with `canAccess` and exhaustive tests (write these **first**) _(the matrix in `packages/authz/src/index.test.ts` is written out by hand: every visibility x actor (owner, signed-in stranger, anonymous, each with and without a listen or comment link) x action x resource kind, plus link expiry and revocation, project links on tracks, `effectiveVisibility`, and `overrideOnJoin`)_
 - [ ] Visibility settings, roles on share links
 - [ ] Share links with expiry and revoke
 - [ ] Signed audio URLs gated by `canAccess`
@@ -480,8 +481,6 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 
 - Handle format rules
 - Max upload size and per-user storage quota
-- Whether tracks can be shared individually in Phase 4 or only whole projects at first
-- How a project track's own `visibility` relates to `visibility_override` and the project's visibility (rule 7). Deferred to Phase 4 (2026-10-19): the column exists from Phase 3, but access is owner-only until then, so nothing reads it
 - Email provider for notification digests (Resend or Postmark)
 - Moderation approach for public content
 - Donations: payment provider (Stripe Connect?), and how to handle fees. Card fees (roughly 30¢ + ~3%) take about a third of a $1 donation. Options include having the donor cover fees, batching, or accepting the loss at first.
