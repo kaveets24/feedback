@@ -1,7 +1,13 @@
 import { z } from 'zod';
 import { errorResponseSchema } from './schemas/common.ts';
+import {
+  coverResponseSchema,
+  createCoverResponseSchema,
+  type CreateCoverRequest,
+} from './schemas/covers.ts';
 import { meResponseSchema } from './schemas/me.ts';
 import {
+  projectDetailResponseSchema,
   projectListResponseSchema,
   projectResponseSchema,
   projectTracksResponseSchema,
@@ -116,8 +122,31 @@ export function createApiClient({ baseUrl, getToken, fetch = globalThis.fetch }:
     /** The signed-in user's projects, newest first. Pass `nextCursor` back as `cursor` for more. */
     listProjects: (query: ProjectListQuery = {}) =>
       request(`/v1/projects${pageQuery(query)}`, projectListResponseSchema),
+    /** A project, with any cover upload still processing or that failed. */
     getProject: (projectId: string) =>
-      request(`/v1/projects/${encodeURIComponent(projectId)}`, projectResponseSchema),
+      request(`/v1/projects/${encodeURIComponent(projectId)}`, projectDetailResponseSchema),
+    /** Starts uploading new cover art; PUT the image to `upload`, then `completeCoverUpload`. */
+    startCoverUpload: (projectId: string, input: CreateCoverRequest) =>
+      post(
+        `/v1/projects/${encodeURIComponent(projectId)}/covers`,
+        createCoverResponseSchema,
+        input,
+      ),
+    /** Call once the PUT succeeds. Safe to repeat; returns the cover upload's state. */
+    completeCoverUpload: (projectId: string, coverId: string) =>
+      post(
+        `/v1/projects/${encodeURIComponent(projectId)}/covers/${encodeURIComponent(coverId)}/complete`,
+        coverResponseSchema,
+      ),
+    /** A cover upload's state, to poll while it processes. */
+    getCover: (projectId: string, coverId: string) =>
+      request(
+        `/v1/projects/${encodeURIComponent(projectId)}/covers/${encodeURIComponent(coverId)}`,
+        coverResponseSchema,
+      ),
+    /** Takes the project's cover off. */
+    removeCover: (projectId: string) =>
+      send('DELETE', `/v1/projects/${encodeURIComponent(projectId)}/cover`, z.undefined()),
     /** Creates a private project. */
     createProject: (input: CreateProjectRequest) =>
       post('/v1/projects', projectResponseSchema, input),

@@ -1,9 +1,9 @@
 // Runs ffprobe and ffmpeg on an uploaded original. Originals are untrusted input, so ffmpeg may
 // only read local files (no URLs, so a crafted playlist can't make it fetch anything) and only
 // with the demuxers for the formats we accept (CLAUDE.md section 7).
-import { spawn } from 'node:child_process';
 import { z } from 'zod';
 import { MAX_DURATION_MS, WAVEFORM_PEAK_COUNT } from '@feedback/shared';
+import { run } from '../process.ts';
 import { PeakCollector } from './peaks.ts';
 
 /** ffmpeg's demuxers for mp3, wav, m4a (`mov` reads the whole mp4 family), aac, flac, ogg. */
@@ -24,8 +24,6 @@ const PEAK_WINDOW = PEAK_SAMPLE_RATE / 100;
 const PROBE_TIMEOUT_MS = 30_000;
 /** Far longer than a 20-minute file takes; a run past this is stuck on something odd. */
 const TRANSCODE_TIMEOUT_MS = 10 * 60_000;
-/** ffmpeg runs with `-v error`, so its stderr is short; keep the end of it for error messages. */
-const STDERR_LIMIT = 2000;
 
 // Shown to the artist on a failed version, so plain words and what to do next.
 export const UNUSABLE_REASONS = {
@@ -152,49 +150,4 @@ async function probe(input: string): Promise<Probed> {
     sampleRate: stream.sample_rate ?? 0,
     durationMs: duration !== undefined && Number.isFinite(duration) ? duration * 1000 : null,
   };
-}
-
-interface RunResult {
-  code: number | null;
-  signal: NodeJS.Signals | null;
-  stdout: Buffer;
-  stderr: string;
-  timedOut: boolean;
-}
-
-interface RunOptions {
-  timeoutMs: number;
-  /** Receives stdout as it arrives instead of collecting it. `stop` kills the process. */
-  onStdout?: (chunk: Buffer, stop: () => void) => void;
-}
-
-function run(command: string, args: string[], { timeoutMs, onStdout }: RunOptions) {
-  return new Promise<RunResult>((resolve, reject) => {
-    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
-    const stop = () => child.kill('SIGKILL');
-    const stdout: Buffer[] = [];
-    let stderr = '';
-    let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      stop();
-    }, timeoutMs);
-
-    child.stdout.on('data', (chunk: Buffer) => {
-      if (onStdout) onStdout(chunk, stop);
-      else stdout.push(chunk);
-    });
-    child.stderr.on('data', (chunk: Buffer) => {
-      stderr = (stderr + chunk.toString('utf8')).slice(-STDERR_LIMIT);
-    });
-    // e.g. ENOENT when ffmpeg isn't installed.
-    child.once('error', (err) => {
-      clearTimeout(timer);
-      reject(err);
-    });
-    child.once('close', (code, signal) => {
-      clearTimeout(timer);
-      resolve({ code, signal, stdout: Buffer.concat(stdout), stderr: stderr.trim(), timedOut });
-    });
-  });
 }

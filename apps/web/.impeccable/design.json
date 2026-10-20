@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-20T04:04:38.622353Z",
+  "generatedAt": "2026-10-20T04:47:02Z",
   "title": "Design System: Feedback",
   "extensions": {
     "colorMeta": {
@@ -363,7 +363,7 @@
       },
       "section-title": {
         "displayName": "Section Title",
-        "purpose": "H2s such as \"Upload a track\", \"Tracks\", \"Your projects\", \"Versions\", and \"Upload a new version\"."
+        "purpose": "H2s such as \"Upload a track\", \"Tracks\", \"Your projects\", \"Versions\", and \"Upload a new version\"; in a project's Edit mode the \"Cover art\" and \"Delete project\" H2s drop to 1rem."
       },
       "title": {
         "displayName": "Title",
@@ -546,6 +546,14 @@
       "css": ".ds-badge { background: var(--color-lcd); border: 1px solid var(--color-chrome-edge); border-radius: 0.25rem; box-shadow: var(--shadow-lcd), 0 0 0 2px var(--color-chrome-lo), 0 0 0 3px var(--color-chrome-lip); display: inline-flex; align-items: center; justify-content: space-between; gap: 8px; width: 7.5rem; margin: 3px; padding: 4px 8px; } .ds-pips { display: flex; gap: 2px; } .ds-pips i { width: 6px; height: 10px; background: var(--color-lcd-cell); } .ds-pips i.on { background: var(--color-lcd-ink); } .ds-badge-word { font-family: var(--font-lcd); font-size: 0.75rem; text-transform: uppercase; color: var(--color-lcd-ink); }"
     },
     {
+      "name": "Project Cover",
+      "kind": "custom",
+      "refersTo": "project-cover-list",
+      "description": "Cover art squares: 48px leading a projects-list row, 96px (128px from sm) on the project page; shown bare with a 1px rule edge on a chrome-lo backing. Shown here empty: the chrome-lo placeholder with a field-edge note.",
+      "html": "<div class=\"ds-covers\"><div class=\"ds-cover ds-cover-empty\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M14 4h6v4h-4v11H8v-5h6z\"/></svg></div><div class=\"ds-cover ds-cover-page ds-cover-empty\"><svg width=\"32\" height=\"32\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M14 4h6v4h-4v11H8v-5h6z\"/></svg></div></div>",
+      "css": ".ds-covers { display: flex; align-items: flex-start; gap: 16px; } .ds-cover { flex-shrink: 0; width: 48px; height: 48px; border: 1px solid var(--color-rule); border-radius: 0.25rem; background: var(--color-chrome-lo); object-fit: cover; } .ds-cover-page { width: 96px; height: 96px; } @media (min-width: 640px) { .ds-cover-page { width: 128px; height: 128px; } } .ds-cover-empty { display: flex; align-items: center; justify-content: center; color: var(--color-field-edge); }"
+    },
+    {
       "name": "Track Row (dragging)",
       "kind": "custom",
       "refersTo": "track-row-dragging",
@@ -557,7 +565,7 @@
       "name": "Upload Progress",
       "kind": "custom",
       "refersTo": "upload-progress",
-      "description": "Progressbar in an LCD window: lit drifting lime stripes over still unlit stripes, percent in Silkscreen.",
+      "description": "Progressbar in an LCD window: lit drifting lime stripes over still unlit stripes, percent in Silkscreen. Used on home, for a new version on the track page, and (capped at 20rem) for cover art.",
       "html": "<div class=\"ds-progress\" role=\"progressbar\" aria-label=\"Uploading\" aria-valuemin=\"0\" aria-valuemax=\"100\" aria-valuenow=\"62\"><div class=\"ds-progress-track\"><div class=\"ds-progress-fill\" style=\"width: 62%\"></div></div><span class=\"ds-progress-pct\" aria-hidden=\"true\">62%</span></div>",
       "css": ".ds-progress { display: flex; align-items: center; gap: 12px; margin: 3px; padding: 8px 12px; background: var(--color-lcd); border: 1px solid var(--color-chrome-edge); border-radius: 0.25rem; box-shadow: var(--shadow-lcd), 0 0 0 2px var(--color-chrome-lo), 0 0 0 3px var(--color-chrome-lip); } .ds-progress-track { flex: 1; height: 12px; overflow: hidden; border-radius: 2px; background-image: repeating-linear-gradient(-45deg, var(--color-lcd-ghost) 0 6px, var(--color-lcd-cell) 6px 12px); background-size: 16.97px 16.97px; } .ds-progress-fill { height: 100%; background-image: repeating-linear-gradient(-45deg, var(--color-lcd-ink) 0 6px, var(--color-lcd-dim) 6px 12px); background-size: 16.97px 16.97px; animation: ds-stripes 0.8s linear infinite; } @keyframes ds-stripes { to { background-position: 16.97px 0; } } @media (prefers-reduced-motion: reduce) { .ds-progress-fill { animation: none; } } .ds-progress-pct { width: 3rem; text-align: right; font-family: var(--font-lcd); font-size: 1rem; font-variant-numeric: tabular-nums; color: var(--color-lcd-ink); }"
     },
@@ -580,7 +588,7 @@
   ],
   "narrative": {
     "northStar": "The Hardware Player",
-    "overview": "Feedback borrows the late-90s desktop music player: a graphite hardware housing, a recessed LCD window with lime phosphor ink, and chunky bevel buttons that sink when pressed. The waveform sits inside the LCD as segmented bars. The part you've already heard is lit, the rest shows as dim lime, and the empty cells stay faintly visible behind both, like the unlit segments on a real LCD.\n\n**Scope so far: the player, the app header, home, the project pages, and the track page.** The player means the track page's waveform player and the global mini-player. The app header sits on every page. Home (`/`, in all four states: signed out, pending, rejected, and signed in with the upload form and your tracks), the projects list (`/projects`), the project page (`/projects/[projectId]`), and the track page around its player (`/tracks/[trackId]`: the header block, the Project selector, the version history with its notes editor, and the new-version upload) are the working screens: the player's world extended to forms and lists, with flat graphite controls, 1px rules between rows, and the LCD well kept for things that read out (the status meter, the status badge, and the upload progress bar). Every page uses the same 48rem column under the header, but the bodies of sign-in and sign-up are still deliberately plain semantic HTML. The direction for everything not built yet (glossy LimeWire toolbars, results tables, window panels, Aqua surfaces, light mode, skins) is in CLAUDE.md section 9, \"Visual style: Y2K / Winamp / LimeWire\". It is not recorded here because none of it exists in code. When one of those surfaces gets built, add it to this file from the shipped code.\n\nThe system is quiet and practical: dark only, no decorative motion, and one bright signature per screen (the lit LCD of the player, the status meter on a project, or the upload bar on home while a file goes up). All tokens live in `app/globals.css` under `@theme`, and components use them, never one-off hex values.",
+    "overview": "Feedback borrows the late-90s desktop music player: a graphite hardware housing, a recessed LCD window with lime phosphor ink, and chunky bevel buttons that sink when pressed. The waveform sits inside the LCD as segmented bars. The part you've already heard is lit, the rest shows as dim lime, and the empty cells stay faintly visible behind both, like the unlit segments on a real LCD.\n\n**Scope so far: the player, the app header, home, the project pages, and the track page.** The player means the track page's waveform player and the global mini-player. The app header sits on every page. Home (`/`, in all four states: signed out, pending, rejected, and signed in with the upload form and your tracks), the projects list (`/projects`), the project page (`/projects/[projectId]`, with its cover art), and the track page around its player (`/tracks/[trackId]`: the header block, the Project selector, the version history with its notes editor, and the new-version upload) are the working screens: the player's world extended to forms and lists, with flat graphite controls, 1px rules between rows, and the LCD well kept for things that read out (the status meter, the status badge, and the upload progress bar). A project's cover art is the one image in the system, and it sits bare, without chrome or an LCD well. Every page uses the same 48rem column under the header, but the bodies of sign-in and sign-up are still deliberately plain semantic HTML. The direction for everything not built yet (glossy LimeWire toolbars, results tables, window panels, Aqua surfaces, light mode, skins) is in CLAUDE.md section 9, \"Visual style: Y2K / Winamp / LimeWire\". It is not recorded here because none of it exists in code. When one of those surfaces gets built, add it to this file from the shipped code.\n\nThe system is quiet and practical: dark only, no decorative motion, and one bright signature per screen (the lit LCD of the player, the status meter on a project, or the upload bar on home while a file goes up). All tokens live in `app/globals.css` under `@theme`, and components use them, never one-off hex values.",
     "keyCharacteristics": [
       "Graphite chrome housing on the player, raised by a 1px top highlight and a soft drop.",
       "Recessed deep green-black LCD windows set into their surroundings with a dark lip and a faint outer highlight.",
@@ -588,6 +596,7 @@
       "Working screens are flat: solid graphite controls with a 1px edge, lists on 1px rules, no cards and no gradients behind text.",
       "Lime for content inside the LCD, a slightly different lime for interaction, cyan for secondary player readouts and the playhead.",
       "Bitmap face for readouts, figures, and the wordmark; clean system sans for everything else.",
+      "Cover art sits bare: a square with small corners and a 1px hairline, never housed in chrome or an LCD well.",
       "Still by default: the only motion is a dragged row following the pointer and the upload bar's stripes drifting while an upload is in progress (still under reduced motion)."
     ],
     "rules": [
@@ -615,6 +624,11 @@
         "name": "The Housed Hardware Rule",
         "body": "Shadows describe hardware: raised housing, recessed LCD windows, buttons that sink. Beyond those, only the focus glow and the nav underline use a shadow. Working-screen controls, rows, and sections get none.",
         "section": "elevation"
+      },
+      {
+        "name": "The Bare Art Rule",
+        "body": "Cover art is the artist's own image and brings its own colour, so it sits bare: square, 0.25rem corners, a 1px `rule` edge, and a `chrome-lo` backing that only shows while it loads or when there's no cover. No panel chrome, LCD well, bevel, shadow, or gradient around it, and nothing drawn over it.",
+        "section": "elevation"
       }
     ],
     "dos": [
@@ -633,6 +647,7 @@
       "**Don't** use `lcd-cyan` or `lcd-ink` for buttons or links; interaction color is `accent`.",
       "**Don't** put a gradient, bevel, or shadow on working-screen controls, rows, or sections; those belong to player hardware and LCD windows.",
       "**Don't** wrap list items in cards; use rows on rules.",
+      "**Don't** house cover art in chrome, an LCD well, a bevel, a shadow, or a gradient, or draw over it; it sits bare with a 1px `rule` edge.",
       "**Don't** style the sign-in and sign-up bodies until the owner asks; they stay plain semantic HTML.",
       "**Don't** copy Winamp, LimeWire, Microsoft, or Apple names, logos, skins, or assets."
     ]

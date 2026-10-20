@@ -4,3 +4,4 @@ export * from './schema.ts';
 export * from './users.ts';
 export * from './tracks.ts';
 export * from './projects.ts';
+export * from './covers.ts';

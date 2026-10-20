@@ -135,6 +135,24 @@ describe('upload and download', () => {
   });
 });
 
+describe('delete', () => {
+  it('removes an object, and succeeds for one that is already gone', async () => {
+    const objectKey = key('delete');
+    const dir = await mkdtemp(join(tmpdir(), 'storage-test-'));
+    try {
+      await writeFile(join(dir, 'file'), 'bye');
+      await storage.upload(objectKey, join(dir, 'file'), 'text/plain');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+    expect(await storage.head(objectKey)).not.toBeNull();
+
+    await storage.delete(objectKey);
+    expect(await storage.head(objectKey)).toBeNull();
+    await expect(storage.delete(objectKey)).resolves.toBeUndefined();
+  });
+});
+
 describe('head', () => {
   it('returns null for a missing object', async () => {
     expect(await storage.head(key('missing'))).toBeNull();

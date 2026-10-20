@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { coverImageSchema, coverResponseSchema } from './covers.ts';
 import { trackSummarySchema, visibilitySchema } from './tracks.ts';
 
 /** Where a project is at, set by the artist. Purely descriptive: it gates nothing. */
@@ -35,9 +36,20 @@ export const projectResponseSchema = z.object({
   description: z.string().nullable(),
   status: projectStatusSchema,
   visibility: visibilitySchema,
+  /** The cover art, or null when there's none. */
+  cover: coverImageSchema.nullable(),
   createdAt: z.iso.datetime(),
 });
 export type ProjectResponse = z.infer<typeof projectResponseSchema>;
+
+/**
+ * `GET /v1/projects/:projectId`: the project, plus its newest cover upload while that one is
+ * still processing or after it failed (null otherwise, including once it's the cover).
+ */
+export const projectDetailResponseSchema = projectResponseSchema.extend({
+  coverUpload: coverResponseSchema.nullable(),
+});
+export type ProjectDetailResponse = z.infer<typeof projectDetailResponseSchema>;
 
 export const PROJECT_LIST_DEFAULT_LIMIT = 50;
 export const PROJECT_LIST_MAX_LIMIT = 100;

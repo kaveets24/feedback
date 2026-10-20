@@ -123,7 +123,8 @@
   text-underline-offset: 3px;
   border-radius: var(--radius-sm);
 
-  &:hover {
+  /* Not on a disabled link-styled button: it can't be used, so it shouldn't light up. */
+  &:hover:not(:disabled) {
     color: var(--color-accent);
     text-decoration-color: currentColor;
   }

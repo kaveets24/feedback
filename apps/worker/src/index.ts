@@ -1,11 +1,12 @@
 import { pino } from 'pino';
 import { createDb } from '@feedback/db';
 import { createStorage, loadStorageConfig } from '@feedback/storage';
+import { startCoverWorker } from './cover/worker.ts';
 import { loadEnv } from './env.ts';
 import { captureException, flushSentry, initSentry } from './sentry.ts';
 import { startTranscodeWorker } from './transcode/worker.ts';
 
-/** How long shutdown waits for the running job; under Fly's kill_timeout (fly.staging.toml). */
+/** How long shutdown waits for the running jobs; under Fly's kill_timeout (fly.staging.toml). */
 const SHUTDOWN_TIMEOUT_MS = 25_000;
 
 const env = loadEnv();
@@ -26,6 +27,13 @@ const transcoder = startTranscodeWorker(
     report: (err, context) => captureException(err, { extra: context }),
   },
 );
+const covers = startCoverWorker(
+  { db, storage, log },
+  {
+    redisUrl: env.REDIS_URL,
+    report: (err, context) => captureException(err, { extra: context }),
+  },
+);
 log.info({ errorReporting: reporting }, 'worker started');
 
 // Checks error reporting end to end without crashing the worker (see docs/staging.md).
@@ -37,14 +45,13 @@ if (env.MONITORING_TEST_ERRORS) {
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
     log.info({ signal }, 'shutting down');
-    // Waits for the running job to finish, but not forever: closing also waits on Redis, which
+    // Waits for the running jobs to finish, but not forever: closing also waits on Redis, which
     // may be down. A job cut off here stalls and runs again later, which is safe.
     setTimeout(() => {
       log.warn('shutdown timed out; exiting');
       process.exit(1);
     }, SHUTDOWN_TIMEOUT_MS).unref();
-    void transcoder
-      .close()
+    void Promise.all([transcoder.close(), covers.close()])
       .then(() => Promise.all([db.close(), storage.close()]))
       .then(() => flushSentry(2000))
       .then(() => process.exit(0));

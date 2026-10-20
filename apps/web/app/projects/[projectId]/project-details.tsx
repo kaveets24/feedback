@@ -1,19 +1,22 @@
 'use client';
 
 import { useState, useTransition, type FormEvent, type ReactNode } from 'react';
-import type { ProjectResponse } from '@feedback/shared';
-import { deleteProjectAction, updateProjectAction } from '../actions';
+import type { CoverImage, ProjectDetailResponse } from '@feedback/shared';
+import { deleteProjectAction, removeCoverAction, updateProjectAction } from '../actions';
+import { ProjectCover } from '../project-cover';
+import { CoverControl } from './cover-control';
 
 /**
- * The project's name and description, with an Edit mode for both and, inside it, deleting the
- * project. `status` is the status meter, which stays usable in either mode.
+ * The project's cover, name, and description, with an Edit mode for the words and, inside it,
+ * removing the cover and deleting the project. `status` is the status meter, usable in either
+ * mode.
  */
 export function ProjectDetails({
   project,
   trackCount,
   status,
 }: {
-  project: ProjectResponse;
+  project: ProjectDetailResponse;
   trackCount: number;
   status: ReactNode;
 }) {
@@ -41,12 +44,29 @@ export function ProjectDetails({
       />
     );
   }
+  const pending = project.coverUpload;
   return (
     <div>
-      <h1 className="text-3xl font-semibold text-balance">{project.title}</h1>
-      {project.description && (
-        <p className="mt-2 max-w-[65ch] whitespace-pre-line text-muted">{project.description}</p>
-      )}
+      <div className="flex items-start gap-4 sm:gap-6">
+        <ProjectCover cover={project.cover} size="page" alt={`Cover art for ${project.title}`} />
+        <div className="min-w-0 flex-1">
+          <h1 className="text-3xl font-semibold break-words text-balance">{project.title}</h1>
+          {project.description && (
+            <p className="mt-2 max-w-[65ch] whitespace-pre-line text-muted">
+              {project.description}
+            </p>
+          )}
+          <div className="mt-2">
+            {/* Keyed on the server's view, so a refresh after processing starts it afresh. */}
+            <CoverControl
+              key={pending ? `${pending.id}-${pending.status}` : 'none'}
+              projectId={project.id}
+              hasCover={project.cover !== null}
+              pending={pending}
+            />
+          </div>
+        </div>
+      </div>
       {statusRow}
     </div>
   );
@@ -59,7 +79,7 @@ function EditForm({
   statusRow,
   onDone,
 }: {
-  project: ProjectResponse;
+  project: ProjectDetailResponse;
   trackCount: number;
   statusRow: ReactNode;
   onDone: () => void;
@@ -142,6 +162,8 @@ function EditForm({
 
       {statusRow}
 
+      {project.cover && <RemoveCover projectId={project.id} cover={project.cover} />}
+
       <section aria-labelledby="delete-heading" className="border-t border-rule pt-5">
         <h2 id="delete-heading" className="text-base font-semibold">
           Delete project
@@ -188,5 +210,44 @@ function EditForm({
         )}
       </section>
     </div>
+  );
+}
+
+/** Takes the cover art off, leaving the placeholder. Another one can be added any time. */
+function RemoveCover({ projectId, cover }: { projectId: string; cover: CoverImage }) {
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <section aria-labelledby="cover-heading" className="border-t border-rule pt-5">
+      <h2 id="cover-heading" className="text-base font-semibold">
+        Cover art
+      </h2>
+      <div className="mt-2 flex items-center gap-3">
+        <ProjectCover cover={cover} size="list" />
+        <p className="max-w-[65ch] text-sm text-muted">
+          Takes the cover art off this project. You can add another any time.
+        </p>
+      </div>
+      {error && (
+        <p role="alert" className="mt-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
+      <button
+        type="button"
+        className="btn mt-3"
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            setError(null);
+            const result = await removeCoverAction(projectId);
+            if (!result.ok) setError(result.message);
+          })
+        }
+      >
+        {pending ? 'Removing…' : 'Remove cover art'}
+      </button>
+    </section>
   );
 }

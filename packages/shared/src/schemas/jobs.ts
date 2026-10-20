@@ -8,3 +8,9 @@ export const TRANSCODE_QUEUE = 'transcode';
 
 export const transcodeJobSchema = z.object({ versionId: z.uuid() });
 export type TranscodeJob = z.infer<typeof transcodeJobSchema>;
+
+/** Queue for re-encoding an uploaded cover image into a clean square JPEG. */
+export const COVER_QUEUE = 'cover';
+
+export const coverJobSchema = z.object({ coverId: z.uuid() });
+export type CoverJob = z.infer<typeof coverJobSchema>;

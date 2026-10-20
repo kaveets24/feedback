@@ -1,6 +1,6 @@
 import { Queue, Worker } from 'bullmq';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { TRANSCODE_QUEUE } from '@feedback/shared';
+import { COVER_QUEUE, TRANSCODE_QUEUE } from '@feedback/shared';
 import { bullmqJobQueue } from './queue.ts';
 
 // Against the compose Redis (pnpm services:up), in database 1 so local dev data in database 0
@@ -27,6 +27,24 @@ describe('bullmqJobQueue', () => {
     expect(jobs).toHaveLength(1);
     expect(jobs[0]).toMatchObject({ id: versionId, name: 'transcode', data: { versionId } });
     expect(jobs[0]?.opts).toMatchObject({ attempts: 3 });
+  });
+
+  it('adds one cover job per cover, keyed by the cover id', async () => {
+    const covers = new Queue(COVER_QUEUE, { connection: { url: redisUrl } });
+    try {
+      await covers.obliterate({ force: true });
+      const coverId = crypto.randomUUID();
+      await queue.enqueueCover(coverId);
+      await queue.enqueueCover(coverId);
+
+      const jobs = await covers.getJobs(['waiting']);
+      expect(jobs).toHaveLength(1);
+      expect(jobs[0]).toMatchObject({ id: coverId, name: 'cover', data: { coverId } });
+      expect(jobs[0]?.opts).toMatchObject({ attempts: 3 });
+    } finally {
+      await covers.obliterate({ force: true });
+      await covers.close();
+    }
   });
 
   it('gives up quickly when Redis is unreachable, and reports the connection error', async () => {

@@ -16,7 +16,9 @@ import {
 } from '@feedback/db';
 import {
   PROJECT_LIST_DEFAULT_LIMIT,
+  type CoverImage,
   type CreateProjectRequest,
+  type ProjectDetailResponse,
   type ProjectListResponse,
   type ProjectResponse,
   type ProjectTracksResponse,
@@ -25,17 +27,25 @@ import {
 import { authzActor, projectResource } from '../../auth/authz.ts';
 import type { Actor } from '../../auth/plugin.ts';
 import { httpError } from '../../errors.ts';
+import { coverImages, pendingCoverUpload, type CoverDeps } from '../covers/images.ts';
 import { loadTrackFor, toTrackSummaries } from '../tracks/service.ts';
 
-export function toProjectResponse(project: Project): ProjectResponse {
+export function toProjectResponse(project: Project, cover: CoverImage | null): ProjectResponse {
   return {
     id: project.id,
     title: project.title,
     description: project.description,
     status: project.status,
     visibility: project.visibility,
+    cover,
     createdAt: project.createdAt.toISOString(),
   };
+}
+
+/** A project as the API returns it, with a signed URL for its cover if it has one. */
+async function respond(deps: CoverDeps, project: Project): Promise<ProjectResponse> {
+  const covers = await coverImages(deps, [project]);
+  return toProjectResponse(project, covers.get(project.id) ?? null);
 }
 
 /** A blank description is stored as none. */
@@ -71,54 +81,65 @@ export async function createProject(
     description: description(input.description),
     status: input.status,
   });
-  return toProjectResponse(project);
+  // New projects have no cover yet.
+  return toProjectResponse(project, null);
 }
 
 /** The signed-in user's projects, newest first, a page at a time. */
 export async function listMyProjects(
-  db: Db,
+  deps: CoverDeps,
   actor: Actor,
   { cursor, limit = PROJECT_LIST_DEFAULT_LIMIT }: { cursor?: string; limit?: number },
 ): Promise<ProjectListResponse> {
   if (actor.kind === 'anonymous') throw httpError(401, 'UNAUTHENTICATED', 'Sign in required');
 
   // One extra row says whether there's another page.
-  const rows = await listProjectsForOwner(db, actor.user.id, { limit: limit + 1, before: cursor });
+  const rows = await listProjectsForOwner(deps.db, actor.user.id, {
+    limit: limit + 1,
+    before: cursor,
+  });
   const page = rows.slice(0, limit);
   const who = authzActor(actor);
+  // As with tracks, the query already filters to the actor's own; canAccess still decides, and
+  // covers are signed only for projects that pass.
+  const visible = page.filter((project) => canAccess(who, projectResource(project), 'view'));
+  const covers = await coverImages(deps, visible);
   return {
-    // As with tracks, the query already filters to the actor's own; canAccess still decides.
-    projects: page
-      .filter((project) => canAccess(who, projectResource(project), 'view'))
-      .map(toProjectResponse),
+    projects: visible.map((project) => toProjectResponse(project, covers.get(project.id) ?? null)),
     nextCursor: rows.length > limit ? (page.at(-1)?.id ?? null) : null,
   };
 }
 
+/** A project, with its cover and any cover upload still processing or that failed. */
 export async function getProject(
-  db: Db,
+  deps: CoverDeps,
   actor: Actor,
   projectId: string,
-): Promise<ProjectResponse> {
-  return toProjectResponse(await loadProjectFor(db, actor, projectId, 'view'));
+): Promise<ProjectDetailResponse> {
+  const project = await loadProjectFor(deps.db, actor, projectId, 'view');
+  const [response, coverUpload] = await Promise.all([
+    respond(deps, project),
+    pendingCoverUpload(deps.db, project),
+  ]);
+  return { ...response, coverUpload };
 }
 
 export async function updateProject(
-  db: Db,
+  deps: CoverDeps,
   actor: Actor,
   projectId: string,
   input: UpdateProjectRequest,
 ): Promise<ProjectResponse> {
-  await loadProjectFor(db, actor, projectId, 'manage');
+  await loadProjectFor(deps.db, actor, projectId, 'manage');
   const changes: ProjectChanges = {};
   if (input.title !== undefined) changes.title = input.title;
   if (input.description !== undefined) changes.description = description(input.description);
   if (input.status !== undefined) changes.status = input.status;
 
   // Null only if it was deleted since the check above.
-  const project = await saveProject(db, projectId, changes);
+  const project = await saveProject(deps.db, projectId, changes);
   if (!project) throw httpError(404, 'NOT_FOUND', 'Not found');
-  return toProjectResponse(project);
+  return respond(deps, project);
 }
 
 /** Soft-deletes the project and leaves its tracks loose. */
