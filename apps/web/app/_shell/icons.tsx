@@ -22,3 +22,8 @@ export const DownIcon = () => <Icon d="M12 18l-8-8 2.5-2.5L12 13l5.5-5.5L20 10z"
 export const RemoveIcon = () => (
   <Icon d="M6.4 4.3L12 9.9l5.6-5.6 2.1 2.1-5.6 5.6 5.6 5.6-2.1 2.1-5.6-5.6-5.6 5.6-2.1-2.1 5.6-5.6-5.6-5.6z" />
 );
+
+/** A pencil: edit something written. */
+export const EditIcon = () => (
+  <Icon d="M4 16.5L15 5.5l3.5 3.5-11 11H4zM16.5 4l1.5-1.5L21.5 6 20 7.5z" />
+);
