@@ -1,11 +1,13 @@
 # Staging
 
 Staging runs the same providers planned for production ([ADR 0003](decisions/0003-staging-hosting-and-monitoring.md)).
-It holds no real user data, is invite-only (the approval gate), and is kept out of search engines.
+It's the one deployed environment, the live app at https://feedback.community, and only the
+tooling calls it staging ([ADR 0009](decisions/0009-feedback-community-domain.md)). It's invite-only
+(the approval gate) and kept out of search engines.
 
 | Piece        | Where                                                                                                          |
 | ------------ | -------------------------------------------------------------------------------------------------------------- |
-| Web          | Vercel project `feedback`, https://feedback-six-kappa.vercel.app                                               |
+| Web          | Vercel project `feedback`, https://feedback.community (the old `feedback-six-kappa.vercel.app` redirects)      |
 | API + worker | Fly app `feedback-staging` (`api` and `worker` process groups), `iad`                                          |
 | Postgres     | Neon project `feedback` (`bold-feather-90292757`), branch `production`                                         |
 | Auth         | Clerk application "Feedback Staging" (separate from dev and production)                                        |
@@ -196,12 +198,19 @@ How staging was provisioned, for reference and for the production setup in Phase
    became the Fly `DATABASE_URL` secret.
 2. **Clerk:** a new application, "Feedback Staging", with the same session token customization
    as dev: Sessions → Customize session token → `{ "email": "{{user.primary_email_address}}" }`.
+   Its production instance's domain is `feedback.community` (Configure → Domains). Clerk lists
+   DNS records for it (`clerk.`, `accounts.`, and three for email); add them in Cloudflare as
+   **DNS only** (grey cloud: Clerk can't issue certificates behind Cloudflare's proxy), wait for
+   Clerk to verify them and issue certificates, then copy the production instance's publishable
+   key into Vercel. The key encodes the domain, so it changes whenever the domain does.
 3. **Fly:** app `feedback-staging` created in the personal org; secrets set; a deploy token
    (`fly tokens create deploy`, named "github-actions staging") stored as the GitHub `FLY_API_TOKEN`
    secret. It expires 2027-10-12: create a new one and replace the secret before then.
 4. **Vercel:** project `feedback` (team `steven-kvetons-projects`, Next.js preset) imported from the GitHub repo with root directory
    `apps/web`; env vars from the table above for the Production environment; an access token
    and the project's org and project IDs stored in the GitHub `staging` environment.
+   Domains: `feedback.community` (its A records in Cloudflare are DNS only), with the old
+   `feedback-six-kappa.vercel.app` set to redirect to it.
    For previews: in the staging Clerk application, switch to its development instance and copy
    its API keys; set them and the other Preview env vars from the table above for the Preview
    environment only. Turn on Protection Bypass for Automation (Settings → Deployment Protection)
@@ -237,17 +246,17 @@ How staging was provisioned, for reference and for the production setup in Phase
 
      ```bash
      b2 account authorize
-     b2 bucket update --cors-rules '[{"corsRuleName":"web","allowedOrigins":["https://feedback-six-kappa.vercel.app"],"allowedOperations":["s3_get","s3_head","s3_put"],"allowedHeaders":["content-type","range"],"exposeHeaders":["content-length","content-range","etag"],"maxAgeSeconds":3600}]' feedback-audio-staging allPrivate
+     b2 bucket update --cors-rules '[{"corsRuleName":"web","allowedOrigins":["https://feedback.community"],"allowedOperations":["s3_get","s3_head","s3_put"],"allowedHeaders":["content-type","range"],"exposeHeaders":["content-length","content-range","etag"],"maxAgeSeconds":3600}]' feedback-audio-staging allPrivate
      b2 account clear
      ```
 
-     Only the staging origin is allowed: previews are signed out, so they never upload. Check it
+     Only the app's own origin is allowed: previews are signed out, so they never upload. Check it
      with a preflight, which should answer with `Access-Control-Allow-Origin` (and shouldn't for
      any other origin):
 
      ```bash
      curl -si -X OPTIONS "https://s3.us-east-005.backblazeb2.com/feedback-audio-staging/originals/test" \
-       -H "Origin: https://feedback-six-kappa.vercel.app" \
+       -H "Origin: https://feedback.community" \
        -H "Access-Control-Request-Method: PUT" -H "Access-Control-Request-Headers: content-type"
      ```
 
@@ -255,8 +264,7 @@ How staging was provisioned, for reference and for the production setup in Phase
      (the player's seeking), which should also be allowed.
 
      **Production (Phase 7):** the production bucket needs the same CLI rule, with that bucket's
-     name and `allowedOrigins` set to the production web origin only, never the staging
-     `vercel.app` one.
+     name and `allowedOrigins` set to the production web origin only.
 
 7. **Redis** (ADR 0008), its own Fly app so app deploys never restart it and ffmpeg can't take its
    memory. It's a plain machine billed for the VM and volume (about $2 a month), not Upstash

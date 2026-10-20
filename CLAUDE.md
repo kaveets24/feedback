@@ -62,6 +62,8 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 
 **Auth** (see [ADR 0002](docs/decisions/0002-auth-provisioning.md)): users are created as `pending` on their first authenticated API request; the Clerk session token carries an `email` claim. The web app reads its env from `apps/web/.env.local`, not the root `.env`.
 
+**Domain** (see [ADR 0009](docs/decisions/0009-feedback-community-domain.md)): the app is at https://feedback.community. It's the one deployed environment; the tooling calls it staging, but a separate staging and production cost too much for now (decided 2026-10-20).
+
 **Pinned versions** (see [ADR 0001](docs/decisions/0001-runtime-and-toolchain-versions.md) and [0005](docs/decisions/0005-node-24.md)): Node 24 LTS (`.nvmrc`; Vercel doesn't support 26 yet), pnpm 12 (installed via `npm i -g pnpm`, not corepack, which Node 25+ drops), TypeScript 6.0 (typescript-eslint doesn't support 7 yet), ESLint 9 (eslint-config-next isn't ready for 10). API and worker have no build step: Node runs `.ts` directly via type stripping, so use only erasable TS syntax (no `enum`/`namespace`) and `.ts` extensions in relative imports.
 
 ---
