@@ -1,7 +1,14 @@
 import Link from 'next/link';
-import type { ProjectResponse, TrackResponse, VersionResponse } from '@feedback/shared';
+import type {
+  ProjectResponse,
+  ShareLinkResponse,
+  TrackResponse,
+  VersionResponse,
+} from '@feedback/shared';
 import type { PlayerItem } from '../../../lib/audio-store';
 import { formatDate, formatDuration, STATUS_LABELS } from '../../../lib/format';
+import { visibilitySentence } from '../../../lib/share';
+import { SharingSection } from '../../_sharing/sharing-section';
 import { TrackPlayer } from '../../_player/track-player';
 import { UploadForm } from '../../upload-form';
 import { ProcessingStatus } from './processing-status';
@@ -13,9 +20,11 @@ import { VersionRow } from './version-notes';
 export function TrackView({
   track,
   projects,
+  links,
 }: {
   track: TrackResponse;
   projects: ProjectResponse[];
+  links: ShareLinkResponse[];
 }) {
   const project = projects.find((p) => p.id === track.projectId);
   const [latest] = track.versions;
@@ -45,7 +54,10 @@ export function TrackView({
             {' · '}
           </>
         )}
-        Private: only you can see and hear this track.
+        {visibilitySentence(track.visibility, 'track')}{' '}
+        <a href="#sharing" className="link">
+          Sharing
+        </a>
       </p>
       <div className="mt-4 max-w-md">
         <ProjectSelect trackId={track.id} projectId={track.projectId} projects={projects} />
@@ -89,6 +101,14 @@ export function TrackView({
           ))}
         </ul>
       </section>
+
+      <SharingSection
+        target={{ kind: 'track', id: track.id }}
+        visibility={track.visibility}
+        projectVisibility={project?.visibility}
+        inherits={track.inheritsVisibility}
+        links={links}
+      />
 
       <section className="mt-12">
         <UploadForm trackId={track.id} />

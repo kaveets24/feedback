@@ -4,6 +4,7 @@ import { serverApi } from '../../../lib/api';
 import { formatDuration, totalDurationMs } from '../../../lib/format';
 import { loadOrNotFound } from '../../../lib/load';
 import { collectPages } from '../../../lib/pages';
+import { SharingSection } from '../../_sharing/sharing-section';
 import { ReleaseTypePicker } from '../release-type-picker';
 import { AddTrackForm } from './add-track-form';
 import { ProjectDetails } from './project-details';
@@ -15,8 +16,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
 
   const { projectId } = await params;
   const api = serverApi();
-  const [project, { tracks }] = await loadOrNotFound(() =>
-    Promise.all([api.getProject(projectId), api.listProjectTracks(projectId)]),
+  const [project, { tracks }, { links }] = await loadOrNotFound(() =>
+    Promise.all([
+      api.getProject(projectId),
+      api.listProjectTracks(projectId),
+      api.listProjectShareLinks(projectId),
+    ]),
   );
   // Everything the picker can offer: the artist's other tracks, and their projects' names.
   const [allTracks, allProjects] = await Promise.all([
@@ -80,6 +85,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           )}
         />
       </section>
+
+      <SharingSection
+        target={{ kind: 'project', id: project.id }}
+        visibility={project.visibility}
+        links={links}
+      />
     </main>
   );
 }

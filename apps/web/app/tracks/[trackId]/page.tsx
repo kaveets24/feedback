@@ -9,10 +9,12 @@ export default async function TrackPage({ params }: { params: Promise<{ trackId:
   if (!isAuthenticated) return redirectToSignIn();
 
   const { trackId } = await params;
-  const track = await loadOrNotFound(() => serverApi().getTrack(trackId));
+  const [track, { links }] = await loadOrNotFound(() =>
+    Promise.all([serverApi().getTrack(trackId), serverApi().listTrackShareLinks(trackId)]),
+  );
   const projects = await collectPages(async (cursor) => {
     const page = await serverApi().listProjects({ cursor, limit: 100 });
     return { items: page.projects, nextCursor: page.nextCursor };
   });
-  return <TrackView track={track} projects={projects} />;
+  return <TrackView track={track} projects={projects} links={links} />;
 }
