@@ -90,8 +90,6 @@ export const projects = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     description: text('description'),
-    // The old `status` column (and its `project_status` enum) is still in the database but no
-    // longer read or written; the next migration drops it.
     releaseType: releaseType('release_type').notNull().default('single'),
     visibility: visibility('visibility').notNull().default('private'),
     /** The newest `ready` cover; one still processing or failed never replaces it. */
