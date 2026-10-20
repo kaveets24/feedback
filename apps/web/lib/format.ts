@@ -1,4 +1,4 @@
-import type { VersionStatus } from '@feedback/shared';
+import type { ProjectStatus, TrackSummary, VersionStatus } from '@feedback/shared';
 
 /** A duration as m:ss (or h:mm:ss), e.g. 210000 → "3:30". */
 export function formatDuration(ms: number): string {
@@ -22,4 +22,20 @@ export const STATUS_LABELS: Record<VersionStatus, string> = {
 /** The calendar date of an ISO timestamp, in UTC so server and browser agree, e.g. "2026-10-16". */
 export function formatDate(iso: string): string {
   return iso.slice(0, 10);
+}
+
+/** A project's status in words. */
+export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
+  idea: 'Idea',
+  demo: 'Demo',
+  mixing: 'Mixing',
+  done: 'Done',
+};
+
+/** The combined length of the tracks whose newest version is ready (others have no length yet). */
+export function totalDurationMs(tracks: readonly TrackSummary[]): number {
+  return tracks.reduce(
+    (sum, { latestVersion: v }) => sum + (v.status === 'ready' ? (v.durationMs ?? 0) : 0),
+    0,
+  );
 }

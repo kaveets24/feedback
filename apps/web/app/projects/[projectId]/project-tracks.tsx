@@ -1,0 +1,380 @@
+'use client';
+
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
+import type { TrackSummary } from '@feedback/shared';
+import { formatDuration, STATUS_LABELS } from '../../../lib/format';
+import { dragStep, moveItem } from '../../../lib/reorder';
+import { DownIcon, GripIcon, RemoveIcon, UpIcon } from '../../_shell/icons';
+import {
+  removeProjectTrackAction,
+  reorderProjectTracksAction,
+  restoreProjectTrackAction,
+} from '../actions';
+
+interface Drag {
+  id: string;
+  pointerId: number;
+  /** The order when the drag started, to compare against and to restore on cancel. */
+  startIds: string[];
+  /** Where in the row the pointer took hold, so the row doesn't jump under it. */
+  grab: number;
+  y: number;
+}
+
+/**
+ * A project's tracks in running order. Drag a row by its grip, or use its move buttons (the
+ * keyboard, touch and screen-reader path); either saves the whole order. Saves run one at a
+ * time, in order, so quick moves can't arrive at the API out of sequence.
+ */
+export function ProjectTracks({
+  projectId,
+  tracks,
+}: {
+  projectId: string;
+  tracks: TrackSummary[];
+}) {
+  const router = useRouter();
+  const [order, setOrder] = useState(tracks);
+  // A new list from the server (after a save, or another tab's change) replaces the local one.
+  const [serverTracks, setServerTracks] = useState(tracks);
+  if (tracks !== serverTracks) {
+    setServerTracks(tracks);
+    setOrder(tracks);
+  }
+
+  const [announcement, setAnnouncement] = useState('');
+  /**
+   * The last track taken out. Its row stays as a same-height slot with Undo, so it's clear the
+   * song wasn't deleted and nothing shifts under the pointer.
+   */
+  const [removed, setRemoved] = useState<{
+    track: TrackSummary;
+    ids: string[];
+    index: number;
+  } | null>(null);
+  const undoRef = useRef<HTMLButtonElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const listRef = useRef<HTMLOListElement>(null);
+  const drag = useRef<Drag | null>(null);
+  const saves = useRef(Promise.resolve());
+  const refocus = useRef<{ id: string; direction: 'up' | 'down' } | null>(null);
+
+  function enqueue(run: () => Promise<{ ok: boolean }>, failure: string) {
+    setError(null);
+    saves.current = saves.current.then(async () => {
+      const result = await run().catch(() => ({ ok: false }));
+      if (!result.ok) {
+        setOrder(tracks);
+        setRemoved(null);
+        setError(failure);
+        router.refresh();
+      }
+    });
+  }
+
+  function saveOrder(next: TrackSummary[], moved: TrackSummary) {
+    // Undo would restore the order from before this move, so it's no longer offered.
+    setRemoved(null);
+    setAnnouncement(
+      `${moved.title} moved to position ${next.indexOf(moved) + 1} of ${next.length}.`,
+    );
+    const ids = next.map((t) => t.id);
+    enqueue(
+      () => reorderProjectTracksAction(projectId, ids),
+      "Couldn't save the new order, so it's been put back. The project may have changed in another tab; try again.",
+    );
+  }
+
+  function move(index: number, delta: -1 | 1) {
+    const moved = order[index];
+    if (!moved) return;
+    const next = moveItem(order, index, index + delta);
+    refocus.current = { id: moved.id, direction: delta < 0 ? 'up' : 'down' };
+    setOrder(next);
+    saveOrder(next, moved);
+  }
+
+  function remove(track: TrackSummary) {
+    setAnnouncement(`Removed ${track.title} from this project. It's still in your tracks.`);
+    setRemoved({ track, ids: order.map((t) => t.id), index: order.indexOf(track) });
+    setOrder((current) => current.filter((t) => t.id !== track.id));
+    enqueue(
+      () => removeProjectTrackAction(projectId, track.id),
+      `Couldn't remove ${track.title}, so it's back in the list. Reload the page and try again.`,
+    );
+  }
+
+  function undoRemove() {
+    if (!removed) return;
+    const { track, ids } = removed;
+    const byId = new Map([...order, track].map((t) => [t.id, t]));
+    setRemoved(null);
+    setOrder(ids.flatMap((id) => byId.get(id) ?? []));
+    setAnnouncement(`${track.title} is back in this project.`);
+    enqueue(
+      () => restoreProjectTrackAction(projectId, track.id, ids),
+      `Couldn't put ${track.title} back. Add it again from the list below.`,
+    );
+  }
+
+  // The removed row took focus with it; hand it to Undo.
+  useEffect(() => {
+    if (removed) undoRef.current?.focus();
+  }, [removed]);
+
+  // A moved row's button keeps focus, or hands it to its partner when it reaches an end.
+  useEffect(() => {
+    const target = refocus.current;
+    if (!target) return;
+    refocus.current = null;
+    const row = listRef.current?.querySelector<HTMLElement>(`[data-track="${target.id}"]`);
+    const button =
+      row?.querySelector<HTMLButtonElement>(`[data-move="${target.direction}"]:not(:disabled)`) ??
+      row?.querySelector<HTMLButtonElement>('[data-move]:not(:disabled)');
+    button?.focus();
+  }, [order]);
+
+  /** Moves the dragged row under the pointer, swapping it past neighbours as it goes. */
+  const followPointer = useCallback(() => {
+    const current = drag.current;
+    const list = listRef.current;
+    if (!current || !list) return;
+    // Track rows only: the slot a removed track leaves isn't part of the order.
+    const rows = (Array.from(list.children) as HTMLElement[]).filter((row) => row.dataset.track);
+    const index = rows.findIndex((row) => row.dataset.track === current.id);
+    const row = rows[index];
+    if (!row) return;
+
+    row.style.transform = '';
+    const offset = current.y - current.grab - row.getBoundingClientRect().top;
+    const step = dragStep(offset, rows[index - 1]?.offsetHeight, rows[index + 1]?.offsetHeight);
+    if (step !== 0) {
+      // Re-rendering moves the row; the layout effect below picks the drag up from its new slot.
+      setOrder((now) => moveItem(now, index, index + step));
+    } else {
+      row.style.transform = `translateY(${offset}px)`;
+    }
+  }, []);
+
+  // After each swap renders, keep the row under the pointer from its new slot.
+  useLayoutEffect(() => followPointer(), [order, followPointer]);
+
+  function onGripDown(event: ReactPointerEvent<HTMLElement>, id: string) {
+    if (event.button !== 0 || drag.current) return;
+    const row = event.currentTarget.closest<HTMLElement>('[data-track]');
+    if (!row) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drag.current = {
+      id,
+      pointerId: event.pointerId,
+      startIds: order.map((t) => t.id),
+      grab: event.clientY - row.getBoundingClientRect().top,
+      y: event.clientY,
+    };
+    setError(null);
+    setDragId(id);
+  }
+
+  function onGripMove(event: ReactPointerEvent<HTMLElement>) {
+    if (drag.current?.pointerId !== event.pointerId) return;
+    drag.current.y = event.clientY;
+    followPointer();
+  }
+
+  function endDrag(event: ReactPointerEvent<HTMLElement>, cancelled: boolean) {
+    const current = drag.current;
+    if (current?.pointerId !== event.pointerId) return;
+    drag.current = null;
+    setDragId(null);
+    const row = listRef.current?.querySelector<HTMLElement>(`[data-track="${current.id}"]`);
+    if (row) row.style.transform = '';
+
+    if (cancelled) {
+      const byId = new Map(order.map((t) => [t.id, t]));
+      setOrder(current.startIds.flatMap((id) => byId.get(id) ?? []));
+      return;
+    }
+    const moved = order.find((t) => t.id === current.id);
+    if (moved && order.some((t, i) => t.id !== current.startIds[i])) saveOrder(order, moved);
+  }
+
+  // Where the removed track was: the same height, so nothing moves under the pointer.
+  const removedSlot = removed && (
+    <li className="flex min-h-[3.8rem] flex-wrap items-center gap-x-3 gap-y-1 border-b border-rule bg-chrome-lo px-3 py-2 text-sm">
+      <span className="text-muted">
+        Removed “{removed.track.title}” from this project. It’s still in your tracks.
+      </span>
+      <button
+        ref={undoRef}
+        type="button"
+        className="link font-medium"
+        aria-label={`Undo removing ${removed.track.title}`}
+        onClick={undoRemove}
+      >
+        Undo
+      </button>
+    </li>
+  );
+
+  return (
+    <div>
+      <p aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
+      {error && (
+        <p role="alert" className="mb-3 text-sm text-danger">
+          {error}
+        </p>
+      )}
+      {order.length === 0 && !removed ? (
+        <p className="border-y border-rule py-6 text-muted">
+          No tracks in this project yet. Add one below.
+        </p>
+      ) : (
+        <ol ref={listRef} className="border-t border-rule">
+          {order.map((track, index) => (
+            <Fragment key={track.id}>
+              {removed?.index === index && removedSlot}
+              <TrackRow
+                track={track}
+                number={index + 1}
+                first={index === 0}
+                last={index === order.length - 1}
+                dragging={dragId === track.id}
+                onMove={(delta) => move(index, delta)}
+                onRemove={() => remove(track)}
+                onGripDown={(event) => onGripDown(event, track.id)}
+                onGripMove={onGripMove}
+                onGripUp={(event) => endDrag(event, false)}
+                onGripCancel={(event) => endDrag(event, true)}
+              />
+            </Fragment>
+          ))}
+          {removed && removed.index >= order.length && removedSlot}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+type GripHandler = (event: ReactPointerEvent<HTMLElement>) => void;
+
+function TrackRow({
+  track,
+  number,
+  first,
+  last,
+  dragging,
+  onMove,
+  onRemove,
+  onGripDown,
+  onGripMove,
+  onGripUp,
+  onGripCancel,
+}: {
+  track: TrackSummary;
+  number: number;
+  first: boolean;
+  last: boolean;
+  dragging: boolean;
+  onMove: (delta: -1 | 1) => void;
+  onRemove: () => void;
+  onGripDown: GripHandler;
+  onGripMove: GripHandler;
+  onGripUp: GripHandler;
+  onGripCancel: GripHandler;
+}) {
+  const { versionNumber, status, durationMs } = track.latestVersion;
+  const length = status === 'ready' && durationMs !== null ? formatDuration(durationMs) : null;
+
+  return (
+    <li
+      data-track={track.id}
+      className={`relative grid grid-cols-[1.75rem_2rem_1fr_auto] items-center gap-2 border-b border-rule py-2 sm:grid-cols-[2rem_2.5rem_1fr_4rem_auto] sm:gap-3 ${
+        dragging ? 'z-10 rounded-sm bg-chrome-lo outline-2 outline-accent' : ''
+      }`}
+    >
+      {/* Pointer-only: the move buttons are the keyboard and screen-reader path. */}
+      <span
+        aria-hidden="true"
+        title="Drag to reorder"
+        className={`flex h-10 touch-none items-center justify-center rounded-sm text-field-edge hover:text-accent ${
+          dragging ? 'cursor-grabbing text-accent' : 'cursor-grab'
+        }`}
+        onPointerDown={onGripDown}
+        onPointerMove={onGripMove}
+        onPointerUp={onGripUp}
+        onPointerCancel={onGripCancel}
+      >
+        <GripIcon />
+      </span>
+      <span className="font-lcd text-sm text-muted tabular-nums">
+        {String(number).padStart(2, '0')}
+      </span>
+      <div className="min-w-0">
+        <Link
+          href={`/tracks/${track.id}`}
+          className="link line-clamp-2 font-medium break-words no-underline sm:line-clamp-1"
+        >
+          {track.title}
+        </Link>
+        <p className={`text-sm ${status === 'failed' ? 'text-danger' : 'text-muted'}`}>
+          v{versionNumber}
+          {status !== 'ready' && ` · ${STATUS_LABELS[status]}`}
+          {length && (
+            <span className="sm:hidden">
+              {' · '}
+              <span className="font-lcd tabular-nums text-ink">{length}</span>
+            </span>
+          )}
+        </p>
+      </div>
+      <span className="hidden text-right font-lcd text-sm tabular-nums sm:block">
+        {length ?? <span className="text-muted">—</span>}
+      </span>
+      <div className="flex gap-1">
+        <button
+          type="button"
+          data-move="up"
+          className="btn btn-ghost btn-icon"
+          aria-label={`Move ${track.title} up`}
+          disabled={first}
+          onClick={() => onMove(-1)}
+        >
+          <UpIcon />
+        </button>
+        <button
+          type="button"
+          data-move="down"
+          className="btn btn-ghost btn-icon"
+          aria-label={`Move ${track.title} down`}
+          disabled={last}
+          onClick={() => onMove(1)}
+        >
+          <DownIcon />
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-icon"
+          aria-label={`Remove ${track.title} from this project`}
+          title="Remove from project"
+          onClick={onRemove}
+        >
+          <RemoveIcon />
+        </button>
+      </div>
+    </li>
+  );
+}

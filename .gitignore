@@ -20,5 +20,7 @@ next-env.d.ts
 
 # Impeccable review captures, detector cache, and per-machine config
 **/.impeccable/review/
+**/.impeccable/mocks/
+**/.impeccable/questions/
 **/.impeccable/config.local.json
 **/.impeccable/hook.cache.json

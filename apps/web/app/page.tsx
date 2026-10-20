@@ -16,7 +16,7 @@ export default async function HomePage({
 
   if (!isAuthenticated) {
     return (
-      <main>
+      <main className="mx-auto max-w-3xl px-4 py-6">
         <h1>Feedback</h1>
         <p>
           Share rough song ideas, control who hears them, and collect feedback pinned to the moment.
@@ -32,7 +32,7 @@ export default async function HomePage({
 
   if (me.accessStatus === 'pending') {
     return (
-      <main>
+      <main className="mx-auto max-w-3xl px-4 py-6">
         <h1>You&apos;re on the list</h1>
         <p>
           Feedback is invite-only for now. Your account ({me.email}) is waiting for approval.
@@ -45,7 +45,7 @@ export default async function HomePage({
 
   if (me.accessStatus === 'rejected') {
     return (
-      <main>
+      <main className="mx-auto max-w-3xl px-4 py-6">
         <h1>Account not approved</h1>
         <p>Your account ({me.email}) wasn&apos;t approved for access.</p>
         <SignOutButton />
@@ -58,12 +58,8 @@ export default async function HomePage({
   const page = await serverApi().listTracks(z.uuid().safeParse(cursor).success ? { cursor } : {});
 
   return (
-    <main>
-      <header>
-        <p>
-          Signed in as {me.email} <SignOutButton />
-        </p>
-      </header>
+    // Layout only: the header's column. The rest of this page is still plain HTML.
+    <main className="mx-auto max-w-3xl px-4 py-6">
       <h1>Your tracks</h1>
       <UploadForm />
 
