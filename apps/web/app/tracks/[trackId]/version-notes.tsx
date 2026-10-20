@@ -52,7 +52,9 @@ export function VersionRow({
   }
 
   const number = (
-    <span className="pt-0.5 font-lcd text-base text-ink tabular-nums">V{versionNumber}</span>
+    <span className="pt-0.5 font-lcd text-base text-ink tabular-nums group-data-playing:text-accent">
+      V{versionNumber}
+    </span>
   );
 
   if (editing) {

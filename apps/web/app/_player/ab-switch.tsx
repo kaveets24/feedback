@@ -1,6 +1,5 @@
 'use client';
 
-import { formatDuration } from '../../lib/format';
 import type { PlayerItem } from '../../lib/audio-store';
 import { DownIcon } from '../_shell/icons';
 
@@ -70,7 +69,7 @@ export function AbSwitch({
             >
               {older.map((version) => (
                 <option key={version.versionId} value={version.versionId}>
-                  v{version.versionNumber} · {formatDuration(version.durationMs)}
+                  v{version.versionNumber}
                 </option>
               ))}
             </select>
