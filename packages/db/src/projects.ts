@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, isNull, lt, max } from 'drizzle-orm';
 import type { ProjectStatus } from '@feedback/shared';
 import type { Db } from './client.ts';
-import { projects, tracks, users, type Project, type Track } from './schema.ts';
+import { projects, shareLinks, tracks, users, type Project, type Track } from './schema.ts';
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 /** The helpers that also run inside the transactions below take either. */
@@ -72,8 +72,9 @@ export async function updateProject(
 }
 
 /**
- * Soft-deletes a project. Its tracks become loose and keep their versions: deleting a folder
- * never deletes songs. Null if it doesn't exist or was already deleted.
+ * Soft-deletes a project and revokes its share links (CLAUDE.md section 6, rule 10). Its tracks
+ * become loose and keep their versions, and their own links: deleting a folder never deletes
+ * songs. Null if it doesn't exist or was already deleted.
  */
 export async function deleteProject(db: Db, projectId: string): Promise<Project | null> {
   return db.transaction(async (tx) => {
@@ -91,6 +92,16 @@ export async function deleteProject(db: Db, projectId: string): Promise<Project 
       .update(tracks)
       .set({ projectId: null, position: null, visibilityOverride: null })
       .where(eq(tracks.projectId, projectId));
+    await tx
+      .update(shareLinks)
+      .set({ revokedAt: deleted.deletedAt })
+      .where(
+        and(
+          eq(shareLinks.resourceType, 'project'),
+          eq(shareLinks.resourceId, projectId),
+          isNull(shareLinks.revokedAt),
+        ),
+      );
     return deleted;
   });
 }
