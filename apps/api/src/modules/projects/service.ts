@@ -1,4 +1,4 @@
-import { canAccess, type Action } from '@feedback/authz';
+import type { Action } from '@feedback/authz';
 import {
   createProject as insertProject,
   deleteProject as softDeleteProject,
@@ -26,7 +26,7 @@ import {
   type ProjectTracksResponse,
   type UpdateProjectRequest,
 } from '@feedback/shared';
-import { authzActor, canManage, projectResource } from '../../auth/authz.ts';
+import { canAccessProject } from '../../auth/authz.ts';
 import type { Actor } from '../../auth/plugin.ts';
 import { httpError } from '../../errors.ts';
 import { coverImages, pendingCoverUpload, type CoverDeps } from '../covers/images.ts';
@@ -65,7 +65,7 @@ export async function loadProjectFor(
   action: Action,
 ): Promise<Project> {
   const project = await findProject(db, projectId);
-  if (!project || !canAccess(authzActor(actor), projectResource(project), action)) {
+  if (!project || !canAccessProject(actor, project, action)) {
     throw httpError(404, 'NOT_FOUND', 'Not found');
   }
   return project;
@@ -101,10 +101,9 @@ export async function listMyProjects(
     before: cursor,
   });
   const page = rows.slice(0, limit);
-  const who = authzActor(actor);
   // As with tracks, the query already filters to the actor's own; canAccess still decides, and
   // covers are signed only for projects that pass.
-  const visible = page.filter((project) => canAccess(who, projectResource(project), 'view'));
+  const visible = page.filter((project) => canAccessProject(actor, project, 'view'));
   const covers = await coverImages(deps, visible);
   return {
     projects: visible.map((project) => toProjectResponse(project, covers.get(project.id) ?? null)),
@@ -121,7 +120,7 @@ export async function getProject(
   projectId: string,
 ): Promise<ProjectDetailResponse> {
   const project = await loadProjectFor(deps.db, actor, projectId, 'view');
-  const owner = canManage(actor, projectResource(project));
+  const owner = canAccessProject(actor, project, 'manage');
   const [response, coverUpload] = await Promise.all([
     respond(deps, project),
     owner ? pendingCoverUpload(deps.db, project) : null,
@@ -165,7 +164,7 @@ async function trackList(
   list?: Track[],
 ): Promise<ProjectTracksResponse> {
   const tracks = list ?? (await listProjectTracks(db, project.id));
-  const rows = canManage(actor, projectResource(project))
+  const rows = canAccessProject(actor, project, 'manage')
     ? await withLatestVersions(db, tracks)
     : await withCurrentVersions(db, tracks);
   return { tracks: toTrackSummaries(actor, rows, new Map([[project.id, project]])) };

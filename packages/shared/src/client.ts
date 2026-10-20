@@ -7,6 +7,12 @@ import {
 } from './schemas/covers.ts';
 import { meResponseSchema } from './schemas/me.ts';
 import {
+  createShareLinkResponseSchema,
+  SHARE_TOKEN_HEADER,
+  shareLinkListResponseSchema,
+  type CreateShareLinkRequest,
+} from './schemas/share-links.ts';
+import {
   projectDetailResponseSchema,
   projectListResponseSchema,
   projectResponseSchema,
@@ -49,15 +55,23 @@ export interface ApiClientOptions {
   baseUrl: string;
   /** Returns the current session token, or null when signed out. */
   getToken?: () => Promise<string | null>;
+  /** A share link's token, sent with every request so the API opens what the link is for. */
+  shareToken?: string;
   fetch?: typeof fetch;
 }
 
 /** Typed client for the HTTP API. Every response is validated against its zod schema. */
-export function createApiClient({ baseUrl, getToken, fetch = globalThis.fetch }: ApiClientOptions) {
+export function createApiClient({
+  baseUrl,
+  getToken,
+  shareToken,
+  fetch = globalThis.fetch,
+}: ApiClientOptions) {
   async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit = {}) {
     const headers = new Headers(init.headers);
     const token = await getToken?.();
     if (token) headers.set('authorization', `Bearer ${token}`);
+    if (shareToken) headers.set(SHARE_TOKEN_HEADER, shareToken);
 
     const res = await fetch(new URL(path, baseUrl), { ...init, headers });
     const body: unknown = res.status === 204 ? undefined : await res.json().catch(() => null);
@@ -120,6 +134,32 @@ export function createApiClient({ baseUrl, getToken, fetch = globalThis.fetch }:
       request(`/v1/tracks${pageQuery(query)}`, trackListResponseSchema),
     getTrack: (trackId: string) =>
       request(`/v1/tracks/${encodeURIComponent(trackId)}`, trackResponseSchema),
+    /** Makes a share link for a track. The token in the response is never returned again. */
+    createTrackShareLink: (trackId: string, input: CreateShareLinkRequest) =>
+      post(
+        `/v1/tracks/${encodeURIComponent(trackId)}/share-links`,
+        createShareLinkResponseSchema,
+        input,
+      ),
+    /** A track's share links, newest first, revoked and expired ones included. */
+    listTrackShareLinks: (trackId: string) =>
+      request(`/v1/tracks/${encodeURIComponent(trackId)}/share-links`, shareLinkListResponseSchema),
+    /** Makes a share link for a project. The token in the response is never returned again. */
+    createProjectShareLink: (projectId: string, input: CreateShareLinkRequest) =>
+      post(
+        `/v1/projects/${encodeURIComponent(projectId)}/share-links`,
+        createShareLinkResponseSchema,
+        input,
+      ),
+    /** A project's share links, newest first, revoked and expired ones included. */
+    listProjectShareLinks: (projectId: string) =>
+      request(
+        `/v1/projects/${encodeURIComponent(projectId)}/share-links`,
+        shareLinkListResponseSchema,
+      ),
+    /** Revokes a share link at once. Safe to repeat. */
+    revokeShareLink: (linkId: string) =>
+      send('DELETE', `/v1/share-links/${encodeURIComponent(linkId)}`, z.undefined()),
     /** Sets who can hear a track; null makes a project's track follow the project again. */
     updateTrack: (trackId: string, changes: UpdateTrackRequest) =>
       send('PATCH', `/v1/tracks/${encodeURIComponent(trackId)}`, trackResponseSchema, changes),

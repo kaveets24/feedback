@@ -1,5 +1,6 @@
 import { Writable } from 'node:stream';
 import Fastify from 'fastify';
+import { pino } from 'pino';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { describe, expect, it } from 'vitest';
 import { loadEnv } from './env.ts';
@@ -7,15 +8,18 @@ import { loggerOptions } from './logger.ts';
 import { healthRoutes } from './modules/health/routes.ts';
 import { fakeQueue } from './testing/app.ts';
 
-/** An app using the real logger options, writing log lines into `lines`. */
-async function buildLoggedApp() {
-  const env = loadEnv({
+const testEnv = () =>
+  loadEnv({
     NODE_ENV: 'test',
     LOG_LEVEL: 'info',
     DATABASE_URL: 'postgres://unused',
     CLERK_SECRET_KEY: 'sk_test_unused',
     REDIS_URL: 'redis://unused',
   });
+
+/** An app using the real logger options, writing log lines into `lines`. */
+async function buildLoggedApp() {
+  const env = testEnv();
   const lines: string[] = [];
   const stream = new Writable({
     write(chunk: Buffer, _encoding, done) {
@@ -40,6 +44,41 @@ describe('request logging', () => {
     const output = lines.join('');
     expect(output).toContain('"url":"/echo"');
     expect(output).not.toContain('secret');
+  });
+
+  it('never logs auth or share-link tokens sent with a request', async () => {
+    const { app, lines } = await buildLoggedApp();
+    await app.inject({
+      method: 'GET',
+      url: '/echo',
+      headers: { authorization: 'Bearer jwt-secret', 'x-share-token': 'share-secret' },
+    });
+    await app.close();
+
+    const output = lines.join('');
+    expect(output).toContain('"url":"/echo"');
+    expect(output).not.toContain('jwt-secret');
+    expect(output).not.toContain('share-secret');
+  });
+
+  it('redacts those headers from anything that logs them raw', () => {
+    const lines: string[] = [];
+    const stream = new Writable({
+      write(chunk: Buffer, _encoding, done) {
+        lines.push(chunk.toString());
+        done();
+      },
+    });
+    // The real redact paths, without the request serializer that would otherwise drop headers.
+    const { redact } = loggerOptions(testEnv());
+    pino({ redact }, stream).info({
+      req: { headers: { authorization: 'Bearer jwt-secret', 'x-share-token': 'share-secret' } },
+    });
+
+    const output = lines.join('');
+    expect(output).toContain('[Redacted]');
+    expect(output).not.toContain('jwt-secret');
+    expect(output).not.toContain('share-secret');
   });
 
   it('does not log successful health checks', async () => {

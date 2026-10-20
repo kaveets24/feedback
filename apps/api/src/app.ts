@@ -10,6 +10,7 @@ import type { Db } from '@feedback/db';
 import type { Storage } from '@feedback/storage';
 import { registerAccessGate } from './auth/gate.ts';
 import { registerAuth } from './auth/plugin.ts';
+import { registerShareLinks } from './auth/share-link.ts';
 import type { AuthPort } from './auth/port.ts';
 import type { Env } from './env.ts';
 import { registerErrorHandlers } from './errors.ts';
@@ -19,6 +20,7 @@ import { healthRoutes } from './modules/health/routes.ts';
 import { meRoutes } from './modules/me/routes.ts';
 import { coverRoutes } from './modules/covers/routes.ts';
 import { projectRoutes } from './modules/projects/routes.ts';
+import { shareLinkRoutes } from './modules/share-links/routes.ts';
 import { uploadRoutes } from './modules/uploads/routes.ts';
 import { trackRoutes } from './modules/tracks/routes.ts';
 import { versionRoutes } from './modules/versions/routes.ts';
@@ -44,6 +46,7 @@ export async function buildApp(env: Env, deps: AppDeps) {
   // that request's error is reported, so these are only logged.
   deps.queue.onError((err) => app.log.warn({ err }, 'job queue connection error'));
   registerAuth(app, deps);
+  registerShareLinks(app, deps);
   registerAccessGate(app);
   // The API is never meant for search engines, in any environment.
   app.addHook('onSend', async (_request, reply) => {
@@ -64,6 +67,7 @@ export async function buildApp(env: Env, deps: AppDeps) {
       await v1.register(trackRoutes(deps.db));
       await v1.register(projectRoutes(deps));
       await v1.register(coverRoutes(deps));
+      await v1.register(shareLinkRoutes(deps.db));
       if (env.MONITORING_TEST_ERRORS) await v1.register(debugRoutes);
       v1.get('/openapi.json', { schema: { hide: true }, config: { allowUnapproved: true } }, () =>
         app.swagger(),

@@ -36,6 +36,17 @@ describe('createApiClient', () => {
     expect(new Headers(init.headers).has('authorization')).toBe(false);
   });
 
+  it('sends a share token in its header, never in the URL', async () => {
+    const fetch = fakeFetch(200, me);
+    const shareToken = 'q3Lx0vH9dJ2kR8sT1uW4yZ6bC5eF7gA0iK3mN9pQ2rS';
+    const api = createApiClient({ baseUrl: 'http://api.test', shareToken, fetch });
+
+    await api.getMe();
+    const [url, init] = fetch.mock.calls[0] as unknown as [URL, RequestInit];
+    expect(new Headers(init.headers).get('x-share-token')).toBe(shareToken);
+    expect(url.toString()).not.toContain(shareToken);
+  });
+
   it('throws ApiError with the standard error body', async () => {
     const fetch = fakeFetch(401, { error: { code: 'UNAUTHENTICATED', message: 'Sign in' } });
     const api = createApiClient({ baseUrl: 'http://api.test', fetch });
