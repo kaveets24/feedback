@@ -247,6 +247,134 @@ describe('audio store', () => {
     expect(listener).not.toHaveBeenCalled();
   });
 
+  describe('switching versions (A/B)', () => {
+    const version = (n: number, durationMs = 180_000): PlayerItem => ({
+      ...item(1),
+      versionId: `version-1-${n}`,
+      versionNumber: n,
+      durationMs,
+    });
+
+    it('carries on playing from the same moment', async () => {
+      const { store, audio, started } = setup();
+      await store.play(version(1));
+      started();
+      audio.currentTime = 83.2;
+      audio.fire('timeupdate');
+      const switching = store.switchTo(version(2));
+      expect(store.getState()).toMatchObject({ item: version(2), status: 'loading' });
+      await switching;
+      expect(audio.src).toBe('https://storage.test/version-1-2?sig=2');
+      expect(audio.play).toHaveBeenCalledTimes(2);
+      started();
+      expect(audio.currentTime).toBe(83.2);
+      expect(store.getState()).toMatchObject({ status: 'playing', positionMs: 83_200 });
+    });
+
+    it('stays paused when switched while paused', async () => {
+      const { store, audio, started } = setup();
+      await store.play(version(1));
+      started();
+      audio.currentTime = 40;
+      audio.fire('timeupdate');
+      store.pause();
+      await store.switchTo(version(2));
+      expect(audio.play).toHaveBeenCalledOnce();
+      expect(audio.src).toBe('https://storage.test/version-1-2?sig=2');
+      expect(store.getState()).toMatchObject({ status: 'paused', positionMs: 40_000 });
+      audio.fire('loadedmetadata');
+      expect(audio.currentTime).toBe(40);
+    });
+
+    it('caps the position at a shorter version’s length', async () => {
+      const { store, audio, started } = setup();
+      await store.play(version(1));
+      started();
+      audio.currentTime = 170;
+      audio.fire('timeupdate');
+      await store.switchTo(version(2, 150_000));
+      expect(store.getState().positionMs).toBe(150_000);
+    });
+
+    it('reuses a fresh URL when switching back, so it skips a round trip', async () => {
+      const { store, audio, fetchStream, started } = setup();
+      await store.play(version(1));
+      started();
+      await store.switchTo(version(2));
+      started();
+      await store.switchTo(version(1));
+      expect(fetchStream).toHaveBeenCalledTimes(2);
+      expect(audio.src).toBe('https://storage.test/version-1-1?sig=1');
+    });
+
+    it('fetches a new URL when the kept one is about to expire', async () => {
+      const { store, audio, fetchStream, advance, started } = setup();
+      await store.play(version(1));
+      started();
+      await store.switchTo(version(2));
+      started();
+      advance(MINUTES_10 - EXPIRY_MARGIN_MS);
+      await store.switchTo(version(1));
+      expect(fetchStream).toHaveBeenCalledTimes(3);
+      expect(audio.src).toBe('https://storage.test/version-1-1?sig=3');
+    });
+
+    it('uses a prefetched URL', async () => {
+      const { store, audio, fetchStream, started } = setup();
+      await store.play(version(1));
+      started();
+      await store.prefetch('version-1-2');
+      await store.switchTo(version(2));
+      expect(fetchStream).toHaveBeenCalledTimes(2);
+      expect(audio.src).toBe('https://storage.test/version-1-2?sig=2');
+    });
+
+    it('ignores the old version’s slow URL when switched while it loads', async () => {
+      const { store, audio, fetchStream } = setup();
+      let release!: () => void;
+      fetchStream.mockImplementationOnce(
+        (versionId) =>
+          new Promise((resolve) => {
+            release = () =>
+              resolve({
+                ok: true,
+                data: {
+                  url: `https://storage.test/${versionId}?slow`,
+                  expiresAt: '2099-01-01T00:00:00Z',
+                },
+              });
+          }),
+      );
+      const first = store.play(version(1));
+      await store.switchTo(version(2));
+      release();
+      await first;
+      expect(audio.src).toBe('https://storage.test/version-1-2?sig=1');
+      expect(store.getState()).toMatchObject({ item: version(2), status: 'loading' });
+    });
+
+    it('fetches a fresh URL after a playback error rather than reusing the kept one', async () => {
+      const { store, audio, fetchStream, started } = setup();
+      await store.play(version(1));
+      started();
+      await store.switchTo(version(2));
+      started();
+      await store.switchTo(version(1));
+      audio.fire('error');
+      await vi.waitFor(() => expect(audio.src).toBe('https://storage.test/version-1-1?sig=3'));
+      expect(fetchStream).toHaveBeenCalledTimes(3);
+    });
+
+    it('does nothing with nothing loaded, or when switched to the loaded version', async () => {
+      const { store, fetchStream } = setup();
+      await store.switchTo(version(2));
+      expect(store.getState().item).toBeNull();
+      await store.play(version(1));
+      await store.switchTo(version(1));
+      expect(fetchStream).toHaveBeenCalledOnce();
+    });
+  });
+
   it('stops at the end, at the full duration', async () => {
     const { store, audio, started } = setup();
     await store.play(item(1));

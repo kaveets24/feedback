@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ProjectResponse, TrackResponse, VersionResponse } from '@feedback/shared';
+import type { PlayerItem } from '../../../lib/audio-store';
 import { formatDate, formatDuration, STATUS_LABELS } from '../../../lib/format';
 import { TrackPlayer } from '../../_player/track-player';
 import { UploadForm } from '../../upload-form';
@@ -21,6 +22,9 @@ export function TrackView({
   // A version whose file never arrived has nothing to show, unless it's the newest: that upload
   // may still be running.
   const history = track.versions.filter((v) => v.status !== 'uploading' || v === latest);
+  const playable = track.versions.flatMap((v) => playerItem(track, v) ?? []);
+  const currentItem = playable.find((v) => v.versionId === current?.id);
+  const older = playable.filter((v) => v !== currentItem);
 
   return (
     <main className="mx-auto max-w-3xl px-4 pt-6 pb-16">
@@ -46,18 +50,9 @@ export function TrackView({
         <ProjectSelect trackId={track.id} projectId={track.projectId} projects={projects} />
       </div>
 
-      {current?.durationMs != null && current.waveformPeaks && (
+      {currentItem && (
         <div className="mt-8">
-          <TrackPlayer
-            item={{
-              versionId: current.id,
-              trackId: track.id,
-              title: track.title,
-              versionNumber: current.versionNumber,
-              durationMs: current.durationMs,
-              peaks: current.waveformPeaks,
-            }}
-          />
+          <TrackPlayer current={currentItem} older={older} />
         </div>
       )}
       {latest && (
@@ -99,6 +94,21 @@ export function TrackView({
       </section>
     </main>
   );
+}
+
+/** A ready version, as the player plays it; null for one that isn't ready. */
+function playerItem(track: TrackResponse, version: VersionResponse): PlayerItem | null {
+  if (version.status !== 'ready' || version.durationMs == null || !version.waveformPeaks) {
+    return null;
+  }
+  return {
+    versionId: version.id,
+    trackId: track.id,
+    title: track.title,
+    versionNumber: version.versionNumber,
+    durationMs: version.durationMs,
+    peaks: version.waveformPeaks,
+  };
 }
 
 /** "Current · Ready · 3:42 · 2026-10-20", and why it failed when it did. */
