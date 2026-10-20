@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-20T02:03:46.554346Z",
+  "generatedAt": "2026-10-20T04:04:38.622353Z",
   "title": "Design System: Feedback",
   "extensions": {
     "colorMeta": {
@@ -347,11 +347,11 @@
       },
       "lcd-figure": {
         "displayName": "LCD Figure",
-        "purpose": "Tabular figures at 1rem: track lengths (ink) on home and project rows, the project page's track numbers (muted), and the upload percent (lcd-ink)."
+        "purpose": "Tabular figures at 1rem: track lengths (ink) on home and project rows, the project page's track numbers (muted), the version number (\"V3\", ink) in each version row, a version's length (ink) in its column, inline in the meta line on phones, and the upload percent (lcd-ink)."
       },
       "lcd-figure-sm": {
         "displayName": "LCD Figure Small",
-        "purpose": "Tabular figures at 0.875rem: the project's total length, inline in the small Tracks count line."
+        "purpose": "Tabular figures at 0.875rem: the project's total length in the Tracks count line."
       },
       "lcd-label": {
         "displayName": "LCD Label",
@@ -359,11 +359,11 @@
       },
       "headline": {
         "displayName": "Headline",
-        "purpose": "Page H1: \"Your tracks\", \"Projects\", the project title, \"Edit project\", the pending and rejected notices; the signed-out pitch at 24ch."
+        "purpose": "Page H1: \"Your tracks\", \"Projects\", the project title, the track title, \"Edit project\", the pending and rejected notices; the signed-out pitch at 24ch."
       },
       "section-title": {
         "displayName": "Section Title",
-        "purpose": "H2s such as \"Upload a track\", \"Tracks\", and \"Your projects\"."
+        "purpose": "H2s such as \"Upload a track\", \"Tracks\", \"Your projects\", \"Versions\", and \"Upload a new version\"."
       },
       "title": {
         "displayName": "Title",
@@ -371,7 +371,7 @@
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Page text, field text, confirmation sentences; descriptions in muted at 65ch, the pending and rejected notices at 60ch."
+        "purpose": "Page text, field text, change notes (ink, line breaks kept), confirmation sentences; descriptions in muted at 65ch, the pending and rejected notices at 60ch. Small text carries labels, meta lines, status lines, and errors; \"Current\" leads the current version's meta line in ink at 500, in the sans."
       },
       "label": {
         "displayName": "Label",
@@ -517,9 +517,9 @@
       "name": "Select Field",
       "kind": "input",
       "refersTo": "field",
-      "description": "Graphite field; selects drop the native arrow for a drawn chevron.",
-      "html": "<label class=\"ds-label\" for=\"ds-add\">Add a track</label><div class=\"ds-select\"><select id=\"ds-add\" class=\"ds-field\"><option>Choose a track…</option><optgroup label=\"Not in a project\"><option>Night drive</option></optgroup></select><span><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 18l-8-8 2.5-2.5L12 13l5.5-5.5L20 10z\"/></svg></span></div>",
-      "css": ".ds-label { display: block; margin-bottom: 4px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--color-ink); } .ds-select { position: relative; } .ds-select span { position: absolute; top: 0; bottom: 0; right: 12px; display: flex; align-items: center; pointer-events: none; color: var(--color-muted); } .ds-field { width: 100%; min-height: 2.5rem; padding: 0.5rem 2.5rem 0.5rem 0.75rem; appearance: none; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 1rem; color: var(--color-ink); background: var(--color-chrome-lo); border: 1px solid var(--color-field-edge); border-radius: 0.375rem; } .ds-field:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 0; border-color: var(--color-accent); }"
+      "description": "Graphite field; selects drop the native arrow for a drawn chevron. On the track page the Project select shares a row with a default Move button.",
+      "html": "<label class=\"ds-label\" for=\"ds-proj\">Project</label><div class=\"ds-selrow\"><div class=\"ds-select\"><select id=\"ds-proj\" class=\"ds-field\"><option>Not in a project</option><option>Night drive EP</option></select><span><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 18l-8-8 2.5-2.5L12 13l5.5-5.5L20 10z\"/></svg></span></div><button class=\"ds-selbtn\">Move</button></div>",
+      "css": ".ds-label { display: block; margin-bottom: 4px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--color-ink); } .ds-selrow { display: flex; gap: 8px; max-width: 28rem; } .ds-select { position: relative; flex: 1; min-width: 0; } .ds-select span { position: absolute; top: 0; bottom: 0; right: 12px; display: flex; align-items: center; pointer-events: none; color: var(--color-muted); } .ds-field { width: 100%; min-height: 2.5rem; padding: 0.5rem 2.5rem 0.5rem 0.75rem; appearance: none; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 1rem; color: var(--color-ink); background: var(--color-chrome-lo); border: 1px solid var(--color-field-edge); border-radius: 0.375rem; } .ds-field:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 0; border-color: var(--color-accent); } .ds-selbtn { display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 1rem; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--color-ink); background: var(--color-chrome-lo); border: 1px solid var(--color-field-edge); border-radius: 0.375rem; cursor: pointer; white-space: nowrap; } .ds-selbtn:hover { color: var(--color-accent); border-color: var(--color-accent); } .ds-selbtn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); }"
     },
     {
       "name": "App Header",
@@ -568,11 +568,19 @@
       "description": "A home or projects-list row on rules; the title link covers the whole row and keyboard focus outlines it.",
       "html": "<ul class=\"ds-list\"><li class=\"ds-lrow\"><div class=\"ds-lmain\"><a class=\"ds-row-link\" href=\"#\">Night drive</a><p>v2 · Processing</p></div><span class=\"ds-llen\">3:30</span></li></ul>",
       "css": ".ds-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-rule); font-family: ui-sans-serif, system-ui, sans-serif; } .ds-lrow { position: relative; display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--color-rule); } .ds-lrow:hover { background: color-mix(in oklab, var(--color-chrome-lo) 60%, transparent); } .ds-lmain { flex: 1; min-width: 0; } .ds-lmain p { margin: 0; font-size: 0.875rem; color: var(--color-muted); } .ds-row-link { font-weight: 500; color: var(--color-ink); text-decoration: none; } .ds-row-link:hover { color: var(--color-accent); } .ds-row-link::after { content: \"\"; position: absolute; inset: 0; } .ds-row-link:focus-visible { outline: none; } .ds-row-link:focus-visible::after { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 0.25rem; box-shadow: var(--shadow-focus-glow); } .ds-llen { text-align: right; font-family: var(--font-lcd); font-size: 1rem; font-variant-numeric: tabular-nums; color: var(--color-ink); }"
+    },
+    {
+      "name": "Version Row",
+      "kind": "custom",
+      "refersTo": "version-row",
+      "description": "A version history row on rules: LCD V-number, the artist's notes, the meta line with Current in ink 500 and the length in Silkscreen, and a ghost Edit notes button.",
+      "html": "<ol class=\"ds-vlist\"><li class=\"ds-vrow\"><span class=\"ds-vnum\">V3</span><div class=\"ds-vbody\"><div class=\"ds-vmain\"><p class=\"ds-vnotes\">Louder vocals, new bridge</p><p class=\"ds-vmeta\"><span class=\"ds-vcur\">Current · </span>Ready · <span class=\"ds-vlen\">3:41</span> · <time>2026-10-13</time></p></div><button class=\"ds-vedit\" aria-label=\"Edit notes for v3\">Edit notes</button></div></li><li class=\"ds-vrow\"><span class=\"ds-vnum\">V2</span><div class=\"ds-vbody\"><div class=\"ds-vmain\"><p class=\"ds-vnotes ds-vnone\">No change notes.</p><p class=\"ds-vmeta\"><span class=\"ds-vfail\">Failed</span> · <time>2026-10-12</time></p><p class=\"ds-vreason\">The file isn't audio we can read.</p></div><button class=\"ds-vedit\" aria-label=\"Edit notes for v2\">Edit notes</button></div></li></ol>",
+      "css": ".ds-vlist { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-rule); font-family: ui-sans-serif, system-ui, sans-serif; color: var(--color-ink); } .ds-vrow { display: grid; grid-template-columns: 3rem 1fr; column-gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--color-rule); } .ds-vnum { padding-top: 2px; font-family: var(--font-lcd); font-size: 1rem; font-variant-numeric: tabular-nums; color: var(--color-ink); } .ds-vbody { display: flex; align-items: flex-start; gap: 12px; } .ds-vmain { flex: 1; min-width: 0; } .ds-vnotes { margin: 0; white-space: pre-line; overflow-wrap: break-word; } .ds-vnone { color: var(--color-muted); } .ds-vmeta, .ds-vreason { margin: 4px 0 0; font-size: 0.875rem; color: var(--color-muted); } .ds-vcur { font-weight: 500; color: var(--color-ink); } .ds-vlen { font-family: var(--font-lcd); font-variant-numeric: tabular-nums; color: var(--color-ink); } .ds-vfail, .ds-vreason { color: var(--color-danger); } .ds-vedit { flex-shrink: 0; display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 1rem; font-family: inherit; font-size: 0.875rem; font-weight: 500; white-space: nowrap; color: var(--color-muted); background: transparent; border: 1px solid transparent; border-radius: 0.375rem; cursor: pointer; } .ds-vedit:hover { background: var(--color-chrome-lo); border-color: var(--color-field-edge); } .ds-vedit:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); }"
     }
   ],
   "narrative": {
     "northStar": "The Hardware Player",
-    "overview": "Feedback borrows the late-90s desktop music player: a graphite hardware housing, a recessed LCD window with lime phosphor ink, and chunky bevel buttons that sink when pressed. The waveform sits inside the LCD as segmented bars. The part you've already heard is lit, the rest shows as dim lime, and the empty cells stay faintly visible behind both, like the unlit segments on a real LCD.\n\n**Scope so far: the player, the app header, home, and the project pages.** The player means the track page's waveform player and the global mini-player. The app header sits on every page. Home (`/`, in all four states: signed out, pending, rejected, and signed in with the upload form and your tracks), the projects list (`/projects`), and the project page (`/projects/[projectId]`) are the working screens: the player's world extended to forms and lists, with flat graphite controls, 1px rules between rows, and the LCD well kept for things that read out (the status meter, the status badge, and the upload progress bar). Every page uses the same 48rem column under the header, but the bodies of sign-in, sign-up, and the track page (apart from its player) are still deliberately plain semantic HTML, and so is the track page's Project selector. The direction for everything not built yet (glossy LimeWire toolbars, results tables, window panels, Aqua surfaces, light mode, skins) is in CLAUDE.md section 9, \"Visual style: Y2K / Winamp / LimeWire\". It is not recorded here because none of it exists in code. When one of those surfaces gets built, add it to this file from the shipped code.\n\nThe system is quiet and practical: dark only, no decorative motion, and one bright signature per screen (the lit LCD of the player, the status meter on a project, or the upload bar on home while a file goes up). All tokens live in `app/globals.css` under `@theme`, and components use them, never one-off hex values.",
+    "overview": "Feedback borrows the late-90s desktop music player: a graphite hardware housing, a recessed LCD window with lime phosphor ink, and chunky bevel buttons that sink when pressed. The waveform sits inside the LCD as segmented bars. The part you've already heard is lit, the rest shows as dim lime, and the empty cells stay faintly visible behind both, like the unlit segments on a real LCD.\n\n**Scope so far: the player, the app header, home, the project pages, and the track page.** The player means the track page's waveform player and the global mini-player. The app header sits on every page. Home (`/`, in all four states: signed out, pending, rejected, and signed in with the upload form and your tracks), the projects list (`/projects`), the project page (`/projects/[projectId]`), and the track page around its player (`/tracks/[trackId]`: the header block, the Project selector, the version history with its notes editor, and the new-version upload) are the working screens: the player's world extended to forms and lists, with flat graphite controls, 1px rules between rows, and the LCD well kept for things that read out (the status meter, the status badge, and the upload progress bar). Every page uses the same 48rem column under the header, but the bodies of sign-in and sign-up are still deliberately plain semantic HTML. The direction for everything not built yet (glossy LimeWire toolbars, results tables, window panels, Aqua surfaces, light mode, skins) is in CLAUDE.md section 9, \"Visual style: Y2K / Winamp / LimeWire\". It is not recorded here because none of it exists in code. When one of those surfaces gets built, add it to this file from the shipped code.\n\nThe system is quiet and practical: dark only, no decorative motion, and one bright signature per screen (the lit LCD of the player, the status meter on a project, or the upload bar on home while a file goes up). All tokens live in `app/globals.css` under `@theme`, and components use them, never one-off hex values.",
     "keyCharacteristics": [
       "Graphite chrome housing on the player, raised by a 1px top highlight and a soft drop.",
       "Recessed deep green-black LCD windows set into their surroundings with a dark lip and a faint outer highlight.",
@@ -600,7 +608,7 @@
       },
       {
         "name": "The Bitmap for Readouts Rule",
-        "body": "Silkscreen is for readouts and figures: times, lengths, totals, track numbers, percents, version numbers, state and stage words, and the wordmark. Titles, labels, buttons, errors, forms, comments, and body text use the sans.",
+        "body": "Silkscreen is for readouts and figures: times, lengths, totals, track numbers, percents, version numbers, state and stage words, and the wordmark. Titles, labels, buttons, errors, forms, comments, and body text use the sans. In sentence-like lines (subtitles, the version meta line, status lines) only the length switches to Silkscreen; \"Current\", status words, dates, and an inline \"v4\" stay sans.",
         "section": "typography"
       },
       {
@@ -625,7 +633,7 @@
       "**Don't** use `lcd-cyan` or `lcd-ink` for buttons or links; interaction color is `accent`.",
       "**Don't** put a gradient, bevel, or shadow on working-screen controls, rows, or sections; those belong to player hardware and LCD windows.",
       "**Don't** wrap list items in cards; use rows on rules.",
-      "**Don't** style the sign-in and sign-up bodies, or the track page outside its player (including its Project selector), until the owner asks; they stay plain semantic HTML.",
+      "**Don't** style the sign-in and sign-up bodies until the owner asks; they stay plain semantic HTML.",
       "**Don't** copy Winamp, LimeWire, Microsoft, or Apple names, logos, skins, or assets."
     ]
   }

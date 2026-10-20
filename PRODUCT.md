@@ -49,7 +49,7 @@ SoundCloud meets Google Docs comments, for work-in-progress music. What sets it 
 ## Brand Commitments
 
 - Name: **Feedback**.
-- The visual direction is pinned in CLAUDE.md section 9 ("Visual style: Y2K / Winamp / LimeWire"), including its guardrails. **Styling is deferred** except the player (waveform player and mini-player), the app header, home, and the project pages: no CSS, Tailwind classes, or tokens elsewhere until the owner asks.
+- The visual direction is pinned in CLAUDE.md section 9 ("Visual style: Y2K / Winamp / LimeWire"), including its guardrails. **Styling is deferred** except the player (waveform player and mini-player), the app header, home, the track page, and the project pages: no CSS, Tailwind classes, or tokens elsewhere until the owner asks.
 - Privacy, sharing, and destructive actions always use plain, serious language. No ironic copy there.
 - Evoke the era without copying it: no Winamp, LimeWire, Microsoft, or Apple names, logos, skins, or assets.
 
