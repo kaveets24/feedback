@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createDb } from './client.ts';
@@ -11,7 +12,7 @@ import {
   reorderProjectTracks,
   updateProject,
 } from './projects.ts';
-import { projects, tracks, users } from './schema.ts';
+import { projects, shareLinks, tracks, users } from './schema.ts';
 import { resetDb, testDatabaseUrl } from './testing.ts';
 import { createTrackWithFirstVersion, findTrack, listVersions } from './tracks.ts';
 import { upsertUserFromAuth } from './users.ts';
@@ -32,6 +33,32 @@ async function newTrack(ownerId: string, title = 'Late Night Idea') {
 }
 
 const ids = (rows: { id: string }[]) => rows.map((r) => r.id);
+
+/** A share link row, straight into the table (the API's helpers come later). */
+async function newLink(
+  createdBy: string,
+  resourceType: 'project' | 'track',
+  resourceId: string,
+  overrides: Partial<typeof shareLinks.$inferInsert> = {},
+) {
+  const [link] = await db
+    .insert(shareLinks)
+    .values({
+      resourceType,
+      resourceId,
+      tokenHash: randomBytes(32).toString('hex'),
+      role: 'listen',
+      createdBy,
+      ...overrides,
+    })
+    .returning();
+  return link!;
+}
+
+async function findLink(id: string) {
+  const [link] = await db.select().from(shareLinks).where(eq(shareLinks.id, id));
+  return link!;
+}
 
 describe('createProject', () => {
   it('creates a private project with status idea', async () => {
@@ -259,6 +286,57 @@ describe('deleteProject', () => {
     });
     expect(await listVersions(db, track.id)).toHaveLength(1);
     expect(await deleteProject(db, project.id)).toBeNull();
+  });
+
+  it("revokes the project's links, and only those", async () => {
+    const owner = await newUser();
+    const project = await createProject(db, { ownerId: owner.id, title: 'EP' });
+    const other = await createProject(db, { ownerId: owner.id, title: 'Other EP' });
+    const track = await newTrack(owner.id);
+    await moveTrackToProject(db, track.id, project.id);
+    const projectLink = await newLink(owner.id, 'project', project.id);
+    const earlier = new Date('2026-10-01T00:00:00Z');
+    const alreadyRevoked = await newLink(owner.id, 'project', project.id, { revokedAt: earlier });
+    const otherLink = await newLink(owner.id, 'project', other.id);
+    const trackLink = await newLink(owner.id, 'track', track.id);
+
+    const deleted = await deleteProject(db, project.id);
+    expect((await findLink(projectLink.id)).revokedAt).toEqual(deleted?.deletedAt);
+    // Revoked earlier stays revoked as of then.
+    expect((await findLink(alreadyRevoked.id)).revokedAt).toEqual(earlier);
+    expect((await findLink(otherLink.id)).revokedAt).toBeNull();
+    // The track lives on, loose, so a link made for it keeps working.
+    expect((await findLink(trackLink.id)).revokedAt).toBeNull();
+  });
+});
+
+describe('share_links constraints', () => {
+  it('keeps token hashes unique', async () => {
+    const owner = await newUser();
+    const project = await createProject(db, { ownerId: owner.id, title: 'EP' });
+    const link = await newLink(owner.id, 'project', project.id);
+    await expect(
+      newLink(owner.id, 'project', project.id, { tokenHash: link.tokenHash }),
+    ).rejects.toThrow();
+  });
+
+  it.each([
+    ['too short', 'ab12'],
+    ['upper case', 'A'.repeat(64)],
+    ['not hex', 'z'.repeat(64)],
+    ['a raw base64url token', 'q3Lx0vH9dJ2kR8sT1uW4yZ6bC5eF7gA0iK3mN9pQ2rS'],
+  ])('only stores a SHA-256 hex hash, never anything else (%s)', async (_case, tokenHash) => {
+    const owner = await newUser();
+    const project = await createProject(db, { ownerId: owner.id, title: 'EP' });
+    await expect(newLink(owner.id, 'project', project.id, { tokenHash })).rejects.toThrow();
+  });
+
+  it("goes with its creator's account", async () => {
+    const owner = await newUser();
+    const project = await createProject(db, { ownerId: owner.id, title: 'EP' });
+    const link = await newLink(owner.id, 'project', project.id);
+    await db.delete(users).where(eq(users.id, owner.id));
+    expect(await db.select().from(shareLinks).where(eq(shareLinks.id, link.id))).toEqual([]);
   });
 });
 

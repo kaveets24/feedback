@@ -166,7 +166,7 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 **Sharing**
 
 - Sharing is by link only for now. Invites to specific people (a `shares` table with grantees, and a visibility level for it) are parked; see "Later / parking lot" in section 11.
-- `share_links`: id, resource_type, resource_id, token_hash (store a hash, never the raw token), role, expires_at, revoked_at, created_by
+- `share_links`: id, resource_type (`project | track`), resource_id, token_hash (store a hash, never the raw token: SHA-256 hex, which a check constraint enforces), role (`listen | comment`), expires_at (null = never), revoked_at, created_by. Links are never deleted, only revoked, so they keep a record of what was shared. `resource_id` has no foreign key since it points at either table; both are only soft-deleted, and deleting a project revokes its links (`packages/db/src/projects.ts`)
 
 **Feedback**
 

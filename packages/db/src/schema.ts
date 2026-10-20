@@ -16,7 +16,7 @@ import {
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { v7 as uuidv7 } from 'uuid';
-import { VISIBILITIES } from '@feedback/authz';
+import { LINK_ROLES, RESOURCE_KINDS, VISIBILITIES } from '@feedback/authz';
 import { ACCESS_STATUSES, PROJECT_STATUSES, VERSION_STATUSES } from '@feedback/shared';
 
 export const accessStatus = pgEnum('access_status', ACCESS_STATUSES);
@@ -25,6 +25,8 @@ export const projectStatus = pgEnum('project_status', PROJECT_STATUSES);
 export const trackVersionStatus = pgEnum('track_version_status', VERSION_STATUSES);
 /** A cover upload goes through the same lifecycle as a version: uploading, processing, ready or failed. */
 export const coverStatus = pgEnum('cover_status', VERSION_STATUSES);
+export const shareResourceType = pgEnum('share_resource_type', RESOURCE_KINDS);
+export const linkRole = pgEnum('link_role', LINK_ROLES);
 
 const timestamps = {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -239,3 +241,38 @@ export const projectCovers = pgTable(
 );
 
 export type ProjectCover = typeof projectCovers.$inferSelect;
+
+/**
+ * A secret link to a track or a project (CLAUDE.md section 6, rule 6). Only a hash of the token is
+ * stored; the raw token is shown to the owner once, when the link is made. A link is never
+ * deleted: revoking it sets `revoked_at`, so it keeps a record of what was shared and with which
+ * role. `resource_id` points at a track or a project by `resource_type`, so it has no foreign key;
+ * both are only ever soft-deleted, and deleting one revokes its links.
+ */
+export const shareLinks = pgTable(
+  'share_links',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    resourceType: shareResourceType('resource_type').notNull(),
+    resourceId: uuid('resource_id').notNull(),
+    /** SHA-256 of the token, hex. The token itself is never stored or logged. */
+    tokenHash: text('token_hash').notNull(),
+    role: linkRole('role').notNull(),
+    /** Null for a link that never expires. It stops working at this instant. */
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('share_links_token_hash_idx').on(t.tokenHash),
+    index('share_links_resource_idx').on(t.resourceType, t.resourceId),
+    check('share_links_token_hash_is_sha256_hex', sql`${t.tokenHash} ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
+export type ShareLink = typeof shareLinks.$inferSelect;
