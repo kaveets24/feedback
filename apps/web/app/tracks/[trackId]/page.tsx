@@ -1,29 +1,25 @@
 import { auth } from '@clerk/nextjs/server';
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
-import { ApiError, type TrackResponse, type VersionResponse } from '@feedback/shared';
+import type { VersionResponse } from '@feedback/shared';
 import { serverApi } from '../../../lib/api';
 import { formatDate, formatDuration, STATUS_LABELS } from '../../../lib/format';
+import { loadOrNotFound } from '../../../lib/load';
+import { collectPages } from '../../../lib/pages';
 import { TrackPlayer } from '../../_player/track-player';
 import { ProcessingStatus } from './processing-status';
-
-async function loadTrack(trackId: string): Promise<TrackResponse> {
-  try {
-    return await serverApi().getTrack(trackId);
-  } catch (err) {
-    // Someone else's track looks the same as a missing one (CLAUDE.md section 6, rule 9).
-    if (err instanceof ApiError && (err.status === 404 || err.status === 400)) notFound();
-    // Not approved yet: the home page explains.
-    if (err instanceof ApiError && err.status === 403) redirect('/');
-    throw err;
-  }
-}
+import { ProjectSelect } from './project-select';
 
 export default async function TrackPage({ params }: { params: Promise<{ trackId: string }> }) {
   const { isAuthenticated, redirectToSignIn } = await auth();
   if (!isAuthenticated) return redirectToSignIn();
 
-  const track = await loadTrack((await params).trackId);
+  const { trackId } = await params;
+  const track = await loadOrNotFound(() => serverApi().getTrack(trackId));
+  const projects = await collectPages(async (cursor) => {
+    const page = await serverApi().listProjects({ cursor, limit: 100 });
+    return { items: page.projects, nextCursor: page.nextCursor };
+  });
+  const project = projects.find((p) => p.id === track.projectId);
   const [latest] = track.versions;
   const current = track.versions.find((v) => v.id === track.currentVersionId);
 
@@ -34,6 +30,12 @@ export default async function TrackPage({ params }: { params: Promise<{ trackId:
       </p>
       <h1>{track.title}</h1>
       <p>Private: only you can see and hear this track.</p>
+      {project && (
+        <p>
+          In <Link href={`/projects/${project.id}`}>{project.title}</Link>
+        </p>
+      )}
+      <ProjectSelect trackId={track.id} projectId={track.projectId} projects={projects} />
 
       {current?.durationMs != null && current.waveformPeaks && (
         <TrackPlayer

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatDuration } from './format';
+import type { TrackSummary } from '@feedback/shared';
+import { formatDate, formatDuration, totalDurationMs } from './format';
 
 describe('formatDuration', () => {
   it.each([
@@ -17,5 +18,17 @@ describe('formatDuration', () => {
 describe('formatDate', () => {
   it('keeps the UTC date', () => {
     expect(formatDate('2026-10-16T23:59:00.000Z')).toBe('2026-10-16');
+  });
+});
+
+describe('totalDurationMs', () => {
+  const track = (status: TrackSummary['latestVersion']['status'], durationMs: number | null) =>
+    ({ latestVersion: { id: 'v', versionNumber: 1, status, durationMs } }) as TrackSummary;
+
+  it('adds up ready versions and skips the rest', () => {
+    expect(
+      totalDurationMs([track('ready', 60_000), track('processing', null), track('ready', 30_500)]),
+    ).toBe(90_500);
+    expect(totalDurationMs([])).toBe(0);
   });
 });

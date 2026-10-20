@@ -2,11 +2,18 @@
 
 /*
  * Theme tokens (CLAUDE.md section 9). Components use these, never one-off colors. Dark only for
- * now. So far only the player is styled; the rest of the app is still plain HTML.
+ * now. Styled so far: the player, the app header, and the project pages; the rest of the app is
+ * still plain HTML.
  */
 @theme {
   --color-canvas: #0b0e0c;
   --color-ink: #e4eae5;
+  /* Secondary text: 7.6:1 on the canvas, 6.4:1 on chrome-lo. */
+  --color-muted: #9aa59e;
+  /* Hairlines between rows and under the header. */
+  --color-rule: #262b28;
+  /* Edges of inputs and buttons: at least 3:1 on the canvas and chrome-lo (WCAG 1.4.11). */
+  --color-field-edge: #707a73;
 
   /* Graphite "hardware" chrome around the player. */
   --color-chrome-hi: #454d48;
@@ -24,6 +31,8 @@
   /* Unlit digit segments behind LCD readouts. */
   --color-lcd-ghost: color-mix(in oklab, var(--color-lcd-ink) 16%, var(--color-lcd));
   --color-lcd-cyan: #6fe3f5;
+  /* Unlit but readable LCD labels (status segments still ahead): 6:1 on the LCD. */
+  --color-lcd-unlit: #7f9a55;
 
   --color-accent: #a8f03f;
   --color-danger: #ff8a7a;
@@ -91,5 +100,141 @@
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
     box-shadow: var(--shadow-bevel), var(--shadow-focus-glow);
+  }
+}
+
+/* Browser surfaces carry the theme too. */
+::selection {
+  background: var(--color-accent);
+  color: var(--color-canvas);
+}
+:root {
+  color-scheme: dark;
+  accent-color: var(--color-accent);
+  caret-color: var(--color-accent);
+  scrollbar-color: var(--color-field-edge) var(--color-canvas);
+}
+
+/* A text link on a styled surface: ink, underlined, accent on hover. */
+@utility link {
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--color-field-edge);
+  text-underline-offset: 3px;
+  border-radius: var(--radius-sm);
+
+  &:hover {
+    color: var(--color-accent);
+    text-decoration-color: currentColor;
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    box-shadow: var(--shadow-focus-glow);
+  }
+}
+
+/* A plain working button: solid graphite, no gradient (it carries text). */
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-ink);
+  background: var(--color-chrome-lo);
+  border: 1px solid var(--color-field-edge);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    box-shadow: var(--shadow-focus-glow);
+  }
+  &:disabled {
+    cursor: not-allowed;
+    color: var(--color-muted);
+    border-color: var(--color-rule);
+  }
+}
+
+/* The one primary action in a form: lime fill, dark text (14:1). */
+@utility btn-primary {
+  color: var(--color-canvas);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+
+  /* Stays Signal Lime on hover (the Two Limes rule) and glows instead. */
+  &:hover:not(:disabled) {
+    color: var(--color-canvas);
+    box-shadow: var(--shadow-focus-glow);
+  }
+  &:disabled {
+    color: var(--color-muted);
+    background: var(--color-chrome-lo);
+  }
+}
+
+/* Destructive actions: plain and serious, never playful (CLAUDE.md section 9). */
+@utility btn-danger {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+
+  &:hover:not(:disabled) {
+    color: var(--color-canvas);
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+  }
+}
+
+/* A quiet button for repeated row actions: no edge until hovered or focused. */
+@utility btn-ghost {
+  color: var(--color-muted);
+  background: transparent;
+  border-color: transparent;
+
+  &:hover:not(:disabled) {
+    background: var(--color-chrome-lo);
+    border-color: var(--color-field-edge);
+  }
+  &:disabled {
+    color: var(--color-chrome-hi);
+    border-color: transparent;
+  }
+}
+
+/* A square icon-only button; give it an aria-label. */
+@utility btn-icon {
+  width: 2.5rem;
+  padding: 0;
+}
+
+/* Text inputs, textareas and selects. */
+@utility field {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  color: var(--color-ink);
+  background: var(--color-chrome-lo);
+  border: 1px solid var(--color-field-edge);
+  border-radius: var(--radius-md);
+
+  &::placeholder {
+    color: var(--color-muted);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 0;
+    border-color: var(--color-accent);
   }
 }

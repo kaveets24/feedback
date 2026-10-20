@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-19T16:50:42.154Z",
+  "generatedAt": "2026-10-20T00:58:04.668Z",
   "title": "Design System: Feedback",
   "extensions": {
     "colorMeta": {
@@ -34,6 +34,54 @@
           "oklch(72.1% 0.009 150.7)",
           "oklch(83.6% 0.009 150.7)",
           "oklch(95.0% 0.009 150.7)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Sage Grey",
+        "canonical": "#9aa59e",
+        "oklch": "oklch(71.1% 0.016 158.1)",
+        "tonalRamp": [
+          "oklch(15.0% 0.016 158.1)",
+          "oklch(26.4% 0.016 158.1)",
+          "oklch(37.9% 0.016 158.1)",
+          "oklch(49.3% 0.016 158.1)",
+          "oklch(60.7% 0.016 158.1)",
+          "oklch(72.1% 0.016 158.1)",
+          "oklch(83.6% 0.016 158.1)",
+          "oklch(95.0% 0.016 158.1)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#262b28",
+        "oklch": "oklch(28.3% 0.009 159.5)",
+        "tonalRamp": [
+          "oklch(15.0% 0.009 159.5)",
+          "oklch(26.4% 0.009 159.5)",
+          "oklch(37.9% 0.009 159.5)",
+          "oklch(49.3% 0.009 159.5)",
+          "oklch(60.7% 0.009 159.5)",
+          "oklch(72.1% 0.009 159.5)",
+          "oklch(83.6% 0.009 159.5)",
+          "oklch(95.0% 0.009 159.5)"
+        ]
+      },
+      "field-edge": {
+        "role": "neutral",
+        "displayName": "Field Edge",
+        "canonical": "#707a73",
+        "oklch": "oklch(56.9% 0.016 155.3)",
+        "tonalRamp": [
+          "oklch(15.0% 0.016 155.3)",
+          "oklch(26.4% 0.016 155.3)",
+          "oklch(37.9% 0.016 155.3)",
+          "oklch(49.3% 0.016 155.3)",
+          "oklch(60.7% 0.016 155.3)",
+          "oklch(72.1% 0.016 155.3)",
+          "oklch(83.6% 0.016 155.3)",
+          "oklch(95.0% 0.016 155.3)"
         ]
       },
       "chrome-hi": {
@@ -215,6 +263,22 @@
           "oklch(95.0% 0.051 139.5)"
         ]
       },
+      "lcd-unlit": {
+        "role": "neutral",
+        "displayName": "Unlit Label",
+        "canonical": "#7f9a55",
+        "oklch": "oklch(64.9% 0.100 126.5)",
+        "tonalRamp": [
+          "oklch(15.0% 0.100 126.5)",
+          "oklch(26.4% 0.100 126.5)",
+          "oklch(37.9% 0.100 126.5)",
+          "oklch(49.3% 0.100 126.5)",
+          "oklch(60.7% 0.100 126.5)",
+          "oklch(72.1% 0.100 126.5)",
+          "oklch(83.6% 0.100 126.5)",
+          "oklch(95.0% 0.100 126.5)"
+        ]
+      },
       "lcd-cyan": {
         "role": "secondary",
         "displayName": "LCD Cyan",
@@ -273,13 +337,29 @@
         "displayName": "LCD Display (sm and up)",
         "purpose": "The same readout from the 640px breakpoint."
       },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "\"Feedback\" in lcd-ink at the left of the app header."
+      },
       "lcd-secondary": {
         "displayName": "LCD Secondary",
         "purpose": "\"/ total\" in cyan (1rem from sm)."
       },
+      "lcd-figure": {
+        "displayName": "LCD Figure",
+        "purpose": "Tabular figures set on the canvas: track numbers (muted), track lengths (ink), the project total."
+      },
       "lcd-label": {
         "displayName": "LCD Label",
-        "purpose": "Mini-player time line; version and state word (uppercase) on the track player."
+        "purpose": "Mini-player time line; version and state word on the track player; status segment and badge words (uppercase)."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page H1: \"Projects\", the project title, \"Edit project\"."
+      },
+      "section-title": {
+        "displayName": "Section Title",
+        "purpose": "H2s such as \"Your projects\" and \"Tracks\"."
       },
       "title": {
         "displayName": "Title",
@@ -287,7 +367,11 @@
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Page text and error lines; the rest of the app is still unstyled."
+        "purpose": "Page text, field text, confirmation sentences; descriptions in muted at 65ch."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Form labels, nav items, and button text."
       }
     },
     "shadows": [
@@ -299,7 +383,7 @@
       {
         "name": "shadow-lcd",
         "value": "inset 0 2px 5px rgb(0 0 0 / 0.75), 0 1px 0 rgb(255 255 255 / 0.07)",
-        "purpose": "Recessed LCD well; the lcd utility adds a 2px chrome-lo lip and a 3px chrome-lip ring."
+        "purpose": "Recessed LCD well on every LCD window (readout, waveform, status meter, status badge); the lcd utility adds a 2px chrome-lo lip and a 3px chrome-lip ring."
       },
       {
         "name": "shadow-bevel",
@@ -314,7 +398,12 @@
       {
         "name": "shadow-focus-glow",
         "value": "0 0 10px color-mix(in oklab, var(--color-accent) 55%, transparent)",
-        "purpose": "Paired with the 2px accent outline at 2px offset on every themed control."
+        "purpose": "Paired with the 2px accent outline at 2px offset on buttons, links, nav items, the wordmark, and player controls."
+      },
+      {
+        "name": "nav-underline",
+        "value": "inset 0 -2px 0 var(--color-accent)",
+        "purpose": "The current nav item's 2px accent underline (a line, not depth)."
       }
     ],
     "motion": [],
@@ -381,28 +470,101 @@
       "description": "Graphite bar stuck to the bottom of every page once something has played.",
       "html": "<aside class=\"ds-mini\" aria-label=\"Now playing\"><a class=\"ds-mini-title\" href=\"#\">Night drive</a><p class=\"ds-mini-time\">1:12 <span>/ 3:30 · v2</span></p></aside>",
       "css": ".ds-mini { padding: 8px 16px; background: var(--color-chrome-lo); border-top: 1px solid var(--color-chrome-edge); box-shadow: var(--shadow-panel); } .ds-mini-title { display: block; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--color-ink); text-decoration: none; border-radius: 0.25rem; } .ds-mini-title:hover { color: var(--color-accent); } .ds-mini-title:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); } .ds-mini-time { margin: 0; font-family: var(--font-lcd); font-size: 0.75rem; color: var(--color-lcd-ink); } .ds-mini-time span { color: var(--color-lcd-cyan); }"
+    },
+    {
+      "name": "Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Flat graphite working button; no gradient because it carries text.",
+      "html": "<button class=\"ds-btn\">Edit</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 2.5rem; padding: 0 1rem; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--color-ink); background: var(--color-chrome-lo); border: 1px solid var(--color-field-edge); border-radius: 0.375rem; cursor: pointer; white-space: nowrap; } .ds-btn:hover { color: var(--color-accent); border-color: var(--color-accent); } .ds-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); } .ds-btn:disabled { cursor: not-allowed; color: var(--color-muted); border-color: var(--color-rule); }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action in a form: Signal Lime fill, canvas text.",
+      "html": "<button class=\"ds-btn-primary\">Create</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 2.5rem; padding: 0 1rem; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--color-ink); background: var(--color-chrome-lo); border: 1px solid var(--color-field-edge); border-radius: 0.375rem; cursor: pointer; white-space: nowrap; color: var(--color-canvas); background: var(--color-accent); border-color: var(--color-accent); } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); } .ds-btn-primary:disabled { cursor: not-allowed; color: var(--color-muted); background: var(--color-chrome-lo); border-color: var(--color-rule); }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destructive actions only, in plain literal wording.",
+      "html": "<button class=\"ds-btn-danger\">Delete project…</button>",
+      "css": ".ds-btn-danger { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 2.5rem; padding: 0 1rem; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--color-ink); background: var(--color-chrome-lo); border: 1px solid var(--color-field-edge); border-radius: 0.375rem; cursor: pointer; white-space: nowrap; color: var(--color-danger); border-color: var(--color-danger); } .ds-btn-danger:hover { color: var(--color-canvas); background: var(--color-danger); } .ds-btn-danger:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); }"
+    },
+    {
+      "name": "Ghost Icon Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Quiet 40px square for repeated row actions; edge appears on hover.",
+      "html": "<button class=\"ds-btn-ghost\" aria-label=\"Move Night drive up\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 6l8 8-2.5 2.5L12 11l-5.5 5.5L4 14z\"/></svg></button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 2.5rem; padding: 0 1rem; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--color-ink); background: var(--color-chrome-lo); border: 1px solid var(--color-field-edge); border-radius: 0.375rem; cursor: pointer; white-space: nowrap; width: 2.5rem; padding: 0; color: var(--color-muted); background: transparent; border-color: transparent; } .ds-btn-ghost:hover { color: var(--color-accent); background: var(--color-chrome-lo); border-color: var(--color-field-edge); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); }"
+    },
+    {
+      "name": "Select Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Graphite field; selects drop the native arrow for a drawn chevron.",
+      "html": "<label class=\"ds-label\" for=\"ds-add\">Add a track</label><div class=\"ds-select\"><select id=\"ds-add\" class=\"ds-field\"><option>Choose a track…</option><optgroup label=\"Not in a project\"><option>Night drive</option></optgroup></select><span><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 18l-8-8 2.5-2.5L12 13l5.5-5.5L20 10z\"/></svg></span></div>",
+      "css": ".ds-label { display: block; margin-bottom: 4px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--color-ink); } .ds-select { position: relative; } .ds-select span { position: absolute; top: 0; bottom: 0; right: 12px; display: flex; align-items: center; pointer-events: none; color: var(--color-muted); } .ds-field { width: 100%; min-height: 2.5rem; padding: 0.5rem 2.5rem 0.5rem 0.75rem; appearance: none; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 1rem; color: var(--color-ink); background: var(--color-chrome-lo); border: 1px solid var(--color-field-edge); border-radius: 0.375rem; } .ds-field:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 0; border-color: var(--color-accent); }"
+    },
+    {
+      "name": "App Header",
+      "kind": "nav",
+      "refersTo": "app-header",
+      "description": "Wordmark, main nav with an accent underline on the current item, account link.",
+      "html": "<header class=\"ds-header\"><a class=\"ds-wordmark\" href=\"#\">Feedback</a><nav aria-label=\"Main\"><a href=\"#\">Tracks</a><a href=\"#\" aria-current=\"page\">Projects</a></nav><a class=\"ds-signout\" href=\"#\">Sign out</a></header>",
+      "css": ".ds-header { display: flex; align-items: stretch; gap: 16px; height: 56px; padding: 0 16px; background: var(--color-canvas); border-bottom: 1px solid var(--color-rule); } .ds-wordmark { display: flex; align-items: center; font-family: var(--font-lcd); font-size: 1.125rem; color: var(--color-lcd-ink); text-decoration: none; border-radius: 0.25rem; } .ds-header nav { display: flex; align-items: stretch; gap: 4px; } .ds-header nav a { display: flex; align-items: center; padding: 0 12px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--color-muted); text-decoration: none; border-radius: 0.25rem; } .ds-header nav a:hover { color: var(--color-accent); } .ds-header nav a[aria-current] { color: var(--color-ink); box-shadow: inset 0 -2px 0 var(--color-accent); } .ds-signout { margin-left: auto; align-self: center; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; color: var(--color-muted); text-decoration: underline; text-decoration-color: var(--color-field-edge); text-underline-offset: 3px; } .ds-signout:hover { color: var(--color-accent); } .ds-header a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); }"
+    },
+    {
+      "name": "Status Meter",
+      "kind": "custom",
+      "refersTo": "status-segment",
+      "description": "Project stage as an LCD segment radio group: passed lit, current solid, later unlit but readable.",
+      "html": "<fieldset class=\"ds-meter\"><legend>Status</legend><div class=\"ds-meter-well\"><label class=\"ds-seg ds-passed\"><input type=\"radio\" name=\"ds-s\">Idea</label><label class=\"ds-seg ds-passed\"><input type=\"radio\" name=\"ds-s\">Demo</label><label class=\"ds-seg ds-current\"><input type=\"radio\" name=\"ds-s\" checked>Mixing</label><label class=\"ds-seg\"><input type=\"radio\" name=\"ds-s\">Done</label></div></fieldset>",
+      "css": ".ds-meter { border: 0; margin: 0; padding: 0; } .ds-meter legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .ds-meter-well { background: var(--color-lcd); border: 1px solid var(--color-chrome-edge); border-radius: 0.25rem; box-shadow: var(--shadow-lcd), 0 0 0 2px var(--color-chrome-lo), 0 0 0 3px var(--color-chrome-lip); display: inline-flex; gap: 4px; margin: 3px; padding: 4px; } .ds-seg { position: relative; cursor: pointer; padding: 6px 16px; border-radius: 2px; font-family: var(--font-lcd); font-size: 0.75rem; text-transform: uppercase; color: var(--color-lcd-unlit); } .ds-seg input { position: absolute; opacity: 0; width: 1px; height: 1px; } .ds-seg.ds-passed { color: var(--color-lcd-ink); } .ds-seg:not(.ds-current):hover { color: var(--color-accent); } .ds-seg.ds-current { background: var(--color-lcd-ink); color: var(--color-lcd); } .ds-seg:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "status-badge",
+      "description": "The stage at list size: fixed-width LCD chip with pips and the stage word.",
+      "html": "<span class=\"ds-badge\"><span class=\"ds-pips\" aria-hidden=\"true\"><i class=\"on\"></i><i class=\"on\"></i><i></i><i></i></span><span class=\"ds-badge-word\">Demo</span></span>",
+      "css": ".ds-badge { background: var(--color-lcd); border: 1px solid var(--color-chrome-edge); border-radius: 0.25rem; box-shadow: var(--shadow-lcd), 0 0 0 2px var(--color-chrome-lo), 0 0 0 3px var(--color-chrome-lip); display: inline-flex; align-items: center; justify-content: space-between; gap: 8px; width: 7.5rem; margin: 3px; padding: 4px 8px; } .ds-pips { display: flex; gap: 2px; } .ds-pips i { width: 6px; height: 10px; background: var(--color-lcd-cell); } .ds-pips i.on { background: var(--color-lcd-ink); } .ds-badge-word { font-family: var(--font-lcd); font-size: 0.75rem; text-transform: uppercase; color: var(--color-lcd-ink); }"
+    },
+    {
+      "name": "Track Row (dragging)",
+      "kind": "custom",
+      "refersTo": "track-row-dragging",
+      "description": "A running-order row on a 1px rule, shown while dragged: chrome-lo fill and accent outline.",
+      "html": "<ol class=\"ds-rows\"><li class=\"ds-row ds-dragging\"><span class=\"ds-grip\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M8 4h3v3H8zM13 4h3v3h-3zM8 10.5h3v3H8zM13 10.5h3v3h-3zM8 17h3v3H8zM13 17h3v3h-3z\"/></svg></span><span class=\"ds-num\">03</span><div class=\"ds-main\"><a href=\"#\">Night drive</a><p>v2</p></div><span class=\"ds-len\">3:30</span><div class=\"ds-acts\"><button class=\"ds-ghost\" aria-label=\"Move Night drive up\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 6l8 8-2.5 2.5L12 11l-5.5 5.5L4 14z\"/></svg></button><button class=\"ds-ghost\" aria-label=\"Move Night drive down\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 18l-8-8 2.5-2.5L12 13l5.5-5.5L20 10z\"/></svg></button><button class=\"ds-ghost\" aria-label=\"Remove Night drive from this project\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M6.4 4.3L12 9.9l5.6-5.6 2.1 2.1-5.6 5.6 5.6 5.6-2.1 2.1-5.6-5.6-5.6 5.6-2.1-2.1 5.6-5.6-5.6-5.6z\"/></svg></button></div></li></ol>",
+      "css": ".ds-rows { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-rule); } .ds-row { display: grid; grid-template-columns: 2rem 2.5rem 1fr 4rem auto; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--color-rule); font-family: ui-sans-serif, system-ui, sans-serif; } .ds-row.ds-dragging { position: relative; z-index: 1; background: var(--color-chrome-lo); border-radius: 0.25rem; outline: 2px solid var(--color-accent); } .ds-grip { display: flex; height: 40px; align-items: center; justify-content: center; color: var(--color-field-edge); cursor: grab; } .ds-dragging .ds-grip { color: var(--color-accent); cursor: grabbing; } .ds-num { font-family: var(--font-lcd); font-size: 0.875rem; color: var(--color-muted); } .ds-main { min-width: 0; } .ds-main a { font-weight: 500; color: var(--color-ink); text-decoration: none; } .ds-main a:hover { color: var(--color-accent); } .ds-main p { margin: 0; font-size: 0.875rem; color: var(--color-muted); } .ds-len { text-align: right; font-family: var(--font-lcd); font-size: 0.875rem; color: var(--color-ink); } .ds-acts { display: flex; gap: 4px; } .ds-ghost { display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0; color: var(--color-muted); background: transparent; border: 1px solid transparent; border-radius: 0.375rem; cursor: pointer; } .ds-ghost:hover { color: var(--color-accent); background: var(--color-chrome-lo); border-color: var(--color-field-edge); } .ds-ghost:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); }"
     }
   ],
   "narrative": {
     "northStar": "The Hardware Player",
-    "overview": "Feedback borrows the late-90s desktop music player: a graphite hardware housing, a recessed LCD window with lime phosphor ink, and chunky bevel buttons that sink when pressed. The waveform sits inside the LCD as segmented bars. The part you've already heard is lit, the rest shows as dim lime, and the empty cells stay faintly visible behind both, like the unlit segments on a real LCD.\n\n**Scope so far: only the player surface exists.** That means the track page's waveform player and the global mini-player. Every other page is deliberately plain semantic HTML on the dark canvas until the owner asks for styling. The direction for everything not built yet (glossy LimeWire toolbars, results tables, striped progress bars, window panels, Aqua surfaces, light mode, skins) is in CLAUDE.md section 9, \"Visual style: Y2K / Winamp / LimeWire\". It is not recorded here because none of it exists in code. When one of those surfaces gets built, add it to this file from the shipped code.\n\nThe player is quiet and practical: dark only, no decorative motion, and one bright signature (the lit LCD) per screen. All tokens live in `app/globals.css` under `@theme`, and components use them, never one-off hex values.",
+    "overview": "Feedback borrows the late-90s desktop music player: a graphite hardware housing, a recessed LCD window with lime phosphor ink, and chunky bevel buttons that sink when pressed. The waveform sits inside the LCD as segmented bars. The part you've already heard is lit, the rest shows as dim lime, and the empty cells stay faintly visible behind both, like the unlit segments on a real LCD.\n\n**Scope so far: the player, the app header, and the project pages.** The player means the track page's waveform player and the global mini-player. The app header sits on every page. The projects list (`/projects`) and the project page (`/projects/[projectId]`) are the first working screens: the player's world extended to forms and lists, with flat graphite controls, 1px rules between rows, and the LCD well kept for things that read out (the status meter and status badge). Every page uses the same 48rem column under the header, but the bodies of home, sign-in, sign-up, and the track page (apart from its player) are still deliberately plain semantic HTML, and so is the track page's Project selector. The direction for everything not built yet (glossy LimeWire toolbars, results tables, striped progress bars, window panels, Aqua surfaces, light mode, skins) is in CLAUDE.md section 9, \"Visual style: Y2K / Winamp / LimeWire\". It is not recorded here because none of it exists in code. When one of those surfaces gets built, add it to this file from the shipped code.\n\nThe system is quiet and practical: dark only, no decorative motion, and one bright signature per screen (the lit LCD of the player, or the status meter on a project). All tokens live in `app/globals.css` under `@theme`, and components use them, never one-off hex values.",
     "keyCharacteristics": [
-      "Graphite chrome housing, raised by a 1px top highlight and a soft drop.",
-      "Recessed deep green-black LCD windows set into the panel with a dark lip and a faint outer highlight.",
-      "Lit, dim, and unlit segments: the LCD always shows its unlit cells.",
-      "Lime for content inside the LCD, a slightly different lime for interaction, cyan for secondary readouts and the playhead.",
-      "Bitmap face for LCD readouts only; clean system sans for everything else.",
-      "No animation anywhere in the player."
+      "Graphite chrome housing on the player, raised by a 1px top highlight and a soft drop.",
+      "Recessed deep green-black LCD windows set into their surroundings with a dark lip and a faint outer highlight.",
+      "Lit, dim, and unlit segments: the LCD always shows its unlit state.",
+      "Working screens are flat: solid graphite controls with a 1px edge, lists on 1px rules, no cards and no gradients behind text.",
+      "Lime for content inside the LCD, a slightly different lime for interaction, cyan for secondary player readouts and the playhead.",
+      "Bitmap face for readouts, figures, and the wordmark; clean system sans for everything else.",
+      "No animation anywhere; the only motion is a dragged row following the pointer."
     ],
     "rules": [
       {
         "name": "The Lit and Unlit Rule",
-        "body": "The LCD always shows its unlit state: played audio is `lcd-ink`, audio still to play is `lcd-dim`, empty cells are `lcd-cell`, and every digit sits over a ghost \"8\" in `lcd-ghost`. Never draw LCD content on a blank window.",
+        "body": "The LCD always shows its unlit state: played audio is `lcd-ink`, audio still to play is `lcd-dim`, empty cells are `lcd-cell`, and every digit sits over a ghost \"8\" in `lcd-ghost`. Status stages work the same way: passed stages lit in `lcd-ink`, the current one solid `lcd-ink`, later ones in `lcd-unlit` (words must stay readable, so they don't drop to `lcd-cell`); the badge's pips are lit or `lcd-cell`. Never draw LCD content on a blank window.",
         "section": "colors"
       },
       {
         "name": "The Two Limes Rule",
-        "body": "`lcd-ink` is what the LCD displays; `accent` is what responds to you (focus, hover, active, selection). Don't swap them.",
+        "body": "`lcd-ink` is what displays (LCD content and the wordmark); `accent` is what responds to you (focus, hover, the current nav item, the dragged row, selection, and the primary button's fill). Don't swap them.",
         "section": "colors"
       },
       {
@@ -412,27 +574,32 @@
       },
       {
         "name": "The Bitmap for Readouts Rule",
-        "body": "Silkscreen is for LCD readouts only: times, version numbers, state words. Titles, errors, forms, comments, and body text use the sans.",
+        "body": "Silkscreen is for readouts and figures: times, lengths, totals, track numbers, version numbers, state and stage words, and the wordmark. Titles, labels, buttons, errors, forms, comments, and body text use the sans.",
         "section": "typography"
       },
       {
         "name": "The Housed Hardware Rule",
-        "body": "Shadows describe hardware: raised housing, recessed windows, buttons that sink. Nothing else on the page gets a shadow.",
+        "body": "Shadows describe hardware: raised housing, recessed LCD windows, buttons that sink. Beyond those, only the focus glow and the nav underline use a shadow. Working-screen controls, rows, and sections get none.",
         "section": "elevation"
       }
     ],
     "dos": [
-      "**Do** build new styled surfaces from the tokens in `app/globals.css`, never one-off hex values.",
-      "**Do** keep the LCD's unlit state visible: ghost \"8\"s behind digits, `lcd-cell` behind the waveform.",
-      "**Do** use `accent` for focus (2px outline, 2px offset, plus the glow) on every themed control.",
-      "**Do** keep the player still: no marquees, visualizers, or animated effects.",
-      "**Do** put text on a solid backing (`chrome-lo`, `lcd`, or `canvas`), never on a gradient (CLAUDE.md section 9).",
+      "**Do** build new styled surfaces from the tokens and utilities in `app/globals.css`, never one-off hex values.",
+      "**Do** keep the LCD's unlit state visible: ghost \"8\"s behind digits, `lcd-cell` behind the waveform, `lcd-unlit` for stages ahead.",
+      "**Do** use `accent` for focus on every themed control: a 2px outline at 2px offset plus the glow on buttons and links, at no offset with an accent edge on fields.",
+      "**Do** keep everything still: no marquees, visualizers, or animated effects. A dragged row following the pointer is the only motion.",
+      "**Do** put text on a solid backing (`canvas`, `chrome-lo`, or `lcd`), never on a gradient (CLAUDE.md section 9).",
+      "**Do** keep working-screen controls flat graphite with a 1px `field-edge` edge, and save the LCD well for things that read out.",
+      "**Do** separate list rows with 1px `rule` lines.",
+      "**Do** keep privacy and destructive UI plain: literal wording, `danger` only for destructive actions, and a confirmation that says what stays and that it can't be undone.",
       "**Do** check CLAUDE.md section 9 for the direction of any surface not recorded here, and record it here once it ships."
     ],
     "donts": [
-      "**Don't** set titles, errors, or body text in Silkscreen.",
+      "**Don't** set titles, labels, buttons, errors, or body text in Silkscreen.",
       "**Don't** use `lcd-cyan` or `lcd-ink` for buttons or links; interaction color is `accent`.",
-      "**Don't** add shadows or chrome to anything that isn't player hardware. The rest of the app stays plain until the owner asks for styling.",
+      "**Don't** put a gradient, bevel, or shadow on working-screen controls, rows, or sections; those belong to player hardware and LCD windows.",
+      "**Don't** wrap list items in cards; use rows on rules.",
+      "**Don't** style the home page body, the sign-in and sign-up bodies, or the track page outside its player (including its Project selector) until the owner asks; they stay plain semantic HTML.",
       "**Don't** copy Winamp, LimeWire, Microsoft, or Apple names, logos, skins, or assets."
     ]
   }
