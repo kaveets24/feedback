@@ -1,7 +1,6 @@
 import { isLinkActive, type ResourceKind } from '@feedback/authz';
 import type { Db, ShareLink } from '@feedback/db';
 import type {
-  CreateShareLinkRequest,
   CreateShareLinkResponse,
   ShareLinkListResponse,
   ShareLinkResponse,
@@ -24,7 +23,7 @@ export function toShareLinkResponse(link: ShareLink, now = new Date()): ShareLin
     id: link.id,
     resourceType: link.resourceType,
     resourceId: link.resourceId,
-    role: link.role,
+    role: 'comment',
     expiresAt: link.expiresAt?.toISOString() ?? null,
     revokedAt: link.revokedAt?.toISOString() ?? null,
     createdAt: link.createdAt.toISOString(),
@@ -47,7 +46,7 @@ export async function createShareLink(
   actor: Actor,
   kind: ResourceKind,
   resourceId: string,
-  input: { role: CreateShareLinkRequest['role']; expiresAt: string | null },
+  input: { expiresAt: string | null },
 ): Promise<CreateShareLinkResponse> {
   const owner = await loadManaged(db, actor, kind, resourceId);
   const expiresAt = input.expiresAt ? new Date(input.expiresAt) : null;
@@ -59,7 +58,6 @@ export async function createShareLink(
     resourceType: kind,
     resourceId,
     tokenHash: hash,
-    role: input.role,
     expiresAt,
     createdBy: owner.id,
   });
@@ -91,7 +89,7 @@ export async function getSharedResource(db: Db, actor: Actor): Promise<SharedRes
   const holder: Actor = { kind: 'anonymous', shareLink: link };
   if (link.resourceType === 'track') await loadTrackAccess(db, holder, link.resourceId, 'view');
   else await loadProjectFor(db, holder, link.resourceId, 'view');
-  return { resourceType: link.resourceType, resourceId: link.resourceId, role: link.role };
+  return { resourceType: link.resourceType, resourceId: link.resourceId, role: 'comment' };
 }
 
 /**

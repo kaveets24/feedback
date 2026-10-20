@@ -8,7 +8,7 @@ const link = (overrides: Partial<ShareLinkResponse> = {}): ShareLinkResponse => 
   id: '01890a5d-ac96-774b-bcce-b302099a8058',
   resourceType: 'track',
   resourceId: '01890a5d-ac96-774b-bcce-b302099a8057',
-  role: 'listen',
+  role: 'comment',
   expiresAt: null,
   revokedAt: null,
   createdAt: '2026-10-19T12:00:00.000Z',

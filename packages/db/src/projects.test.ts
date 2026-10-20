@@ -57,7 +57,6 @@ async function newLink(
       resourceType,
       resourceId,
       tokenHash: randomBytes(32).toString('hex'),
-      role: 'listen',
       createdBy,
       ...overrides,
     })

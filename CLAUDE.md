@@ -166,7 +166,7 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 **Sharing**
 
 - Sharing is by link only for now. Invites to specific people (a `shares` table with grantees, and a visibility level for it) are parked; see "Later / parking lot" in section 11.
-- `share_links`: id, resource_type (`project | track`), resource_id, token_hash (store a hash, never the raw token: SHA-256 hex, which a check constraint enforces), role (`listen | comment`), expires_at (null = never), revoked_at, created_by. Links are never deleted, only revoked, so they keep a record of what was shared. `resource_id` has no foreign key since it points at either table; both are only soft-deleted, and deleting a project revokes its links (`packages/db/src/projects.ts`)
+- `share_links`: id, resource_type (`project | track`), resource_id, token_hash (store a hash, never the raw token: SHA-256 hex, which a check constraint enforces), role (no longer read: every link lets signed-in holders comment, decided 2026-10-20; new links take its default, and a later migration drops it), expires_at (null = never), revoked_at, created_by. Links are never deleted, only revoked, so they keep a record of what was shared. `resource_id` has no foreign key since it points at either table; both are only soft-deleted, and deleting a project revokes its links (`packages/db/src/projects.ts`)
 
 **Feedback**
 
@@ -189,14 +189,13 @@ Index for the hot paths: `tracks(project_id, position)`, `track_versions(track_i
 Applied to projects (and optionally overridden per track):
 
 - `private`: owner only. Share links do nothing: making something private shuts its links off without revoking them
-- `unlisted`: anyone holding an active share link, with the link's role
-- `public`: anyone may view and listen, and signed-in users may also comment; appears on profile and in discovery
+- `unlisted`: anyone holding an active share link
+- `public`: anyone; appears on profile and in discovery
 
 ### Roles
 
 - `owner`: full control
-- `comment`: listen + post feedback
-- `listen`: listen only
+- `listener`: anyone else who can see it (by visibility or a share link): view, listen, and comment if signed in. **If you can see it, you can give feedback on it** (decided 2026-10-20; links used to carry a `listen` or `comment` role)
 
 ### Rules
 
@@ -205,12 +204,12 @@ Applied to projects (and optionally overridden per track):
 3. Actions: `view`, `listen`, `comment`, `manage`, `download`.
 4. **Downloads are off by default** and require an explicit per-project setting. Never expose original files to non-owners. Until that setting exists (it's not part of Phase 4), only the owner can download.
 5. **Audio is served via short-lived signed URLs** (target: 5 to 15 minutes). The API issues a signed URL only after `canAccess(..., 'listen')` passes. Never return permanent public URLs for non-public audio.
-6. Share links: unguessable (at least 128 bits of entropy), stored hashed, support expiry and revocation. Revoking takes effect immediately. A link carries a role (`listen` or `comment`, never `owner`) and is made for a track or a project; a project's link reaches only those of its tracks that aren't private (decided 2026-10-20). Tokens are 32 random bytes (base64url) and travel in the `x-share-token` request header, never a query string; the API hashes and looks up the link on every request (`apps/api/src/auth/share-link.ts`), so revoking takes effect on the next one. A malformed or unknown token is ignored, not refused. A share URL is `/listen#<token>`: the token sits in the fragment, which browsers never send to a server, so it stays out of request logs and referrers; the page reads it in the browser and opens the link through server actions that call the API with only the token, never the visitor's session (`sharedApi()` in `apps/web/lib/api.ts`), so a link works the same for everyone who holds it. The web app turns off Next's dev logging of server action arguments for the same reason.
+6. Share links: unguessable (at least 128 bits of entropy), stored hashed, support expiry and revocation. Revoking takes effect immediately. A link never makes anyone an owner, and is made for a track or a project; a project's link reaches only those of its tracks that aren't private (decided 2026-10-20). Tokens are 32 random bytes (base64url) and travel in the `x-share-token` request header, never a query string; the API hashes and looks up the link on every request (`apps/api/src/auth/share-link.ts`), so revoking takes effect on the next one. A malformed or unknown token is ignored, not refused. A share URL is `/listen#<token>`: the token sits in the fragment, which browsers never send to a server, so it stays out of request logs and referrers; the page reads it in the browser and opens the link through server actions that call the API with only the token, never the visitor's session (`sharedApi()` in `apps/web/lib/api.ts`), so a link works the same for everyone who holds it. The web app turns off Next's dev logging of server action arguments for the same reason.
 7. A track inherits its project's visibility unless `visibility_override` is set. An override can only be **more restrictive** than the project unless the owner explicitly widens it. A loose track (no project) uses its own `visibility`; a project track's own `visibility` is ignored (`effectiveVisibility()`). **Moving a track never widens who can hear it:** joining a project with a wider visibility gives the track an override at its old visibility (`overrideOnJoin()`), and leaving a project sets its own `visibility` to the effective one it had (decided 2026-10-20).
 8. `artist_only` feedback is visible only to the track owner and the feedback's author.
 9. Unauthenticated access to a non-public resource returns `404`, not `403`, to avoid leaking existence.
 10. Deleting a project or track revokes all share links and invalidates outstanding signed URLs as soon as practical. Today that's when they expire: the API refuses new stream URLs at once, but one already issued keeps working until its 10 minutes run out (the same holds after revoking a link or making something private).
-11. Commenting needs a signed-in user, whatever a link's role: anonymous link holders can view and listen only.
+11. Commenting needs an account: anonymous visitors, with a link or on something public, can view and listen only. There are no guest comments.
 12. **Listeners see finished work only.** Anyone but the owner gets only `ready` versions (others are a 404), never file names, the track's own notes, or cover upload progress, and a track's `project_id` only if they may view that project. Owner-only details are decided with `canAccess(..., 'manage')` (`canManage()` in `apps/api/src/auth/authz.ts`).
 
 ### Invite-only access (launch mode)
@@ -226,7 +225,7 @@ The service starts invite only. Anyone can create an account, but it stays `pend
 
 ### Testing requirement
 
-`packages/authz` must have exhaustive table-driven tests covering every combination of visibility x role x action x (owner / link-holder / stranger / anonymous). Any change to permission logic requires test updates in the same commit. Treat a permissions bug as a P0.
+`packages/authz` must have exhaustive table-driven tests covering every combination of visibility x action x (owner / link-holder / stranger / anonymous). Any change to permission logic requires test updates in the same commit. Treat a permissions bug as a P0.
 
 ---
 
@@ -406,11 +405,11 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 **Complete** (2026-10-20). The manual pass ran every read and write route against a scratch database as anonymous and with live, revoked, expired, deleted, and private-resource links (track and project), and checked storage directly; nothing private was reachable. Signed-in strangers are covered by the API's route tests rather than by hand.
 
-- [x] `packages/authz` with `canAccess` and exhaustive tests (write these **first**) _(the matrix in `packages/authz/src/index.test.ts` is written out by hand: every visibility x actor (owner, signed-in stranger, anonymous, each with and without a listen or comment link) x action x resource kind, plus link expiry and revocation, project links on tracks, `effectiveVisibility`, and `overrideOnJoin`)_
-- [x] Visibility settings, roles on share links _(visibility done: `PATCH /v1/projects/:projectId` takes `visibility`, and `PATCH /v1/tracks/:trackId` sets a loose track's own or a project track's override, null following the project. Every route judges tracks by their effective visibility, so public things are open to anyone signed in or not. Links carry `listen` or `comment`)_
+- [x] `packages/authz` with `canAccess` and exhaustive tests (write these **first**) _(the matrix in `packages/authz/src/index.test.ts` is written out by hand: every visibility x actor (owner, signed-in stranger, anonymous, each with and without a link) x action x resource kind, plus link expiry and revocation, project links on tracks, `effectiveVisibility`, and `overrideOnJoin`)_
+- [x] Visibility settings, roles on share links _(links stopped carrying roles on 2026-10-20: every link allows comments from signed-in holders. Visibility done: `PATCH /v1/projects/:projectId` takes `visibility`, and `PATCH /v1/tracks/:trackId` sets a loose track's own or a project track's override, null following the project. Every route judges tracks by their effective visibility, so public things are open to anyone signed in or not)_
 - [x] Share links with expiry and revoke _(API: `POST`/`GET /v1/tracks/:trackId/share-links` and `/v1/projects/:projectId/share-links` (create returns the token once; optional `expiresAt`, which must be in the future), `DELETE /v1/share-links/:linkId` revokes. All owner-only)_
 - [x] Signed audio URLs gated by `canAccess` _(by effective visibility and any share link presented, for owners, public listeners, and link holders)_
-- [x] Share dialog UI; public listen page that works for logged-out link holders _(listen page done: `/listen#<token>` shows a shared track (player with A/B, its ready versions) or project (cover, description, tracks to pick and play), signed out or in, and a plain "This link doesn't work" for anything else. API: `GET /v1/share-links/current`. Plain HTML apart from the player and cover until it's styled. Sharing settings done: a "Sharing" section on the track and project pages sets who can listen (only you, anyone with a link, anyone, or for a project track the same as the project) with an explicit Save, makes links (listen or listen and comment; never, 1, 7 or 30 days) and shows a new link once to copy, and turns links off after a confirm. Making a link on something private says so and makes it link-only in the same press. The line under a project's title says who can listen)_
+- [x] Share dialog UI; public listen page that works for logged-out link holders _(listen page done: `/listen#<token>` shows a shared track (player with A/B, its ready versions) or project (cover, description, tracks to pick and play), signed out or in, and a plain "This link doesn't work" for anything else. API: `GET /v1/share-links/current`. Plain HTML apart from the player and cover until it's styled. Sharing settings done: a "Sharing" section on the track and project pages sets who can listen (only you, anyone with a link, anyone, or for a project track the same as the project) with an explicit Save, makes links (never, 1, 7 or 30 days) and shows a new link once to copy, and turns links off after a confirm. Making a link on something private says so and makes it link-only in the same press. The line under a project's title says who can listen)_
 - **Done when:** every row of the permission matrix is tested, and a manual pass confirms a stranger cannot reach private audio by any URL.
 
 ### Phase 5: Feedback

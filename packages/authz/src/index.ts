@@ -5,12 +5,12 @@
 export const VISIBILITIES = ['private', 'unlisted', 'public'] as const;
 export type Visibility = (typeof VISIBILITIES)[number];
 
-export const ROLES = ['owner', 'comment', 'listen'] as const;
+/**
+ * The owner, or a listener: anyone else who can see the resource, by its visibility or a share
+ * link. Ownership is never handed out by link.
+ */
+export const ROLES = ['owner', 'listener'] as const;
 export type Role = (typeof ROLES)[number];
-
-/** The roles a share link can carry. Ownership is never handed out by link. */
-export const LINK_ROLES = ['comment', 'listen'] as const satisfies readonly Role[];
-export type LinkRole = (typeof LINK_ROLES)[number];
 
 export const ACTIONS = ['view', 'listen', 'comment', 'manage', 'download'] as const;
 export type Action = (typeof ACTIONS)[number];
@@ -36,7 +36,6 @@ export interface Resource {
  * the resource: made for it, or for the project a requested track is in.
  */
 export interface ShareLinkGrant {
-  role: LinkRole;
   expiresAt: Date | null;
   revokedAt: Date | null;
   /**
@@ -53,14 +52,16 @@ export interface AccessContext {
   now: Date;
 }
 
-/** What each role may do. Downloads stay owner-only until there's a per-project setting (rule 4). */
+/**
+ * What each role may do: if you can see it, you can give feedback on it. Downloads stay owner-only
+ * until there's a per-project setting (rule 4).
+ */
 const ROLE_ACTIONS: Record<Role, readonly Action[]> = {
   owner: ACTIONS,
-  comment: ['view', 'listen', 'comment'],
-  listen: ['view', 'listen'],
+  listener: ['view', 'listen', 'comment'],
 };
 
-/** Actions that need a signed-in actor whatever their role: a comment needs an author. */
+/** Actions that need a signed-in actor whatever their role: a comment needs an account. */
 const SIGNED_IN_ONLY: readonly Action[] = ['comment', 'manage', 'download'];
 
 function rank(visibility: Visibility): number {
@@ -108,9 +109,7 @@ export function isLinkActive(link: Pick<ShareLinkGrant, 'expiresAt' | 'revokedAt
 export function roleFor(actor: Actor, resource: Resource, context?: AccessContext): Role | null {
   if (actor.kind === 'user' && actor.userId === resource.ownerId) return 'owner';
 
-  const roles: LinkRole[] = [];
-  // Public: anyone can listen; a signed-in user can also comment.
-  if (resource.visibility === 'public') roles.push(actor.kind === 'user' ? 'comment' : 'listen');
+  if (resource.visibility === 'public') return 'listener';
   // A link works only while active, and only if neither what it was made for nor what's asked
   // for is private: making something private shuts its links off without revoking them.
   if (
@@ -119,21 +118,20 @@ export function roleFor(actor: Actor, resource: Resource, context?: AccessContex
     resource.visibility !== 'private' &&
     context.link.sharedVisibility !== 'private'
   ) {
-    roles.push(context.link.role);
+    return 'listener';
   }
-  if (roles.includes('comment')) return 'comment';
-  return roles.includes('listen') ? 'listen' : null;
+  return null;
 }
 
 /**
  * Whether `actor` may perform `action` on `resource` (CLAUDE.md section 6).
  *
  * - The owner may do anything.
- * - `public`: anyone may view and listen; signed-in users may also comment.
- * - `unlisted`: only holders of an active share link, with the link's role.
+ * - `public`: anyone may view and listen.
+ * - `unlisted`: only holders of an active share link may view and listen.
  * - `private`: the owner only. Links do nothing.
- * - Commenting, managing and downloading always need a signed-in actor; managing and downloading
- *   need the owner.
+ * - Anyone who may view may also comment, if signed in (rule 11).
+ * - Managing and downloading need the owner.
  */
 export function canAccess(
   actor: Actor,

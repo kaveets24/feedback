@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { linkRoleSchema, visibilitySchema, type CreateShareLinkResponse } from '@feedback/shared';
+import { visibilitySchema, type CreateShareLinkResponse } from '@feedback/shared';
 import { toResult, type ActionResult } from '../../lib/action-result';
 import { serverApi } from '../../lib/api';
 import { EXPIRY_CHOICES, expiresAtFor } from '../../lib/share';
@@ -51,7 +51,6 @@ export async function setVisibilityAction(
 }
 
 const createInput = z.object({
-  role: linkRoleSchema,
   expiry: z.enum(EXPIRY_CHOICES),
   /** Also lets link holders in, for something that's private (where links do nothing). */
   allowLinkAccess: z.boolean(),
@@ -66,7 +65,7 @@ export async function createShareLinkAction(
   const parsed = createInput.safeParse(input);
   if (!parsedTarget.success || !parsed.success) return { ok: false, message: 'Unknown setting.' };
   const { kind, id } = parsedTarget.data;
-  const { role, expiry, allowLinkAccess } = parsed.data;
+  const { expiry, allowLinkAccess } = parsed.data;
   const api = serverApi();
 
   if (allowLinkAccess) {
@@ -78,7 +77,7 @@ export async function createShareLinkAction(
       return { ok: false, message: "Couldn't make the link. Reload the page and try again." };
     }
   }
-  const body = { role, expiresAt: expiresAtFor(expiry, new Date()) };
+  const body = { expiresAt: expiresAtFor(expiry, new Date()) };
   const result = await toResult(() =>
     kind === 'track' ? api.createTrackShareLink(id, body) : api.createProjectShareLink(id, body),
   );

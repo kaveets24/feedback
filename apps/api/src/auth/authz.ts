@@ -30,7 +30,6 @@ function linkContext(actor: Actor, targets: LinkTarget[]): AccessContext | undef
   if (!target) return undefined;
   return {
     link: {
-      role: link.role,
       expiresAt: link.expiresAt,
       revokedAt: link.revokedAt,
       sharedVisibility: target.visibility,

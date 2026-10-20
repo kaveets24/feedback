@@ -7,7 +7,6 @@ import {
   EXPIRY_CHOICES,
   EXPIRY_LABELS,
   linkState,
-  ROLE_LABELS,
   shareUrl,
   VISIBILITY_CHOICES,
   type ExpiryChoice,
@@ -148,7 +147,6 @@ function ShareLinks({
   visibility: Visibility;
   links: ShareLinkResponse[];
 }) {
-  const [role, setRole] = useState<ShareLinkResponse['role']>('listen');
   const [expiry, setExpiry] = useState<ExpiryChoice>('never');
   const [created, setCreated] = useState<{ url: string; copied: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -165,7 +163,6 @@ function ShareLinks({
     setCreated(null);
     startTransition(async () => {
       const result = await createShareLinkAction(target, {
-        role,
         expiry,
         allowLinkAccess: isPrivate,
       });
@@ -190,20 +187,13 @@ function ShareLinks({
       <h3 className="font-semibold">Share links</h3>
       <p className="mt-1 max-w-[65ch] text-sm text-muted">
         {noun === 'project'
-          ? 'Anyone with a link can listen to this project’s tracks, except tracks set to only you. They don’t need an account.'
-          : 'Anyone with a link can listen to this track. They don’t need an account.'}{' '}
+          ? 'Anyone with a link can listen to this project’s tracks, except tracks set to only you, and comment on them if they’re signed in. Listening doesn’t need an account.'
+          : 'Anyone with a link can listen to this track, and comment on it if they’re signed in. Listening doesn’t need an account.'}{' '}
         You can turn a link off at any time.
       </p>
 
       <form onSubmit={onCreate} className="mt-4 space-y-4" aria-label="Make a share link">
         <div className="flex flex-wrap gap-4">
-          <Select
-            id={`link-role-${target.id}`}
-            label="People with the link"
-            value={role}
-            onChange={(value) => setRole(value as ShareLinkResponse['role'])}
-            options={Object.entries(ROLE_LABELS)}
-          />
           <Select
             id={`link-expiry-${target.id}`}
             label="Stops working"
@@ -295,10 +285,10 @@ function LinkRow({ target, link, now }: { target: Target; link: ShareLinkRespons
   return (
     <li className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-rule py-3">
       <div className="min-w-0 flex-1">
-        <p>{ROLE_LABELS[link.role]}</p>
-        <p className="text-sm text-muted">
-          {state.text} · Made <time dateTime={link.createdAt}>{formatDate(link.createdAt)}</time>
+        <p>
+          Made <time dateTime={link.createdAt}>{formatDate(link.createdAt)}</time>
         </p>
+        <p className="text-sm text-muted">{state.text}</p>
       </div>
       {state.active &&
         (confirming ? (
