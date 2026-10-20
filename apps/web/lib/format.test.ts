@@ -17,7 +17,8 @@ describe('formatDuration', () => {
 
 describe('formatDate', () => {
   it('keeps the UTC date', () => {
-    expect(formatDate('2026-10-16T23:59:00.000Z')).toBe('2026-10-16');
+    expect(formatDate('2026-10-16T23:59:00.000Z')).toBe('October 16, 2026');
+    expect(formatDate('2026-01-01T00:00:00.000Z')).toBe('January 1, 2026');
   });
 });
 

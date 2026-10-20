@@ -243,6 +243,7 @@ describe('uploads', () => {
         trackId: started.trackId,
         versionNumber: 1,
         changeNotes: null,
+        originalFilename: 'idea.wav',
         status: 'processing',
         failureReason: null,
         durationMs: null,

@@ -14,8 +14,6 @@ export const GripIcon = () => (
   <Icon d="M8 4h3v3H8zM13 4h3v3h-3zM8 10.5h3v3H8zM13 10.5h3v3h-3zM8 17h3v3H8zM13 17h3v3h-3z" />
 );
 
-export const UpIcon = () => <Icon d="M12 6l8 8-2.5 2.5L12 11l-5.5 5.5L4 14z" />;
-
 export const DownIcon = () => <Icon d="M12 18l-8-8 2.5-2.5L12 13l5.5-5.5L20 10z" />;
 
 /** A cross: take something out (never "delete"). */

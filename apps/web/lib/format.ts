@@ -19,9 +19,19 @@ export const STATUS_LABELS: Record<VersionStatus, string> = {
   failed: 'Failed',
 };
 
-/** The calendar date of an ISO timestamp, in UTC so server and browser agree, e.g. "2026-10-16". */
+const DATE_FORMAT = new Intl.DateTimeFormat('en-US', {
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+/**
+ * The calendar date of an ISO timestamp, in UTC so server and browser agree, e.g.
+ * "October 16, 2026".
+ */
 export function formatDate(iso: string): string {
-  return iso.slice(0, 10);
+  return DATE_FORMAT.format(new Date(iso));
 }
 
 /** A project's status in words. */

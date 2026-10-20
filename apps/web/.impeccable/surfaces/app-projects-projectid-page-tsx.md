@@ -19,7 +19,7 @@ OWN-WORLD: The player's world, extended to working screens. Green-black canvas, 
 
 STORY: The artist sees which project this is, where it stands and its songs in order. They change the stage in one click, drag or nudge songs into order, add a track from the picker, and edit or delete the project in plain, serious words.
 
-FIRST VIEWPORT: App header: lime Silkscreen wordmark, Tracks and Projects nav with a 2px accent underline on the current one, Sign out at the right. A 48rem column: a "Projects" back link, the title as H1 (1.875rem, 600), the description in muted ink at 65ch, then one row with the status meter (current segment solid lime with dark text, earlier ones lit, later ones unlit but readable), "Private: only you can see this project", and Edit. Below: "Tracks" with "5 tracks · 17:39", then rows of grip, LCD number, title link, version or state, LCD length, move up, move down, remove. The add-a-track picker sits at the list's foot.
+FIRST VIEWPORT: App header: lime Silkscreen wordmark, Tracks and Projects nav with a 2px accent underline on the current one, Sign out at the right. A 48rem column: a "Projects" back link, the title as H1 (1.875rem, 600), the description in muted ink at 65ch, then one row with the status meter (current segment solid lime with dark text, earlier ones lit, later ones unlit but readable), "Private: only you can see this project", and Edit. Below: "Tracks" with "5 tracks · 17:39", then rows of grip, LCD number, title link, version or state, LCD length, remove. The add-a-track picker sits at the list's foot.
 
 FORM: Status pipeline, position 6 of 7 on the ordered list (dealt lead). seed:df0245d063152caf
 
@@ -27,7 +27,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 ## Signature interaction
 
-Dragging a track by its grip: the row lifts (accent outline, solid graphite fill) and its neighbours swap as it crosses their midpoints, so the list is always a real order. Releasing saves the whole order. Move up and down buttons do the same from keyboard, touch or a screen reader, and a polite live region says where the track landed. If the order changed elsewhere, the list snaps back and says so. The only motion is the drag itself.
+Dragging a track by its grip: the row lifts (accent outline, solid graphite fill) and its neighbours swap as it crosses their midpoints, so the list is always a real order. Releasing saves the whole order. The focused grip does the same from the keyboard or a screen reader with the up and down arrows, and a polite live region says where the track landed. If the order changed elsewhere, the list snaps back and says so. The only motion is the drag itself.
 
 ## Cover art (Phase 3 PR 6)
 

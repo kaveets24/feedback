@@ -18,6 +18,7 @@ export function toVersionResponse(version: TrackVersion): VersionResponse {
     trackId: version.trackId,
     versionNumber: version.versionNumber,
     changeNotes: version.changeNotes,
+    originalFilename: version.originalFilename,
     status: version.status,
     failureReason: version.failureReason,
     durationMs: version.durationMs,
