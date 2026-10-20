@@ -1,12 +1,17 @@
 import type { FastifyRequest } from 'fastify';
 import type { LoggerOptions } from 'pino';
+import { SHARE_TOKEN_HEADER } from '@feedback/shared';
 import { scrubUrl } from '@feedback/shared/monitoring';
 import type { Env } from './env.ts';
 
 // Never log tokens, signed URLs, or share-link tokens (CLAUDE.md section 10). Fastify's default
 // request serializer logs the full URL, so ours drops the query string and fragment. The redact
 // paths cover anything that logs raw headers.
-const redact = ['req.headers.authorization', 'req.headers.cookie'];
+const redact = [
+  'req.headers.authorization',
+  'req.headers.cookie',
+  `req.headers["${SHARE_TOKEN_HEADER}"]`,
+];
 
 /** What a request log line records about the request. */
 export function serializeRequest(request: FastifyRequest) {

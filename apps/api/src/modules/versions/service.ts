@@ -1,4 +1,4 @@
-import { canAccess, type Action } from '@feedback/authz';
+import type { Action } from '@feedback/authz';
 import {
   findProject,
   findVersion,
@@ -9,7 +9,7 @@ import {
 } from '@feedback/db';
 import type { StreamResponse, UpdateVersionRequest, VersionResponse } from '@feedback/shared';
 import type { Storage } from '@feedback/storage';
-import { authzActor, canManage, trackResource } from '../../auth/authz.ts';
+import { canAccessTrack } from '../../auth/authz.ts';
 import type { Actor } from '../../auth/plugin.ts';
 import { httpError } from '../../errors.ts';
 
@@ -50,10 +50,9 @@ export async function loadVersionFor(
   const found = await findVersion(db, versionId);
   if (!found) throw httpError(404, 'NOT_FOUND', 'Not found');
   const project = found.track.projectId ? await findProject(db, found.track.projectId) : null;
-  const resource = trackResource(found.track, project);
-  const owner = canManage(actor, resource);
+  const owner = canAccessTrack(actor, found.track, project, 'manage');
   if (
-    !canAccess(authzActor(actor), resource, action) ||
+    !canAccessTrack(actor, found.track, project, action) ||
     (!owner && found.version.status !== 'ready')
   ) {
     throw httpError(404, 'NOT_FOUND', 'Not found');

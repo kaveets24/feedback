@@ -1,39 +1,75 @@
 import {
   canAccess,
   effectiveVisibility,
+  type AccessContext,
+  type Action,
   type Actor as AuthzActor,
-  type Resource,
+  type ResourceKind,
+  type Visibility,
 } from '@feedback/authz';
 import type { Project, Track } from '@feedback/db';
 import type { Actor } from './plugin.ts';
 
 /** The request's actor in the shape `canAccess` takes. */
 export function authzActor(actor: Actor): AuthzActor {
-  return actor.kind === 'user' ? { kind: 'user', userId: actor.user.id } : actor;
+  return actor.kind === 'user' ? { kind: 'user', userId: actor.user.id } : { kind: 'anonymous' };
 }
 
-/** A project as a `canAccess` resource. */
-export function projectResource(project: Project): Resource {
-  return { kind: 'project', ownerId: project.ownerId, visibility: project.visibility };
+/** Something a share link could have been made for, with its effective visibility. */
+interface LinkTarget {
+  kind: ResourceKind;
+  id: string;
+  visibility: Visibility;
 }
 
-/**
- * A track as a `canAccess` resource, with its effective visibility (CLAUDE.md section 6, rule 7):
- * pass the live project it's in, or null for a loose track.
- */
-export function trackResource(track: Track, project: Project | null): Resource {
+/** The actor's share link as a `canAccess` context, if it was made for one of `targets`. */
+function linkContext(actor: Actor, targets: LinkTarget[]): AccessContext | undefined {
+  const link = actor.shareLink;
+  if (!link) return undefined;
+  const target = targets.find((t) => t.kind === link.resourceType && t.id === link.resourceId);
+  if (!target) return undefined;
   return {
-    kind: 'track',
-    ownerId: track.ownerId,
-    visibility: effectiveVisibility(track, project),
+    link: {
+      role: link.role,
+      expiresAt: link.expiresAt,
+      revokedAt: link.revokedAt,
+      sharedVisibility: target.visibility,
+    },
+    now: new Date(),
   };
 }
 
 /**
- * Whether the actor may manage the resource, i.e. is its owner: what decides whether a response
- * carries owner-only details (file names, notes, versions that aren't ready). Goes through
- * `canAccess`, like every other decision.
+ * Whether the actor may perform `action` on a project, counting a share link made for it.
  */
-export function canManage(actor: Actor, resource: Resource): boolean {
-  return canAccess(authzActor(actor), resource, 'manage');
+export function canAccessProject(actor: Actor, project: Project, action: Action): boolean {
+  const target = { kind: 'project', id: project.id, visibility: project.visibility } as const;
+  return canAccess(
+    authzActor(actor),
+    { kind: 'project', ownerId: project.ownerId, visibility: project.visibility },
+    action,
+    linkContext(actor, [target]),
+  );
+}
+
+/**
+ * Whether the actor may perform `action` on a track, judged by its effective visibility (CLAUDE.md
+ * section 6, rule 7; pass the live project it's in, or null for a loose track), counting a share
+ * link made for the track or for its project.
+ */
+export function canAccessTrack(
+  actor: Actor,
+  track: Track,
+  project: Project | null,
+  action: Action,
+): boolean {
+  const visibility = effectiveVisibility(track, project);
+  const targets: LinkTarget[] = [{ kind: 'track', id: track.id, visibility }];
+  if (project) targets.push({ kind: 'project', id: project.id, visibility: project.visibility });
+  return canAccess(
+    authzActor(actor),
+    { kind: 'track', ownerId: track.ownerId, visibility },
+    action,
+    linkContext(actor, targets),
+  );
 }

@@ -1,4 +1,4 @@
-import { canAccess, effectiveVisibility, type Action } from '@feedback/authz';
+import { effectiveVisibility, type Action } from '@feedback/authz';
 import {
   findProject,
   findProjectsByIds,
@@ -18,15 +18,14 @@ import {
   type TrackSummary,
   type UpdateTrackRequest,
 } from '@feedback/shared';
-import { authzActor, canManage, projectResource, trackResource } from '../../auth/authz.ts';
+import { canAccessProject, canAccessTrack } from '../../auth/authz.ts';
 import type { Actor } from '../../auth/plugin.ts';
 import { httpError } from '../../errors.ts';
 import { toVersionResponse } from '../versions/service.ts';
 
 /** The fields a track shows everyone who may view it, given the live project it's in (if any). */
 function trackFields(actor: Actor, track: Track, project: Project | null) {
-  const seesProject =
-    project !== null && canAccess(authzActor(actor), projectResource(project), 'view');
+  const seesProject = project !== null && canAccessProject(actor, project, 'view');
   return {
     id: track.id,
     title: track.title,
@@ -48,10 +47,9 @@ export function toTrackSummaries(
   rows: { track: Track; latestVersion: VersionSummary }[],
   projects: Map<string, Project>,
 ): TrackSummary[] {
-  const who = authzActor(actor);
   return rows.flatMap(({ track, latestVersion }) => {
     const project = (track.projectId && projects.get(track.projectId)) || null;
-    if (!canAccess(who, trackResource(track, project), 'view')) return [];
+    if (!canAccessTrack(actor, track, project, 'view')) return [];
     return [{ ...trackFields(actor, track, project), latestVersion }];
   });
 }
@@ -90,7 +88,7 @@ export async function loadTrackAccess(
 ): Promise<{ track: Track; project: Project | null }> {
   const track = await findTrack(db, trackId);
   const project = track?.projectId ? await findProject(db, track.projectId) : null;
-  if (!track || !canAccess(authzActor(actor), trackResource(track, project), action)) {
+  if (!track || !canAccessTrack(actor, track, project, action)) {
     throw httpError(404, 'NOT_FOUND', 'Not found');
   }
   return { track, project };
@@ -116,7 +114,7 @@ async function toTrackResponse(
   track: Track,
   project: Project | null,
 ): Promise<TrackResponse> {
-  const owner = canManage(actor, trackResource(track, project));
+  const owner = canAccessTrack(actor, track, project, 'manage');
   const versions = await listVersions(db, track.id);
   return {
     ...trackFields(actor, track, project),

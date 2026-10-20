@@ -1,9 +1,15 @@
 import type { FastifyInstance } from 'fastify';
-import { upsertUserFromAuth, type Db, type User } from '@feedback/db';
+import { upsertUserFromAuth, type Db, type ShareLink, type User } from '@feedback/db';
 import { httpError } from '../errors.ts';
 import type { AuthPort } from './port.ts';
 
-export type Actor = { kind: 'anonymous' } | { kind: 'user'; user: User };
+/**
+ * Who is asking, and the share link they presented, if any (looked up by its token's hash, in any
+ * state: `canAccess` judges whether it still works, and for what).
+ */
+export type Actor = ({ kind: 'anonymous' } | { kind: 'user'; user: User }) & {
+  shareLink?: ShareLink;
+};
 
 declare module 'fastify' {
   interface FastifyRequest {
