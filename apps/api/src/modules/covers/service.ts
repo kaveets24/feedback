@@ -59,15 +59,17 @@ export async function startCoverUpload(
   };
 }
 
-/** A cover upload of this project, if the actor may perform `action` on the project; else 404. */
+/**
+ * A cover upload of this project, if the actor may manage the project; else 404. An upload's
+ * progress is the owner's business: anyone else only sees the finished cover.
+ */
 async function loadCoverFor(
   db: Db,
   actor: Actor,
   projectId: string,
   coverId: string,
-  action: 'view' | 'manage',
 ): Promise<ProjectCover> {
-  await loadProjectFor(db, actor, projectId, action);
+  await loadProjectFor(db, actor, projectId, 'manage');
   const found = await findCover(db, coverId);
   if (!found || found.cover.projectId !== projectId) throw httpError(404, 'NOT_FOUND', 'Not found');
   return found.cover;
@@ -85,7 +87,7 @@ export async function completeCoverUpload(
   projectId: string,
   coverId: string,
 ): Promise<CoverResponse> {
-  let cover = await loadCoverFor(deps.db, actor, projectId, coverId, 'manage');
+  let cover = await loadCoverFor(deps.db, actor, projectId, coverId);
   if (cover.status === 'uploading') cover = await checkCover(deps, cover);
   if (cover.status === 'processing') await deps.queue.enqueueCover(cover.id);
   return toCoverResponse(cover);
@@ -129,7 +131,7 @@ export async function getCover(
   projectId: string,
   coverId: string,
 ): Promise<CoverResponse> {
-  return toCoverResponse(await loadCoverFor(db, actor, projectId, coverId, 'view'));
+  return toCoverResponse(await loadCoverFor(db, actor, projectId, coverId));
 }
 
 /** Takes the cover off the project. Its uploads stay, until Phase 7's cleanup. */

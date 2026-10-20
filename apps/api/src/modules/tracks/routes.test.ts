@@ -67,6 +67,7 @@ describe('track routes', () => {
         title: 'First',
         projectId: null,
         visibility: 'private',
+        inheritsVisibility: false,
         createdAt: first.track.createdAt.toISOString(),
         currentVersionId: null,
         latestVersion: {

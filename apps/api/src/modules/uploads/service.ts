@@ -118,7 +118,7 @@ export async function completeUpload(
   let { version } = await loadVersionFor(deps.db, actor, versionId, 'manage');
   if (version.status === 'uploading') version = await checkUpload(deps, version);
   if (version.status === 'processing') await deps.queue.enqueueTranscode(version.id);
-  return toVersionResponse(version);
+  return toVersionResponse(version, true);
 }
 
 async function checkUpload(

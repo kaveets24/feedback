@@ -150,7 +150,7 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 **Music**
 
 - `projects`: id, owner_id, title, description, current_cover_id (the newest `ready` cover, see `project_covers`), status (`idea | demo | mixing | done`, default `idea`), visibility, deleted_at. Deleting a project soft-deletes it and leaves its tracks loose, with their versions; it never deletes songs.
-- `tracks`: id, owner_id, project_id (nullable: a track without one is a "loose" track), title, notes, position (nullable, only meaningful in a project), visibility (default `private`; a loose track's own visibility), current_version_id (the newest `ready` version), visibility_override (nullable; nothing reads it until Phase 4, see section 13), deleted_at. Track lists leave out tracks whose versions are all still `uploading` (the file never arrived); Phase 7 cleans them up. A track can only join a project with the same owner (a composite foreign key on `(project_id, owner_id)` enforces it). Positions sort ascending and may have gaps; they aren't unique in the database, so changes to an owner's project membership and order take a lock on that owner's `users` row (`packages/db/src/projects.ts`).
+- `tracks`: id, owner_id, project_id (nullable: a track without one is a "loose" track), title, notes, position (nullable, only meaningful in a project), visibility (default `private`; a loose track's own visibility), current_version_id (the newest `ready` version), visibility_override (nullable; for a track in a project, see rule 7 in section 6), deleted_at. Track lists leave out tracks whose versions are all still `uploading` (the file never arrived); Phase 7 cleans them up. A track can only join a project with the same owner (a composite foreign key on `(project_id, owner_id)` enforces it). Positions sort ascending and may have gaps; they aren't unique in the database, so changes to an owner's project membership and order take a lock on that owner's `users` row (`packages/db/src/projects.ts`).
 - `project_covers`: id, project_id, status (`uploading | processing | ready | failed`, the same lifecycle as versions), failure_reason, original_key, original_content_type, original_size_bytes, cover_key (the re-encoded JPEG). A cover becomes the project's current cover only if it's newer than the current one; removing the cover clears `current_cover_id` and keeps the rows.
 - `track_versions`: id, track_id, version_number, change_notes, feedback_prompt (what the artist wants feedback on), status (`uploading | processing | ready | failed`), failure_reason (shown to the artist), original_key, original_filename, original_content_type, original_size_bytes, stream_key, duration_ms, waveform_peaks (jsonb `number[]`), created_at
 - Versions are **immutable** once `ready`. New edits = new version.
@@ -211,6 +211,7 @@ Applied to projects (and optionally overridden per track):
 9. Unauthenticated access to a non-public resource returns `404`, not `403`, to avoid leaking existence.
 10. Deleting a project or track revokes all share links and invalidates outstanding signed URLs as soon as practical.
 11. Commenting needs a signed-in user, whatever a link's role: anonymous link holders can view and listen only.
+12. **Listeners see finished work only.** Anyone but the owner gets only `ready` versions (others are a 404), never file names, the track's own notes, or cover upload progress, and a track's `project_id` only if they may view that project. Owner-only details are decided with `canAccess(..., 'manage')` (`canManage()` in `apps/api/src/auth/authz.ts`).
 
 ### Invite-only access (launch mode)
 
@@ -404,9 +405,9 @@ Get the app onto a staging environment as early as possible, so every later phas
 ### Phase 4: Sharing and permissions
 
 - [x] `packages/authz` with `canAccess` and exhaustive tests (write these **first**) _(the matrix in `packages/authz/src/index.test.ts` is written out by hand: every visibility x actor (owner, signed-in stranger, anonymous, each with and without a listen or comment link) x action x resource kind, plus link expiry and revocation, project links on tracks, `effectiveVisibility`, and `overrideOnJoin`)_
-- [ ] Visibility settings, roles on share links
+- [ ] Visibility settings, roles on share links _(visibility done: `PATCH /v1/projects/:projectId` takes `visibility`, and `PATCH /v1/tracks/:trackId` sets a loose track's own or a project track's override, null following the project. Every route judges tracks by their effective visibility, so public things are open to anyone signed in or not. Link roles come with the share link endpoints)_
 - [ ] Share links with expiry and revoke
-- [ ] Signed audio URLs gated by `canAccess`
+- [ ] Signed audio URLs gated by `canAccess` _(gated by effective visibility for owners and public listeners; link holders come with the share link endpoints)_
 - [ ] Share dialog UI; public listen page that works for logged-out link holders
 - **Done when:** every row of the permission matrix is tested, and a manual pass confirms a stranger cannot reach private audio by any URL.
 

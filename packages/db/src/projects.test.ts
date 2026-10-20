@@ -6,15 +6,25 @@ import {
   createProject,
   deleteProject,
   findProject,
+  findProjectsByIds,
   listProjectsForOwner,
   listProjectTracks,
   moveTrackToProject,
   reorderProjectTracks,
+  setTrackVisibility,
   updateProject,
 } from './projects.ts';
 import { projects, shareLinks, tracks, users } from './schema.ts';
 import { resetDb, testDatabaseUrl } from './testing.ts';
-import { createTrackWithFirstVersion, findTrack, listVersions } from './tracks.ts';
+import {
+  createNextVersion,
+  createTrackWithFirstVersion,
+  findTrack,
+  listVersions,
+  markVersionProcessing,
+  markVersionReady,
+  withCurrentVersions,
+} from './tracks.ts';
 import { upsertUserFromAuth } from './users.ts';
 
 const db = createDb(testDatabaseUrl('db'));
@@ -370,5 +380,155 @@ describe('database constraints', () => {
     await db.delete(users).where(eq(users.id, owner.id));
     expect(await db.select().from(projects)).toEqual([]);
     expect(await db.select().from(tracks)).toEqual([]);
+  });
+});
+
+describe('visibility when tracks move (rule 7: moving never widens)', () => {
+  async function setup(projectVisibility: 'private' | 'unlisted' | 'public') {
+    const owner = await newUser();
+    const project = await createProject(db, { ownerId: owner.id, title: 'EP' });
+    await updateProject(db, project.id, { visibility: projectVisibility });
+    return { owner, project };
+  }
+
+  it('a private track joining a public project gets a private override', async () => {
+    const { owner, project } = await setup('public');
+    const track = await newTrack(owner.id);
+    expect(await moveTrackToProject(db, track.id, project.id)).toMatchObject({
+      visibility: 'private',
+      visibilityOverride: 'private',
+    });
+  });
+
+  it('a public track joining a private project follows the project (narrower is safe)', async () => {
+    const { owner, project } = await setup('private');
+    const track = await newTrack(owner.id);
+    await setTrackVisibility(db, track.id, 'public');
+    expect(await moveTrackToProject(db, track.id, project.id)).toMatchObject({
+      visibilityOverride: null,
+    });
+  });
+
+  it('leaving a project keeps the visibility the track had there', async () => {
+    const { owner, project } = await setup('unlisted');
+    const track = await newTrack(owner.id);
+    await setTrackVisibility(db, track.id, 'unlisted');
+    await moveTrackToProject(db, track.id, project.id);
+    expect(await moveTrackToProject(db, track.id, null)).toMatchObject({
+      projectId: null,
+      visibility: 'unlisted',
+      visibilityOverride: null,
+    });
+  });
+
+  it('moving between projects carries the effective visibility across', async () => {
+    const { owner, project: unlisted } = await setup('unlisted');
+    const open = await createProject(db, { ownerId: owner.id, title: 'Open' });
+    await updateProject(db, open.id, { visibility: 'public' });
+    const track = await newTrack(owner.id);
+    await setTrackVisibility(db, track.id, 'unlisted');
+    await moveTrackToProject(db, track.id, unlisted.id);
+    expect(await moveTrackToProject(db, track.id, open.id)).toMatchObject({
+      projectId: open.id,
+      visibilityOverride: 'unlisted',
+    });
+  });
+
+  it('deleting a project leaves each track with the visibility it had there', async () => {
+    const { owner, project } = await setup('public');
+    const following = await newTrack(owner.id, 'Follows the project');
+    await setTrackVisibility(db, following.id, 'public');
+    const overridden = await newTrack(owner.id, 'Kept private');
+    await moveTrackToProject(db, following.id, project.id);
+    await moveTrackToProject(db, overridden.id, project.id);
+    await deleteProject(db, project.id);
+    expect(await findTrack(db, following.id)).toMatchObject({
+      visibility: 'public',
+      visibilityOverride: null,
+    });
+    expect(await findTrack(db, overridden.id)).toMatchObject({
+      visibility: 'private',
+      visibilityOverride: null,
+    });
+  });
+});
+
+describe('setTrackVisibility', () => {
+  it("sets a loose track's own visibility", async () => {
+    const owner = await newUser();
+    const track = await newTrack(owner.id);
+    const result = await setTrackVisibility(db, track.id, 'unlisted');
+    expect(result).toMatchObject({ ok: true, track: { visibility: 'unlisted' } });
+  });
+
+  it("sets a project track's override, and null follows the project again", async () => {
+    const owner = await newUser();
+    const project = await createProject(db, { ownerId: owner.id, title: 'EP' });
+    const track = await newTrack(owner.id);
+    await moveTrackToProject(db, track.id, project.id);
+    expect(await setTrackVisibility(db, track.id, 'public')).toMatchObject({
+      ok: true,
+      track: { visibilityOverride: 'public', visibility: 'private' },
+    });
+    expect(await setTrackVisibility(db, track.id, null)).toMatchObject({
+      ok: true,
+      track: { visibilityOverride: null },
+    });
+  });
+
+  it('refuses null for a loose track, and reports a missing one', async () => {
+    const owner = await newUser();
+    const track = await newTrack(owner.id);
+    expect(await setTrackVisibility(db, track.id, null)).toEqual({
+      ok: false,
+      reason: 'not-in-project',
+    });
+    expect(await findTrack(db, track.id)).toMatchObject({ visibility: 'private' });
+    expect(await setTrackVisibility(db, '01890a5d-ac96-774b-bcce-b302099a8058', 'public')).toEqual({
+      ok: false,
+      reason: 'not-found',
+    });
+  });
+});
+
+describe('findProjectsByIds', () => {
+  it('finds live projects by id, skipping deleted and unknown ones', async () => {
+    const owner = await newUser();
+    const a = await createProject(db, { ownerId: owner.id, title: 'A' });
+    const b = await createProject(db, { ownerId: owner.id, title: 'B' });
+    await deleteProject(db, b.id);
+    const found = await findProjectsByIds(db, [a.id, b.id, a.id]);
+    expect([...found.keys()]).toEqual([a.id]);
+    expect(await findProjectsByIds(db, [])).toEqual(new Map());
+  });
+});
+
+describe('withCurrentVersions', () => {
+  const output = { streamKey: 'streams/x', durationMs: 3000, peaks: [0.5] };
+
+  it('pairs tracks with their newest ready version, leaving out ones that have none', async () => {
+    const owner = await newUser();
+    const { track: played, version: v1 } = await createTrackWithFirstVersion(db, {
+      ownerId: owner.id,
+      title: 'Has a ready version',
+      original,
+    });
+    await markVersionProcessing(db, v1.id);
+    await markVersionReady(db, v1.id, output);
+    // v2 still processing: listeners keep hearing v1.
+    const v2 = await createNextVersion(db, { trackId: played.id, original });
+    await markVersionProcessing(db, v2!.id);
+    const unplayed = await newTrack(owner.id, 'Nothing ready');
+
+    const rows = await withCurrentVersions(db, [
+      (await findTrack(db, played.id))!,
+      (await findTrack(db, unplayed.id))!,
+    ]);
+    expect(rows).toEqual([
+      {
+        track: expect.objectContaining({ id: played.id }),
+        latestVersion: { id: v1.id, versionNumber: 1, status: 'ready', durationMs: 3000 },
+      },
+    ]);
   });
 });

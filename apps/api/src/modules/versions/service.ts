@@ -1,5 +1,6 @@
 import { canAccess, type Action } from '@feedback/authz';
 import {
+  findProject,
   findVersion,
   updateVersionNotes,
   type Db,
@@ -8,17 +9,18 @@ import {
 } from '@feedback/db';
 import type { StreamResponse, UpdateVersionRequest, VersionResponse } from '@feedback/shared';
 import type { Storage } from '@feedback/storage';
-import { authzActor, trackResource } from '../../auth/authz.ts';
+import { authzActor, canManage, trackResource } from '../../auth/authz.ts';
 import type { Actor } from '../../auth/plugin.ts';
 import { httpError } from '../../errors.ts';
 
-export function toVersionResponse(version: TrackVersion): VersionResponse {
+/** A version as the API returns it; the file name only for the track's owner. */
+export function toVersionResponse(version: TrackVersion, owner: boolean): VersionResponse {
   return {
     id: version.id,
     trackId: version.trackId,
     versionNumber: version.versionNumber,
     changeNotes: version.changeNotes,
-    originalFilename: version.originalFilename,
+    originalFilename: owner ? version.originalFilename : null,
     status: version.status,
     failureReason: version.failureReason,
     durationMs: version.durationMs,
@@ -34,21 +36,29 @@ export function toVersionResponse(version: TrackVersion): VersionResponse {
 export const PLAYBACK_URL_SECONDS = 10 * 60;
 
 /**
- * A version and its track, if the actor may perform `action` on the track. Anything else,
- * including a version that exists but isn't theirs, is a 404, so existence never leaks
- * (CLAUDE.md section 6, rule 9).
+ * A version and its track, if the actor may perform `action` on the track (judged by its
+ * effective visibility), and whether they own it. Listeners only ever see ready versions; one
+ * that's uploading, processing or failed is the owner's alone. Anything else, including a version
+ * that exists but isn't theirs, is a 404, so existence never leaks (CLAUDE.md section 6, rule 9).
  */
 export async function loadVersionFor(
   db: Db,
   actor: Actor,
   versionId: string,
   action: Action,
-): Promise<{ track: Track; version: TrackVersion }> {
+): Promise<{ track: Track; version: TrackVersion; owner: boolean }> {
   const found = await findVersion(db, versionId);
-  if (!found || !canAccess(authzActor(actor), trackResource(found.track), action)) {
+  if (!found) throw httpError(404, 'NOT_FOUND', 'Not found');
+  const project = found.track.projectId ? await findProject(db, found.track.projectId) : null;
+  const resource = trackResource(found.track, project);
+  const owner = canManage(actor, resource);
+  if (
+    !canAccess(authzActor(actor), resource, action) ||
+    (!owner && found.version.status !== 'ready')
+  ) {
     throw httpError(404, 'NOT_FOUND', 'Not found');
   }
-  return found;
+  return { ...found, owner };
 }
 
 /** Replaces a version's change notes. The owner only; anyone else gets the usual 404. */
@@ -62,7 +72,7 @@ export async function updateVersion(
   // Blank notes are stored as none. Null only if it went away since the check above.
   const version = await updateVersionNotes(db, versionId, input.changeNotes || null);
   if (!version) throw httpError(404, 'NOT_FOUND', 'Not found');
-  return toVersionResponse(version);
+  return toVersionResponse(version, true);
 }
 
 export async function getVersion(
@@ -70,14 +80,14 @@ export async function getVersion(
   actor: Actor,
   versionId: string,
 ): Promise<VersionResponse> {
-  const { version } = await loadVersionFor(db, actor, versionId, 'view');
-  return toVersionResponse(version);
+  const { version, owner } = await loadVersionFor(db, actor, versionId, 'view');
+  return toVersionResponse(version, owner);
 }
 
 /**
  * A short-lived URL for a ready version's stream file, issued only once `canAccess(..., 'listen')`
- * passes (CLAUDE.md section 6, rule 5). A version that isn't ready yet is a 409, but only to
- * someone who may listen to it; anyone else gets the usual 404.
+ * passes (CLAUDE.md section 6, rule 5). A version that isn't ready yet is a 409 for its owner;
+ * anyone else gets the usual 404.
  */
 export async function getStream(
   { db, storage }: { db: Db; storage: Storage },
