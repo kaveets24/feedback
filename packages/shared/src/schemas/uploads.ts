@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { changeNotesSchema } from './tracks.ts';
 
 /** Largest original we accept (CLAUDE.md section 7). Signed into the upload URL. */
 export const MAX_UPLOAD_BYTES = 200 * 1024 * 1024;
@@ -64,6 +65,15 @@ export const createUploadRequestSchema = z.object({
   sizeBytes: z.number().int().positive().max(MAX_UPLOAD_BYTES),
 });
 export type CreateUploadRequest = z.infer<typeof createUploadRequestSchema>;
+
+/**
+ * `POST /v1/tracks/:trackId/versions`: starts uploading the track's next version. Same file
+ * fields as a new track, plus optional change notes; the response is the same as a new upload's.
+ */
+export const createVersionRequestSchema = createUploadRequestSchema
+  .omit({ title: true })
+  .extend({ changeNotes: changeNotesSchema.optional() });
+export type CreateVersionRequest = z.infer<typeof createVersionRequestSchema>;
 
 export const createUploadResponseSchema = z.object({
   trackId: z.uuid(),

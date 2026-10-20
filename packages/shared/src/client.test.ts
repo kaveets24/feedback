@@ -78,6 +78,7 @@ describe('createApiClient', () => {
       id: '01890a5d-ac96-774b-bcce-b302099a8058',
       trackId: '01890a5d-ac96-774b-bcce-b302099a8057',
       versionNumber: 1,
+      changeNotes: null,
       status: 'processing',
       failureReason: null,
       durationMs: null,
@@ -92,6 +93,49 @@ describe('createApiClient', () => {
     expect(url.toString()).toBe(`http://api.test/v1/uploads/${version.id}/complete`);
     expect(init.method).toBe('POST');
     expect(init.body).toBeUndefined();
+  });
+
+  it('starts a new version and patches its notes', async () => {
+    const trackId = '01890a5d-ac96-774b-bcce-b302099a8057';
+    const versionId = '01890a5d-ac96-774b-bcce-b302099a8058';
+    const created = {
+      trackId,
+      versionId,
+      upload: {
+        url: 'http://storage.test/b/originals/x?sig=1',
+        method: 'PUT',
+        headers: { 'content-type': 'audio/wav' },
+        expiresAt: '2026-10-20T00:15:00.000Z',
+      },
+    };
+    const version = {
+      id: versionId,
+      trackId,
+      versionNumber: 2,
+      changeNotes: 'Louder',
+      status: 'ready',
+      failureReason: null,
+      durationMs: 1000,
+      waveformPeaks: [0, 1],
+      createdAt: '2026-10-20T00:00:00.000Z',
+    };
+    const fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) =>
+      Response.json(init?.method === 'PATCH' ? version : created, {
+        status: init?.method === 'PATCH' ? 200 : 201,
+      }),
+    );
+    const api = createApiClient({ baseUrl: 'http://api.test', fetch });
+    const file = { filename: 'v2.wav', contentType: 'audio/wav', sizeBytes: 10 } as const;
+
+    await expect(api.createVersion(trackId, { ...file, changeNotes: 'Louder' })).resolves.toEqual(
+      created,
+    );
+    await expect(api.updateVersion(versionId, { changeNotes: 'Louder' })).resolves.toEqual(version);
+    const calls = fetch.mock.calls.map(([url, init]) => [init?.method, String(url)]);
+    expect(calls).toEqual([
+      ['POST', `http://api.test/v1/tracks/${trackId}/versions`],
+      ['PATCH', `http://api.test/v1/versions/${versionId}`],
+    ]);
   });
 
   it('lists tracks with the cursor and limit in the query string', async () => {

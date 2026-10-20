@@ -73,6 +73,7 @@ describe('version routes', () => {
       id: version.id,
       trackId: track.id,
       versionNumber: 1,
+      changeNotes: null,
       status: 'uploading',
       failureReason: null,
       durationMs: null,
@@ -97,6 +98,47 @@ describe('version routes', () => {
     expect((await get(version.id, 'u2')).statusCode).toBe(404);
     expect((await get(version.id)).statusCode).toBe(404);
     expect((await get(crypto.randomUUID(), 'u1')).statusCode).toBe(404);
+  });
+
+  describe('PATCH /v1/versions/:versionId', () => {
+    const patch = (versionId: string, payload: object, providerId?: string) =>
+      app.inject({
+        method: 'PATCH',
+        url: `/v1/versions/${versionId}`,
+        headers: providerId ? { authorization: `Bearer ${tokenFor(providerId)}` } : {},
+        payload,
+      });
+
+    it('sets, trims, and clears the notes, even on a ready version', async () => {
+      const { version } = await ownedVersion('u1');
+      await readyVersion(version.id);
+
+      const set = await patch(version.id, { changeNotes: '  Tighter drums ' }, 'u1');
+      expect(set.statusCode).toBe(200);
+      expect(set.json()).toMatchObject({ changeNotes: 'Tighter drums', status: 'ready' });
+
+      expect((await patch(version.id, { changeNotes: '  ' }, 'u1')).json().changeNotes).toBeNull();
+      await patch(version.id, { changeNotes: 'Again' }, 'u1');
+      expect((await patch(version.id, { changeNotes: null }, 'u1')).json().changeNotes).toBeNull();
+    });
+
+    it('returns 404 to anyone else and leaves the notes alone', async () => {
+      const { version } = await ownedVersion('u1');
+      await approvedUser('u2');
+      await patch(version.id, { changeNotes: 'Mine' }, 'u1');
+
+      expect((await patch(version.id, { changeNotes: 'Theirs' }, 'u2')).statusCode).toBe(404);
+      expect((await patch(version.id, { changeNotes: 'Theirs' })).statusCode).toBe(404);
+      expect((await get(version.id, 'u1')).json().changeNotes).toBe('Mine');
+    });
+
+    it('rejects notes over 2000 characters or a missing field', async () => {
+      const { version } = await ownedVersion('u1');
+      expect((await patch(version.id, { changeNotes: 'x'.repeat(2001) }, 'u1')).statusCode).toBe(
+        400,
+      );
+      expect((await patch(version.id, {}, 'u1')).statusCode).toBe(400);
+    });
   });
 
   describe('GET /v1/versions/:versionId/stream', () => {

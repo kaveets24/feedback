@@ -3,11 +3,12 @@ import type { Db } from '@feedback/db';
 import {
   errorResponseSchema,
   streamResponseSchema,
+  updateVersionRequestSchema,
   versionParamsSchema,
   versionResponseSchema,
 } from '@feedback/shared';
 import type { Storage } from '@feedback/storage';
-import { getStream, getVersion } from './service.ts';
+import { getStream, getVersion, updateVersion } from './service.ts';
 
 export function versionRoutes(deps: { db: Db; storage: Storage }): FastifyPluginAsyncZod {
   return async (app) => {
@@ -21,6 +22,18 @@ export function versionRoutes(deps: { db: Db; storage: Storage }): FastifyPlugin
         },
       },
       (request) => getVersion(deps.db, request.actor, request.params.versionId),
+    );
+
+    app.patch(
+      '/versions/:versionId',
+      {
+        schema: {
+          params: versionParamsSchema,
+          body: updateVersionRequestSchema,
+          response: { 200: versionResponseSchema, 404: errorResponseSchema },
+        },
+      },
+      (request) => updateVersion(deps.db, request.actor, request.params.versionId, request.body),
     );
 
     app.get(

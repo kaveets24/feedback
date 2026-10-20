@@ -15,8 +15,13 @@ import {
   trackResponseSchema,
   versionResponseSchema,
   type TrackListQuery,
+  type UpdateVersionRequest,
 } from './schemas/tracks.ts';
-import { createUploadResponseSchema, type CreateUploadRequest } from './schemas/uploads.ts';
+import {
+  createUploadResponseSchema,
+  type CreateUploadRequest,
+  type CreateVersionRequest,
+} from './schemas/uploads.ts';
 
 /** A non-2xx API response, carrying the standard error body. */
 export class ApiError extends Error {
@@ -87,6 +92,17 @@ export function createApiClient({ baseUrl, getToken, fetch = globalThis.fetch }:
     /** Call once the PUT succeeds. Safe to repeat; returns the version's state. */
     completeUpload: (versionId: string) =>
       post(`/v1/uploads/${encodeURIComponent(versionId)}/complete`, versionResponseSchema),
+    /** Starts uploading a track's next version; finish it with `completeUpload`, as for v1. */
+    createVersion: (trackId: string, input: CreateVersionRequest) =>
+      post(`/v1/tracks/${encodeURIComponent(trackId)}/versions`, createUploadResponseSchema, input),
+    /** Changes a version's notes (null clears them). */
+    updateVersion: (versionId: string, changes: UpdateVersionRequest) =>
+      send(
+        'PATCH',
+        `/v1/versions/${encodeURIComponent(versionId)}`,
+        versionResponseSchema,
+        changes,
+      ),
     getVersion: (versionId: string) =>
       request(`/v1/versions/${encodeURIComponent(versionId)}`, versionResponseSchema),
     /** A short-lived URL for a ready version's audio. Fetch a new one when it expires. */

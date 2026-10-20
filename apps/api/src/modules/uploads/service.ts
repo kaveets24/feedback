@@ -1,4 +1,5 @@
 import {
+  createNextVersion,
   createTrackWithFirstVersion,
   findVersion,
   markVersionFailed,
@@ -7,11 +8,17 @@ import {
   type TrackVersion,
   type User,
 } from '@feedback/db';
-import type { CreateUploadRequest, CreateUploadResponse, VersionResponse } from '@feedback/shared';
+import type {
+  CreateUploadRequest,
+  CreateUploadResponse,
+  CreateVersionRequest,
+  VersionResponse,
+} from '@feedback/shared';
 import type { Storage } from '@feedback/storage';
 import type { Actor } from '../../auth/plugin.ts';
 import { httpError } from '../../errors.ts';
 import type { JobQueue } from '../../queue.ts';
+import { loadTrackFor } from '../tracks/service.ts';
 import { loadVersionFor, toVersionResponse } from '../versions/service.ts';
 import { sniffAudio, SNIFF_BYTES } from './sniff.ts';
 
@@ -38,7 +45,7 @@ export async function startUpload(
   owner: User,
   input: CreateUploadRequest,
 ): Promise<CreateUploadResponse> {
-  const { track, version } = await createTrackWithFirstVersion(db, {
+  const { version } = await createTrackWithFirstVersion(db, {
     ownerId: owner.id,
     title: input.title,
     original: {
@@ -47,19 +54,51 @@ export async function startUpload(
       sizeBytes: input.sizeBytes,
     },
   });
+  return uploadFor(storage, version);
+}
+
+/**
+ * Adds the track's next version (`uploading`) and returns where to PUT its file. Finishing it is
+ * the same `complete` call as for v1. The owner only: anyone else gets a 404.
+ */
+export async function startVersionUpload(
+  { db, storage }: Pick<UploadDeps, 'db' | 'storage'>,
+  actor: Actor,
+  trackId: string,
+  input: CreateVersionRequest,
+): Promise<CreateUploadResponse> {
+  await loadTrackFor(db, actor, trackId, 'manage');
+  const version = await createNextVersion(db, {
+    trackId,
+    // Blank notes are stored as none.
+    changeNotes: input.changeNotes || null,
+    original: {
+      filename: input.filename,
+      contentType: input.contentType,
+      sizeBytes: input.sizeBytes,
+    },
+  });
+  // Null only if the track was deleted since the check above.
+  if (!version) throw httpError(404, 'NOT_FOUND', 'Not found');
+  return uploadFor(storage, version);
+}
+
+/** A presigned PUT for a new version's original; the size and type are signed into it. */
+async function uploadFor(storage: Storage, version: TrackVersion): Promise<CreateUploadResponse> {
+  const contentType = version.originalContentType;
   const url = await storage.presignUpload({
     key: version.originalKey,
-    contentType: input.contentType,
-    contentLength: input.sizeBytes,
+    contentType,
+    contentLength: version.originalSizeBytes,
     expiresIn: UPLOAD_URL_SECONDS,
   });
   return {
-    trackId: track.id,
+    trackId: version.trackId,
     versionId: version.id,
     upload: {
       url,
       method: 'PUT',
-      headers: { 'content-type': input.contentType },
+      headers: { 'content-type': contentType },
       expiresAt: new Date(Date.now() + UPLOAD_URL_SECONDS * 1000).toISOString(),
     },
   };

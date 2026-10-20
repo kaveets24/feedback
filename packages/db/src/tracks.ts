@@ -1,4 +1,4 @@
-import { and, desc, eq, exists, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
+import { and, desc, eq, exists, inArray, isNull, lt, max, ne, or, sql } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
 import { statusesBefore } from '@feedback/shared';
 import type { Db } from './client.ts';
@@ -41,6 +41,65 @@ export async function createTrackWithFirstVersion(
     if (!version) throw new Error('insert returned no version');
     return { track, version };
   });
+}
+
+/**
+ * Adds the next version (`uploading`) to a live track. Numbers count up and are never reused: a
+ * failed or abandoned v3 stays v3, so this one is v4. The track row is locked while the number is
+ * picked, so two uploads at once get different numbers. Null if the track doesn't exist or was
+ * deleted.
+ */
+export async function createNextVersion(
+  db: Db,
+  input: { trackId: string; original: NewOriginal; changeNotes?: string | null },
+): Promise<TrackVersion | null> {
+  return db.transaction(async (tx) => {
+    // `no key update`: the version insert's foreign key check on the track isn't blocked by it.
+    const [track] = await tx
+      .select({ id: tracks.id })
+      .from(tracks)
+      .where(and(eq(tracks.id, input.trackId), isNull(tracks.deletedAt)))
+      .for('no key update');
+    if (!track) return null;
+
+    const [last] = await tx
+      .select({ versionNumber: max(trackVersions.versionNumber) })
+      .from(trackVersions)
+      .where(eq(trackVersions.trackId, track.id));
+    const versionId = uuidv7();
+    const [version] = await tx
+      .insert(trackVersions)
+      .values({
+        id: versionId,
+        trackId: track.id,
+        versionNumber: (last?.versionNumber ?? 0) + 1,
+        changeNotes: input.changeNotes ?? null,
+        originalKey: `originals/${versionId}`,
+        originalFilename: input.original.filename,
+        originalContentType: input.original.contentType,
+        originalSizeBytes: input.original.sizeBytes,
+      })
+      .returning();
+    if (!version) throw new Error('insert returned no version');
+    return version;
+  });
+}
+
+/**
+ * Replaces a version's change notes (null clears them). The audio of a ready version never
+ * changes; its notes are the artist's to fix. Null if the version doesn't exist.
+ */
+export async function updateVersionNotes(
+  db: Db,
+  versionId: string,
+  changeNotes: string | null,
+): Promise<TrackVersion | null> {
+  const [version] = await db
+    .update(trackVersions)
+    .set({ changeNotes })
+    .where(eq(trackVersions.id, versionId))
+    .returning();
+  return version ?? null;
 }
 
 /** A track by id, or null if it doesn't exist or was deleted. */
@@ -91,7 +150,11 @@ export async function listTracksForOwner(
   return withLatestVersions(db, page);
 }
 
-/** Pairs each track with its newest version, keeping the tracks' order. */
+/**
+ * Pairs each track with its newest version, keeping the tracks' order. A version whose file
+ * never arrived (`uploading`) only counts when there's nothing newer that did, so an abandoned
+ * v2 upload doesn't hide a ready v1.
+ */
 export async function withLatestVersions(
   db: Db,
   list: Track[],
@@ -113,7 +176,11 @@ export async function withLatestVersions(
         list.map((t) => t.id),
       ),
     )
-    .orderBy(trackVersions.trackId, desc(trackVersions.versionNumber));
+    .orderBy(
+      trackVersions.trackId,
+      sql`${trackVersions.status} = 'uploading'`,
+      desc(trackVersions.versionNumber),
+    );
   const byTrack = new Map(latest.map(({ trackId, ...version }) => [trackId, version]));
 
   // Every track is created with its v1 in one transaction, so each has a latest version.

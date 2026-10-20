@@ -41,6 +41,8 @@ export const versionResponseSchema = z.object({
   id: z.uuid(),
   trackId: z.uuid(),
   versionNumber: z.number().int().positive(),
+  /** What changed in this version, in the artist's words. */
+  changeNotes: z.string().nullable(),
   status: versionStatusSchema,
   /** Why the version failed, in words for the artist. Null unless `failed`. */
   failureReason: z.string().nullable(),
@@ -52,6 +54,13 @@ export const versionResponseSchema = z.object({
 export type VersionResponse = z.infer<typeof versionResponseSchema>;
 
 export const versionParamsSchema = z.object({ versionId: z.uuid() });
+
+/** Change notes: up to 2000 characters. Blank (after trimming) is saved as none. */
+export const changeNotesSchema = z.string().trim().max(2000).nullable();
+
+/** `PATCH /v1/versions/:versionId`: the owner fixes a version's notes; null clears them. */
+export const updateVersionRequestSchema = z.object({ changeNotes: changeNotesSchema });
+export type UpdateVersionRequest = z.infer<typeof updateVersionRequestSchema>;
 
 /** `GET /v1/versions/:versionId/stream`: where the player loads a ready version's audio. */
 export const streamResponseSchema = z.object({

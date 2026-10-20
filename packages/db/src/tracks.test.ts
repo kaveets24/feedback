@@ -4,6 +4,7 @@ import { createDb } from './client.ts';
 import { tracks, trackVersions } from './schema.ts';
 import { resetDb, testDatabaseUrl } from './testing.ts';
 import {
+  createNextVersion,
   createTrackWithFirstVersion,
   findTrack,
   findVersion,
@@ -12,6 +13,7 @@ import {
   markVersionFailed,
   markVersionProcessing,
   markVersionReady,
+  updateVersionNotes,
   withLatestVersions,
 } from './tracks.ts';
 import { upsertUserFromAuth } from './users.ts';
@@ -245,6 +247,54 @@ describe('listTracksForOwner', () => {
   });
 });
 
+describe('createNextVersion', () => {
+  const next = (trackId: string, changeNotes?: string) =>
+    createNextVersion(db, { trackId, original, changeNotes });
+
+  it('adds the next number, uploading, with its notes and original key', async () => {
+    const { track } = await newTrack();
+    const v2 = await next(track.id, 'Louder vocals');
+    expect(v2).toMatchObject({
+      trackId: track.id,
+      versionNumber: 2,
+      status: 'uploading',
+      changeNotes: 'Louder vocals',
+      originalKey: `originals/${v2!.id}`,
+    });
+  });
+
+  it('never reuses a number, even after a failed version', async () => {
+    const { track } = await newTrack();
+    const v2 = await next(track.id);
+    await markVersionFailed(db, v2!.id, 'Bad file');
+    expect((await next(track.id))?.versionNumber).toBe(3);
+  });
+
+  it('gives concurrent uploads distinct numbers', async () => {
+    const { track } = await newTrack();
+    const made = await Promise.all([1, 2, 3, 4, 5].map(() => next(track.id)));
+    expect(made.map((v) => v!.versionNumber).sort()).toEqual([2, 3, 4, 5, 6]);
+  });
+
+  it('returns null for a deleted or missing track', async () => {
+    const { track } = await newTrack();
+    await db.update(tracks).set({ deletedAt: new Date() }).where(eq(tracks.id, track.id));
+    expect(await next(track.id)).toBeNull();
+    expect(await next(crypto.randomUUID())).toBeNull();
+  });
+});
+
+describe('updateVersionNotes', () => {
+  it('replaces or clears the notes, and returns null for a missing version', async () => {
+    const { version } = await newTrack();
+    expect(await updateVersionNotes(db, version.id, 'First idea')).toMatchObject({
+      changeNotes: 'First idea',
+    });
+    expect(await updateVersionNotes(db, version.id, null)).toMatchObject({ changeNotes: null });
+    expect(await updateVersionNotes(db, crypto.randomUUID(), 'x')).toBeNull();
+  });
+});
+
 describe('withLatestVersions', () => {
   it('keeps the order it was given, and returns nothing for no tracks', async () => {
     const a = await newTrack();
@@ -257,6 +307,20 @@ describe('withLatestVersions', () => {
       [a.track.id, v2.id],
     ]);
     expect(await withLatestVersions(db, [])).toEqual([]);
+  });
+
+  it("skips a newer version whose file never arrived, unless it's all there is", async () => {
+    const { track, version: v1 } = await newTrack();
+    await markVersionProcessing(db, v1.id);
+    const abandoned = await addVersion(track.id, 2);
+    const latest = async () => (await withLatestVersions(db, [track]))[0]?.latestVersion.id;
+    expect(await latest()).toBe(v1.id);
+
+    await markVersionProcessing(db, abandoned.id);
+    expect(await latest()).toBe(abandoned.id);
+
+    const { track: only, version: onlyV1 } = await newTrack();
+    expect((await withLatestVersions(db, [only]))[0]?.latestVersion.id).toBe(onlyV1.id);
   });
 });
 
