@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, desc, eq, exists, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
 import { statusesBefore } from '@feedback/shared';
 import type { Db } from './client.ts';
@@ -59,6 +59,9 @@ export type VersionSummary = Pick<TrackVersion, 'id' | 'versionNumber' | 'status
  * An owner's tracks, newest first, each with its newest version. Pages by id: ids are UUIDv7, so
  * they sort by creation time and compare exactly, unlike a timestamp truncated to milliseconds.
  * Pass the last id of one page as `before` to get the next.
+ *
+ * A track whose versions are all still `uploading` isn't listed: its file never arrived (the tab
+ * closed or the upload failed), so it has nothing to play or retry. Phase 7 cleans those up.
  */
 export async function listTracksForOwner(
   db: Db,
@@ -73,6 +76,14 @@ export async function listTracksForOwner(
         eq(tracks.ownerId, ownerId),
         isNull(tracks.deletedAt),
         before ? lt(tracks.id, before) : undefined,
+        exists(
+          db
+            .select({ id: trackVersions.id })
+            .from(trackVersions)
+            .where(
+              and(eq(trackVersions.trackId, tracks.id), ne(trackVersions.status, 'uploading')),
+            ),
+        ),
       ),
     )
     .orderBy(desc(tracks.id))
