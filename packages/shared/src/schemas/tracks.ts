@@ -35,6 +35,7 @@ export function statusesBefore(to: VersionStatus): VersionStatus[] {
 export const WAVEFORM_PEAK_COUNT = 1000;
 
 export const visibilitySchema = z.enum(VISIBILITIES);
+export type Visibility = z.infer<typeof visibilitySchema>;
 
 /** A version's state, for the artist to watch while it processes and for the player once ready. */
 export const versionResponseSchema = z.object({
