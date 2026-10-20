@@ -9,11 +9,12 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import type { TrackSummary } from '@feedback/shared';
 import { dragStep, moveItem } from '../../../lib/reorder';
-import { DownIcon, GripIcon, RemoveIcon, UpIcon } from '../../_shell/icons';
+import { GripIcon, RemoveIcon } from '../../_shell/icons';
 import { TrackLength, TrackSubtitle } from '../../_shell/track-meta';
 import {
   removeProjectTrackAction,
@@ -32,8 +33,8 @@ interface Drag {
 }
 
 /**
- * A project's tracks in running order. Drag a row by its grip, or use its move buttons (the
- * keyboard, touch and screen-reader path); either saves the whole order. Saves run one at a
+ * A project's tracks in running order. Drag a row by its grip, or focus the grip and press the
+ * up or down arrow (the keyboard and screen-reader path); either saves the whole order. Saves run one at a
  * time, in order, so quick moves can't arrive at the API out of sequence.
  */
 export function ProjectTracks({
@@ -68,7 +69,8 @@ export function ProjectTracks({
   const listRef = useRef<HTMLOListElement>(null);
   const drag = useRef<Drag | null>(null);
   const saves = useRef(Promise.resolve());
-  const refocus = useRef<{ id: string; direction: 'up' | 'down' } | null>(null);
+  /** The track whose grip should get focus back once a keyboard move has rendered. */
+  const refocus = useRef<string | null>(null);
 
   function enqueue(run: () => Promise<{ ok: boolean }>, failure: string) {
     setError(null);
@@ -98,9 +100,9 @@ export function ProjectTracks({
 
   function move(index: number, delta: -1 | 1) {
     const moved = order[index];
-    if (!moved) return;
+    if (!moved || !order[index + delta]) return;
     const next = moveItem(order, index, index + delta);
-    refocus.current = { id: moved.id, direction: delta < 0 ? 'up' : 'down' };
+    refocus.current = moved.id;
     setOrder(next);
     saveOrder(next, moved);
   }
@@ -133,16 +135,12 @@ export function ProjectTracks({
     if (removed) undoRef.current?.focus();
   }, [removed]);
 
-  // A moved row's button keeps focus, or hands it to its partner when it reaches an end.
+  // A moved row's grip keeps focus, so the arrow keys can carry on moving it.
   useEffect(() => {
-    const target = refocus.current;
-    if (!target) return;
+    const id = refocus.current;
+    if (!id) return;
     refocus.current = null;
-    const row = listRef.current?.querySelector<HTMLElement>(`[data-track="${target.id}"]`);
-    const button =
-      row?.querySelector<HTMLButtonElement>(`[data-move="${target.direction}"]:not(:disabled)`) ??
-      row?.querySelector<HTMLButtonElement>('[data-move]:not(:disabled)');
-    button?.focus();
+    listRef.current?.querySelector<HTMLElement>(`[data-track="${id}"] [data-grip]`)?.focus();
   }, [order]);
 
   /** Moves the dragged row under the pointer, swapping it past neighbours as it goes. */
@@ -233,6 +231,9 @@ export function ProjectTracks({
       <p aria-live="polite" className="sr-only">
         {announcement}
       </p>
+      <p id={`${projectId}-reorder-help`} hidden>
+        Press the up or down arrow key to move this track.
+      </p>
       {error && (
         <p role="alert" className="mb-3 text-sm text-danger">
           {error}
@@ -250,8 +251,8 @@ export function ProjectTracks({
               <TrackRow
                 track={track}
                 number={index + 1}
-                first={index === 0}
-                last={index === order.length - 1}
+                count={order.length}
+                helpId={`${projectId}-reorder-help`}
                 dragging={dragId === track.id}
                 onMove={(delta) => move(index, delta)}
                 onRemove={() => remove(track)}
@@ -274,8 +275,8 @@ type GripHandler = (event: ReactPointerEvent<HTMLElement>) => void;
 function TrackRow({
   track,
   number,
-  first,
-  last,
+  count,
+  helpId,
   dragging,
   onMove,
   onRemove,
@@ -286,8 +287,9 @@ function TrackRow({
 }: {
   track: TrackSummary;
   number: number;
-  first: boolean;
-  last: boolean;
+  count: number;
+  /** The element that explains the grip's arrow keys. */
+  helpId: string;
   dragging: boolean;
   onMove: (delta: -1 | 1) => void;
   onRemove: () => void;
@@ -296,6 +298,13 @@ function TrackRow({
   onGripUp: GripHandler;
   onGripCancel: GripHandler;
 }) {
+  const onGripKey = (event: ReactKeyboardEvent) => {
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+    event.preventDefault();
+    onMove(event.key === 'ArrowUp' ? -1 : 1);
+  };
+
   return (
     <li
       data-track={track.id}
@@ -303,20 +312,24 @@ function TrackRow({
         dragging ? 'z-10 rounded-sm bg-chrome-lo outline-2 outline-accent' : ''
       }`}
     >
-      {/* Pointer-only: the move buttons are the keyboard and screen-reader path. */}
-      <span
-        aria-hidden="true"
+      {/* Drag it with a pointer, or focus it and use the up and down arrows. */}
+      <button
+        type="button"
+        data-grip
+        aria-label={`Reorder ${track.title}, position ${number} of ${count}`}
+        aria-describedby={helpId}
         title="Drag to reorder"
-        className={`flex h-10 touch-none items-center justify-center rounded-sm text-field-edge hover:text-accent ${
+        className={`focus-glow flex h-10 touch-none items-center justify-center rounded-sm text-field-edge hover:text-accent focus-visible:text-accent ${
           dragging ? 'cursor-grabbing text-accent' : 'cursor-grab'
         }`}
+        onKeyDown={onGripKey}
         onPointerDown={onGripDown}
         onPointerMove={onGripMove}
         onPointerUp={onGripUp}
         onPointerCancel={onGripCancel}
       >
         <GripIcon />
-      </span>
+      </button>
       <span className="font-lcd text-base text-muted tabular-nums">
         {String(number).padStart(2, '0')}
       </span>
@@ -330,37 +343,15 @@ function TrackRow({
         <TrackSubtitle track={track} />
       </div>
       <TrackLength track={track} />
-      <div className="flex gap-1">
-        <button
-          type="button"
-          data-move="up"
-          className="btn btn-ghost btn-icon"
-          aria-label={`Move ${track.title} up`}
-          disabled={first}
-          onClick={() => onMove(-1)}
-        >
-          <UpIcon />
-        </button>
-        <button
-          type="button"
-          data-move="down"
-          className="btn btn-ghost btn-icon"
-          aria-label={`Move ${track.title} down`}
-          disabled={last}
-          onClick={() => onMove(1)}
-        >
-          <DownIcon />
-        </button>
-        <button
-          type="button"
-          className="btn btn-ghost btn-icon"
-          aria-label={`Remove ${track.title} from this project`}
-          title="Remove from project"
-          onClick={onRemove}
-        >
-          <RemoveIcon />
-        </button>
-      </div>
+      <button
+        type="button"
+        className="btn btn-ghost btn-icon"
+        aria-label={`Remove ${track.title} from this project`}
+        title="Remove from project"
+        onClick={onRemove}
+      >
+        <RemoveIcon />
+      </button>
     </li>
   );
 }
