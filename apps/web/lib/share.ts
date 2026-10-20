@@ -33,11 +33,6 @@ export function expiresAtFor(choice: ExpiryChoice, now: Date): string | null {
   return days === null ? null : new Date(now.getTime() + days * DAY_MS).toISOString();
 }
 
-export const ROLE_LABELS: Record<ShareLinkResponse['role'], string> = {
-  listen: 'Can listen',
-  comment: 'Can listen and comment',
-};
-
 /** Whether a link works now, and its state in plain words. */
 export function linkState(link: ShareLinkResponse, now: Date): { active: boolean; text: string } {
   if (link.revokedAt) return { active: false, text: `Turned off ${formatDate(link.revokedAt)}` };

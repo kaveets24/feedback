@@ -87,10 +87,7 @@ describe('share links', () => {
       ...(payload && { payload }),
     });
 
-  async function makeLink(
-    path: string,
-    payload: object = { role: 'listen' },
-  ): Promise<CreateShareLinkResponse> {
+  async function makeLink(path: string, payload: object = {}): Promise<CreateShareLinkResponse> {
     const res = await request('POST', `${path}/share-links`, { as: 'u1', payload });
     expect(res.statusCode).toBe(201);
     return res.json<CreateShareLinkResponse>();
@@ -101,9 +98,10 @@ describe('share links', () => {
       const owner = await approvedUser('u1');
       const { track } = await newTrack(owner.id, 'unlisted');
 
+      // The web app live while this deploys still sends a role; it's ignored.
       const res = await request('POST', `/v1/tracks/${track.id}/share-links`, {
         as: 'u1',
-        payload: { role: 'comment' },
+        payload: { role: 'listen' },
       });
       expect(res.statusCode).toBe(201);
       expect(res.headers['cache-control']).toBe('no-store');
@@ -128,7 +126,6 @@ describe('share links', () => {
       const project = await newProject(owner.id, 'unlisted');
       const first = await makeLink(`/v1/projects/${project.id}`);
       const second = await makeLink(`/v1/projects/${project.id}`, {
-        role: 'comment',
         expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
       });
 
@@ -158,32 +155,27 @@ describe('share links', () => {
       });
     });
 
-    it('refuses an expiry that isn’t in the future, and an unknown role', async () => {
+    it('refuses an expiry that isn’t in the future', async () => {
       const owner = await approvedUser('u1');
       const { track } = await newTrack(owner.id, 'unlisted');
       const past = await request('POST', `/v1/tracks/${track.id}/share-links`, {
         as: 'u1',
-        payload: { role: 'listen', expiresAt: new Date(Date.now() - 1000).toISOString() },
+        payload: { expiresAt: new Date(Date.now() - 1000).toISOString() },
       });
       expect(past.statusCode).toBe(400);
       expect(past.json()).toMatchObject({ error: { code: 'EXPIRY_IN_PAST' } });
-      const owned = await request('POST', `/v1/tracks/${track.id}/share-links`, {
-        as: 'u1',
-        payload: { role: 'owner' },
-      });
-      expect(owned.statusCode).toBe(400);
     });
 
     it('is the owner’s alone: anyone else gets a 404, even holding a link', async () => {
       const owner = await approvedUser('u1');
       await approvedUser('u2');
       const { track } = await newTrack(owner.id, 'public');
-      const { link, token } = await makeLink(`/v1/tracks/${track.id}`, { role: 'comment' });
+      const { link, token } = await makeLink(`/v1/tracks/${track.id}`);
 
       for (const who of [{ as: 'u2' }, {}, { token }, { as: 'u2', token }]) {
         const make = await request('POST', `/v1/tracks/${track.id}/share-links`, {
           ...who,
-          payload: { role: 'listen' },
+          payload: {},
         });
         expect(make.statusCode).toBe(404);
         expect((await request('GET', `/v1/tracks/${track.id}/share-links`, who)).statusCode).toBe(
@@ -237,7 +229,6 @@ describe('share links', () => {
       const owner = await approvedUser('u1');
       const { track } = await newTrack(owner.id, 'unlisted');
       const { link, token } = await makeLink(`/v1/tracks/${track.id}`, {
-        role: 'listen',
         expiresAt: new Date(Date.now() + 60_000).toISOString(),
       });
       expect((await request('GET', `/v1/tracks/${track.id}`, { token })).statusCode).toBe(200);
@@ -342,7 +333,7 @@ describe('share links', () => {
       const owner = await approvedUser('u1');
       await approvedUser('u2');
       const { track, v1 } = await newTrack(owner.id, 'unlisted');
-      const { token } = await makeLink(`/v1/tracks/${track.id}`, { role: 'comment' });
+      const { token } = await makeLink(`/v1/tracks/${track.id}`);
 
       for (const who of [{ token }, { as: 'u2', token }]) {
         const patch = await app.inject({
@@ -362,7 +353,7 @@ describe('share links', () => {
       const owner = await approvedUser('u1');
       const project = await newProject(owner.id, 'unlisted');
       const { track } = await newTrack(owner.id, 'unlisted');
-      const trackLink = await makeLink(`/v1/tracks/${track.id}`, { role: 'comment' });
+      const trackLink = await makeLink(`/v1/tracks/${track.id}`);
       const projectLink = await makeLink(`/v1/projects/${project.id}`);
 
       const current = (token?: string, as?: string) =>
@@ -375,7 +366,7 @@ describe('share links', () => {
       expect((await current(projectLink.token)).json()).toEqual({
         resourceType: 'project',
         resourceId: project.id,
-        role: 'listen',
+        role: 'comment',
       });
 
       expect((await current()).statusCode).toBe(404);
