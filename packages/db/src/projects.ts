@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, isNull, lt, max, sql } from 'drizzle-orm';
 import { effectiveVisibility, overrideOnJoin, type Visibility } from '@feedback/authz';
-import type { ProjectStatus, ReleaseType } from '@feedback/shared';
+import type { ReleaseType } from '@feedback/shared';
 import type { Db } from './client.ts';
 import { projects, shareLinks, tracks, users, type Project, type Track } from './schema.ts';
 
@@ -28,8 +28,6 @@ export async function createProject(
     title: string;
     description?: string | null;
     releaseType?: ReleaseType;
-    /** @deprecated Replaced by `releaseType`. */
-    status?: ProjectStatus;
   },
 ): Promise<Project> {
   const [project] = await db.insert(projects).values(input).returning();
@@ -80,7 +78,7 @@ export async function listProjectsForOwner(
 }
 
 export type ProjectChanges = Partial<
-  Pick<Project, 'title' | 'description' | 'releaseType' | 'status' | 'visibility'>
+  Pick<Project, 'title' | 'description' | 'releaseType' | 'visibility'>
 >;
 
 /** Applies `changes` to a live project. Null if it doesn't exist or was deleted. */
