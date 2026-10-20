@@ -6,6 +6,7 @@ import { TrackPlayer } from '../../_player/track-player';
 import { UploadForm } from '../../upload-form';
 import { ProcessingStatus } from './processing-status';
 import { ProjectSelect } from './project-select';
+import { VersionItem } from './version-item';
 import { VersionRow } from './version-notes';
 
 /** The track page's body: its place, the player, the version history, and a new version's upload. */
@@ -68,7 +69,7 @@ export function TrackView({
         {/* Not an ordered list: the V-number is the order, and failed uploads leave gaps. */}
         <ul className="border-t border-rule">
           {history.map((version) => (
-            <li key={version.id} className="border-b border-rule py-3">
+            <VersionItem key={version.id} versionId={version.id}>
               <VersionRow
                 versionId={version.id}
                 versionNumber={version.versionNumber}
@@ -84,7 +85,7 @@ export function TrackView({
                   </span>
                 }
               />
-            </li>
+            </VersionItem>
           ))}
         </ul>
       </section>
