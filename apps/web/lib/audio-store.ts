@@ -8,6 +8,8 @@ export type PlayerItem = {
   versionNumber: number;
   durationMs: number;
   peaks: readonly number[];
+  /** The share link it was opened with, for someone listening through one (never logged). */
+  shareToken?: string;
 };
 
 export type PlaybackStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
@@ -30,7 +32,7 @@ export type StreamUrl = { url: string; expiresAt: string };
 
 export type AudioStoreDeps = {
   createAudio: () => AudioLike;
-  fetchStream: (versionId: string) => Promise<ActionResult<StreamUrl>>;
+  fetchStream: (versionId: string, shareToken?: string) => Promise<ActionResult<StreamUrl>>;
   now: () => number;
 };
 
@@ -103,7 +105,7 @@ export function createAudioStore({ createAudio, fetchStream, now }: AudioStoreDe
         return;
       }
       retried = true;
-      void loadSource(state.item.versionId, state.status !== 'paused', { fresh: true });
+      void loadSource(state.item, state.status !== 'paused', { fresh: true });
     });
     audio = el;
     return el;
@@ -114,12 +116,12 @@ export function createAudioStore({ createAudio, fetchStream, now }: AudioStoreDe
   }
 
   /** A stream URL for the version: the kept one while it's fresh (unless `fresh`), else a new one. */
-  async function streamUrl(versionId: string, fresh: boolean): Promise<StreamUrl | null> {
-    const kept = urls.get(versionId);
+  async function streamUrl(item: PlayerItem, fresh: boolean): Promise<StreamUrl | null> {
+    const kept = urls.get(item.versionId);
     if (kept && !fresh && isFresh(kept)) return kept;
-    const result = await fetchStream(versionId).catch(() => null);
+    const result = await fetchStream(item.versionId, item.shareToken).catch(() => null);
     if (!result?.ok) return null;
-    urls.set(versionId, result.data);
+    urls.set(item.versionId, result.data);
     return result.data;
   }
 
@@ -128,12 +130,12 @@ export function createAudioStore({ createAudio, fetchStream, now }: AudioStoreDe
    * while it loads move that start rather than the old source. `fresh` skips the kept URL, for
    * when it may be the reason playback failed.
    */
-  async function loadSource(versionId: string, autoplay: boolean, { fresh = false } = {}) {
+  async function loadSource(item: PlayerItem, autoplay: boolean, { fresh = false } = {}) {
     const id = ++loadId;
     const el = element();
     pendingSeekMs = state.positionMs;
     if (autoplay) set({ status: 'loading', error: null });
-    const url = await streamUrl(versionId, fresh);
+    const url = await streamUrl(item, fresh);
     if (id !== loadId) return;
     if (!url) {
       pendingSeekMs = null;
@@ -167,7 +169,7 @@ export function createAudioStore({ createAudio, fetchStream, now }: AudioStoreDe
     const { item } = state;
     if (!item) return;
     if (state.status === 'error' || now() >= expiresAt - EXPIRY_MARGIN_MS) {
-      await loadSource(item.versionId, true, { fresh: state.status === 'error' });
+      await loadSource(item, true, { fresh: state.status === 'error' });
       return;
     }
     set({ status: 'loading' });
@@ -196,7 +198,7 @@ export function createAudioStore({ createAudio, fetchStream, now }: AudioStoreDe
     retried = false;
     expiresAt = 0;
     set({ item, status: 'loading', positionMs: atMs ?? 0, error: null });
-    await loadSource(item.versionId, true);
+    await loadSource(item, true);
   }
 
   /**
@@ -215,12 +217,12 @@ export function createAudioStore({ createAudio, fetchStream, now }: AudioStoreDe
       positionMs: Math.min(state.positionMs, item.durationMs),
       error: null,
     });
-    await loadSource(item.versionId, playing);
+    await loadSource(item, playing);
   }
 
   /** Fetches a version's stream URL ahead of time, so playing or switching to it starts sooner. */
-  async function prefetch(versionId: string) {
-    await streamUrl(versionId, false);
+  async function prefetch(item: PlayerItem) {
+    await streamUrl(item, false);
   }
 
   async function toggle() {

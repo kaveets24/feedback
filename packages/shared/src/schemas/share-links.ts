@@ -49,3 +49,15 @@ export const shareLinkListResponseSchema = z.object({ links: z.array(shareLinkRe
 export type ShareLinkListResponse = z.infer<typeof shareLinkListResponseSchema>;
 
 export const shareLinkParamsSchema = z.object({ linkId: z.uuid() });
+
+/**
+ * `GET /v1/share-links/current`: what the link presented in `x-share-token` opens, so a listen page
+ * that only has the token knows what to load. A 404 unless the link works and what it's for can be
+ * viewed with it.
+ */
+export const sharedResourceResponseSchema = z.object({
+  resourceType: z.enum(RESOURCE_KINDS),
+  resourceId: z.uuid(),
+  role: linkRoleSchema,
+});
+export type SharedResourceResponse = z.infer<typeof sharedResourceResponseSchema>;

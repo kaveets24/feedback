@@ -28,7 +28,8 @@ export function MiniPlayer() {
         <TransportButton status={status} title={item.title} size="md" onClick={toggle} />
         <div className="min-w-0 flex-1 sm:w-72 sm:flex-none">
           <Link
-            href={`/tracks/${item.trackId}`}
+            // Someone listening by a share link goes back to it, not to the owner's track page.
+            href={item.shareToken ? `/listen#${item.shareToken}` : `/tracks/${item.trackId}`}
             className="focus-glow block truncate rounded-sm text-sm font-medium text-ink hover:text-accent"
           >
             {item.title}

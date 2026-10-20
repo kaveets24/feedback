@@ -358,6 +358,36 @@ describe('share links', () => {
       }
     });
 
+    it('says what a working link opens, and nothing for one that doesn’t work', async () => {
+      const owner = await approvedUser('u1');
+      const project = await newProject(owner.id, 'unlisted');
+      const { track } = await newTrack(owner.id, 'unlisted');
+      const trackLink = await makeLink(`/v1/tracks/${track.id}`, { role: 'comment' });
+      const projectLink = await makeLink(`/v1/projects/${project.id}`);
+
+      const current = (token?: string, as?: string) =>
+        request('GET', '/v1/share-links/current', { token, as });
+      expect((await current(trackLink.token)).json()).toEqual({
+        resourceType: 'track',
+        resourceId: track.id,
+        role: 'comment',
+      });
+      expect((await current(projectLink.token)).json()).toEqual({
+        resourceType: 'project',
+        resourceId: project.id,
+        role: 'listen',
+      });
+
+      expect((await current()).statusCode).toBe(404);
+      expect((await current('A'.repeat(43))).statusCode).toBe(404);
+      await request('DELETE', `/v1/share-links/${trackLink.link.id}`, { as: 'u1' });
+      expect((await current(trackLink.token)).statusCode).toBe(404);
+      // Private: the link does nothing, even for the owner holding it.
+      await updateProject(db, project.id, { visibility: 'private' });
+      expect((await current(projectLink.token)).statusCode).toBe(404);
+      expect((await current(projectLink.token, 'u1')).statusCode).toBe(404);
+    });
+
     it('ignores a malformed or unknown token rather than refusing the request', async () => {
       const owner = await approvedUser('u1');
       const { track } = await newTrack(owner.id, 'public');
