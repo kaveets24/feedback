@@ -282,7 +282,7 @@ Client                API                      B2/S3              Worker
 
 ### Visual style: Y2K / Winamp / LimeWire
 
-> **Styling is deferred, except the player, the app header, home, the track page, and the project pages.** The waveform player and mini-player (`apps/web/app/_player/`) were styled in Phase 2 (2026-10-19), with the first tokens and primitives in `globals.css` and the system recorded in `apps/web/DESIGN.md`. The shared app header (`apps/web/app/_shell/`) and the project pages (`apps/web/app/projects/`) followed in Phase 3 (2026-10-19), adding the working-screen primitives (buttons, fields, links) and the LCD segment picker (now the release type picker). Home (all four states, with the striped upload bar) followed the same day, then the track page (version history and new-version upload, 2026-10-20). Sign-in and sign-up only share the header's column width. Everything else stays plain semantic HTML until asked: don't add CSS, Tailwind classes, design tokens, or themed primitives elsewhere (accessibility rules above still apply). The direction below is the plan for the rest.
+> **Styling is deferred, except the player, the app header, home, the track page, the project pages, and the profile page.** The waveform player and mini-player (`apps/web/app/_player/`) were styled in Phase 2 (2026-10-19), with the first tokens and primitives in `globals.css` and the system recorded in `apps/web/DESIGN.md`. The shared app header (`apps/web/app/_shell/`) and the project pages (`apps/web/app/projects/`) followed in Phase 3 (2026-10-19), adding the working-screen primitives (buttons, fields, links) and the LCD segment picker (now the release type picker). Home (all four states, with the striped upload bar) followed the same day, then the track page (version history and new-version upload, 2026-10-20), and the profile page (`/settings/profile`, with a preview of how your name signs a comment, 2026-10-20). Sign-in and sign-up only share the header's column width. Everything else stays plain semantic HTML until asked: don't add CSS, Tailwind classes, design tokens, or themed primitives elsewhere (accessibility rules above still apply). The direction below is the plan for the rest.
 
 **Design tooling:** design work uses the [Impeccable](https://impeccable.style) agent skill, installed per developer as a Claude Code plugin (nothing vendored in the repo). Its product context lives in `PRODUCT.md`, which repeats this file's product facts; keep the two in sync. Its `apps/web/DESIGN.md` describes the styled parts so far and must follow the direction below; per-surface briefs live in `apps/web/.impeccable/surfaces/`. The plugin's detector hook checks UI files as they're edited.
 
@@ -414,7 +414,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 ### Phase 5: Feedback
 
-- [x] Profile settings, so comments can show who wrote them _(page: `/settings/profile`, linked from the header as Profile, only for the signed-in user: display name, bio, and an optional city. API: `GET`/`PATCH /v1/me/profile`; the first save creates the profile. Plain HTML until it's styled)_
+- [x] Profile settings, so comments can show who wrote them _(page: `/settings/profile`, linked from the header as Profile, only for the signed-in user: display name, bio, and an optional city. API: `GET`/`PATCH /v1/me/profile`; the first save creates the profile. Styled, with a live preview of how the name signs a comment)_
 - [ ] Timestamped comments on the waveform, threaded replies
 - [ ] Per-version "what I want feedback on" prompt
 - [ ] Open/resolved status, artist-only vs public comments
@@ -471,7 +471,7 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 - Make **small, reviewable changes**. Prefer several focused PRs/commits over one giant one.
 - **Work on feature branches**, one PR per coherent change, each with a detailed description (see section 11). Never commit to `main` directly.
 - **Schema and authz first.** Show me migrations and `canAccess` changes before building UI on top of them.
-- **No styling yet, beyond the player, the app header, home, the track page, and the project pages.** Other web pages are plain semantic HTML until I ask for styling (see "Visual style" in section 9).
+- **No styling yet, beyond the player, the app header, home, the track page, the project pages, and the profile page.** Other web pages are plain semantic HTML until I ask for styling (see "Visual style" in section 9).
 - **Every developer command is a root `package.json` script** (see section 4). Add the script when you add the need.
 - **Write tests with the code**, and run `pnpm lint && pnpm typecheck && pnpm test` before declaring done.
 - Don't add dependencies without saying why. Prefer well-maintained, widely used packages.
