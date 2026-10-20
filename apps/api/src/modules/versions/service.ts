@@ -1,6 +1,12 @@
 import { canAccess, type Action } from '@feedback/authz';
-import { findVersion, type Db, type Track, type TrackVersion } from '@feedback/db';
-import type { StreamResponse, VersionResponse } from '@feedback/shared';
+import {
+  findVersion,
+  updateVersionNotes,
+  type Db,
+  type Track,
+  type TrackVersion,
+} from '@feedback/db';
+import type { StreamResponse, UpdateVersionRequest, VersionResponse } from '@feedback/shared';
 import type { Storage } from '@feedback/storage';
 import { authzActor, trackResource } from '../../auth/authz.ts';
 import type { Actor } from '../../auth/plugin.ts';
@@ -11,6 +17,7 @@ export function toVersionResponse(version: TrackVersion): VersionResponse {
     id: version.id,
     trackId: version.trackId,
     versionNumber: version.versionNumber,
+    changeNotes: version.changeNotes,
     status: version.status,
     failureReason: version.failureReason,
     durationMs: version.durationMs,
@@ -41,6 +48,20 @@ export async function loadVersionFor(
     throw httpError(404, 'NOT_FOUND', 'Not found');
   }
   return found;
+}
+
+/** Replaces a version's change notes. The owner only; anyone else gets the usual 404. */
+export async function updateVersion(
+  db: Db,
+  actor: Actor,
+  versionId: string,
+  input: UpdateVersionRequest,
+): Promise<VersionResponse> {
+  await loadVersionFor(db, actor, versionId, 'manage');
+  // Blank notes are stored as none. Null only if it went away since the check above.
+  const version = await updateVersionNotes(db, versionId, input.changeNotes || null);
+  if (!version) throw httpError(404, 'NOT_FOUND', 'Not found');
+  return toVersionResponse(version);
 }
 
 export async function getVersion(

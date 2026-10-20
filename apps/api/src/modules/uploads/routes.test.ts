@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   findVersion,
+  markVersionFailed,
   markVersionProcessing,
   markVersionReady,
   setAccessStatus,
@@ -152,6 +153,84 @@ describe('uploads', () => {
     });
   });
 
+  describe('POST /v1/tracks/:trackId/versions', () => {
+    const file = { filename: 'idea-v2.wav', contentType: 'audio/wav', sizeBytes: 2044 };
+    const newVersion = (trackId: string, headers: Record<string, string>, body: object) =>
+      app.inject({ method: 'POST', url: `/v1/tracks/${trackId}/versions`, headers, payload: body });
+
+    it('adds the next version, uploading, with its notes, and a signed upload URL', async () => {
+      const v1 = await start('u1');
+      const res = await newVersion(v1.trackId, auth('u1'), {
+        ...file,
+        changeNotes: '  Louder vocals, new bridge  ',
+      });
+
+      expect(res.statusCode).toBe(201);
+      const body: CreateUploadResponse = res.json();
+      expect(body.trackId).toBe(v1.trackId);
+      expect(body.upload).toMatchObject({
+        method: 'PUT',
+        headers: { 'content-type': 'audio/wav' },
+      });
+      expect(new URL(body.upload.url).pathname).toContain(`originals/${body.versionId}`);
+      expect((await findVersion(db, body.versionId))?.version).toMatchObject({
+        versionNumber: 2,
+        status: 'uploading',
+        changeNotes: 'Louder vocals, new bridge',
+        originalFilename: 'idea-v2.wav',
+      });
+    });
+
+    it('finishes through the same complete call as v1', async () => {
+      const v1 = await start('u1');
+      const v2: CreateUploadResponse = (await newVersion(v1.trackId, auth('u1'), file)).json();
+      expect((await put(v2, wav())).status).toBe(200);
+
+      const res = await complete(v2.versionId, auth('u1'));
+      expect(res.json()).toMatchObject({
+        versionNumber: 2,
+        status: 'processing',
+        changeNotes: null,
+      });
+      expect(queue.transcodes).toEqual([v2.versionId]);
+    });
+
+    it('never reuses a number, and stores blank notes as none', async () => {
+      const v1 = await start('u1');
+      const v2: CreateUploadResponse = (await newVersion(v1.trackId, auth('u1'), file)).json();
+      await markVersionFailed(db, v2.versionId, 'Bad file');
+
+      const v3: CreateUploadResponse = (
+        await newVersion(v1.trackId, auth('u1'), { ...file, changeNotes: '   ' })
+      ).json();
+      expect((await findVersion(db, v3.versionId))?.version).toMatchObject({
+        versionNumber: 3,
+        changeNotes: null,
+      });
+    });
+
+    it('returns 404 to anyone else and for a missing track, and adds nothing', async () => {
+      const v1 = await start('u1');
+      await approvedUser('u2');
+
+      expect((await newVersion(v1.trackId, auth('u2'), file)).statusCode).toBe(404);
+      expect((await newVersion(v1.trackId, {}, file)).statusCode).toBe(404);
+      expect((await newVersion(crypto.randomUUID(), auth('u1'), file)).statusCode).toBe(404);
+      const v2: CreateUploadResponse = (await newVersion(v1.trackId, auth('u1'), file)).json();
+      expect((await findVersion(db, v2.versionId))?.version.versionNumber).toBe(2);
+    });
+
+    it.each([
+      ['an unsupported type', { contentType: 'video/mp4' }],
+      ['a file over the size limit', { sizeBytes: MAX_UPLOAD_BYTES + 1 }],
+      ['notes over 2000 characters', { changeNotes: 'x'.repeat(2001) }],
+    ])('rejects %s', async (_label, change) => {
+      const v1 = await start('u1');
+      const res = await newVersion(v1.trackId, auth('u1'), { ...file, ...change });
+      expect(res.statusCode).toBe(400);
+    });
+  });
+
   describe('POST /v1/uploads/:versionId/complete', () => {
     it('checks the file, moves the version to processing, and queues it', async () => {
       const started = await start('u1');
@@ -163,6 +242,7 @@ describe('uploads', () => {
         id: started.versionId,
         trackId: started.trackId,
         versionNumber: 1,
+        changeNotes: null,
         status: 'processing',
         failureReason: null,
         durationMs: null,

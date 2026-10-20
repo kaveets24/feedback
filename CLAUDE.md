@@ -394,7 +394,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 - [ ] Projects CRUD, cover art upload, status field _(deleting a project leaves its tracks loose. Cover art is re-encoded by ffmpeg in the worker: cropped square, resized, and stripped of all metadata, since photo EXIF can hold GPS location. Decided 2026-10-19. API: `POST /v1/projects`, `GET /v1/projects`, `GET`/`PATCH`/`DELETE /v1/projects/:projectId`; visibility isn't editable until Phase 4. Pages: `/projects` and `/projects/[projectId]`, with the status as a clickable LCD segment meter)_
 - [ ] Add/reorder tracks in a project _(pages: drag a track by its grip or use its move buttons, an add-a-track picker on the project page, and a plain "Project" selector on the track page. API: `GET`/`POST`/`PUT /v1/projects/:projectId/tracks` (list, add to the end, set the full order; a stale order is a 409) and `DELETE /v1/projects/:projectId/tracks/:trackId`, which leaves the track loose)_
-- [ ] Upload new version of a track, version history UI, change notes
+- [ ] Upload new version of a track, version history UI, change notes _(API: `POST /v1/tracks/:trackId/versions` starts the next version's upload, finished by the same `POST /v1/uploads/:versionId/complete`; `PATCH /v1/versions/:versionId` edits a version's change notes, which stay editable while the audio is immutable. Decided 2026-10-20)_
 - [ ] A/B switch between versions in the player
 - **Done when:** I can build a 5-track project, upload v2 of a song, and compare v1 vs v2.
 
