@@ -399,7 +399,7 @@ The signature component of the player: the same LCD window, used as a keyboard-a
 
 ### Player Panel
 
-The track page's housing: graphite gradient, 1px edge, panel shadow, 0.5rem corners, 12px padding, with the transport button, LCD readout, and waveform window inside. An error line in `danger` sits under the waveform on a solid `chrome-lo` strip, never on the gradient.
+The track page's housing: graphite gradient, 1px edge, panel shadow, 0.5rem corners, 12px padding, with the transport button, LCD readout, and waveform window inside, and the A/B switch under the waveform when the track has more than one ready version. An error line in `danger` sits under the waveform on a solid `chrome-lo` strip, never on the gradient.
 
 ### Mini-Player
 
@@ -408,6 +408,10 @@ A solid `chrome-lo` bar (no gradient, since it carries text) with a 1px `chrome-
 ### Status Meter
 
 The project page's signature: the project's stage (Idea, Demo, Mixing, Done) as a row of segments in one LCD window, padded 4px with 4px between segments. Each segment is an uppercase LCD label, 6px by 12px (16px sides from `sm`), with 2px corners. Passed stages are lit `lcd-ink`, the current one is a solid `lcd-ink` fill with `lcd` text, and later ones are `lcd-unlit`; non-current segments turn `accent` on hover. It's a radio group: arrow keys move along it, each choice saves at once, and keyboard focus draws the 2px accent outline at 2px offset around the segment. A failed save puts the stage back and says so in a `danger` line.
+
+### A/B Switch
+
+Compares the current version (A) with an older one (B) in the player panel. It uses the status meter's segments in one LCD window: two segments labelled like "A · v3" and "B · v2". The version in the player is the solid `lcd-ink` fill, the other is `lcd-unlit`, and hover turns it `accent`. It's a radio group, so arrow keys flip it, and so do the A and B keys anywhere in the panel. Switching carries on at the same moment, playing or paused as before. With two or more older versions, a compact field-style select labelled "Compare with" sits beside it (and wraps below it on phones) to pick B.
 
 ### Status Badge
 
