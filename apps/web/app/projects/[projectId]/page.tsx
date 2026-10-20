@@ -4,7 +4,7 @@ import { serverApi } from '../../../lib/api';
 import { formatDuration, totalDurationMs } from '../../../lib/format';
 import { loadOrNotFound } from '../../../lib/load';
 import { collectPages } from '../../../lib/pages';
-import { StatusMeter } from '../status-meter';
+import { ReleaseTypePicker } from '../release-type-picker';
 import { AddTrackForm } from './add-track-form';
 import { ProjectDetails } from './project-details';
 import { ProjectTracks } from './project-tracks';
@@ -46,7 +46,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
       <ProjectDetails
         project={project}
         trackCount={tracks.length}
-        status={<StatusMeter projectId={project.id} status={project.status} />}
+        releaseType={<ReleaseTypePicker projectId={project.id} releaseType={project.releaseType} />}
       />
 
       <section aria-labelledby="tracks-heading" className="mt-12">

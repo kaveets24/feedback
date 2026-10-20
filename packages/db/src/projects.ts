@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, isNull, lt, max, sql } from 'drizzle-orm';
 import { effectiveVisibility, overrideOnJoin, type Visibility } from '@feedback/authz';
-import type { ProjectStatus } from '@feedback/shared';
+import type { ProjectStatus, ReleaseType } from '@feedback/shared';
 import type { Db } from './client.ts';
 import { projects, shareLinks, tracks, users, type Project, type Track } from './schema.ts';
 
@@ -20,10 +20,17 @@ async function lockOwnerProjects(tx: Tx, ownerId: string): Promise<void> {
 
 const isLive = (projectId: string) => and(eq(projects.id, projectId), isNull(projects.deletedAt));
 
-/** Creates a project. New projects are private (CLAUDE.md section 6, rule 1). */
+/** Creates a project. New projects are private (CLAUDE.md section 6, rule 1) singles. */
 export async function createProject(
   db: Db,
-  input: { ownerId: string; title: string; description?: string | null; status?: ProjectStatus },
+  input: {
+    ownerId: string;
+    title: string;
+    description?: string | null;
+    releaseType?: ReleaseType;
+    /** @deprecated Replaced by `releaseType`. */
+    status?: ProjectStatus;
+  },
 ): Promise<Project> {
   const [project] = await db.insert(projects).values(input).returning();
   if (!project) throw new Error('insert returned no project');
@@ -73,7 +80,7 @@ export async function listProjectsForOwner(
 }
 
 export type ProjectChanges = Partial<
-  Pick<Project, 'title' | 'description' | 'status' | 'visibility'>
+  Pick<Project, 'title' | 'description' | 'releaseType' | 'status' | 'visibility'>
 >;
 
 /** Applies `changes` to a live project. Null if it doesn't exist or was deleted. */

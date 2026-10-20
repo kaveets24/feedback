@@ -157,17 +157,15 @@ components:
     rounded: '{rounded.md}'
     padding: '8px 12px'
     height: '40px'
-  status-segment:
+  type-segment:
     textColor: '{colors.lcd-unlit}'
     typography: '{typography.lcd-label}'
     rounded: '{rounded.segment}'
     padding: '6px 12px'
-  status-segment-passed:
-    textColor: '{colors.lcd-ink}'
-  status-segment-current:
+  type-segment-current:
     backgroundColor: '{colors.lcd-ink}'
     textColor: '{colors.lcd}'
-  status-badge:
+  type-badge:
     backgroundColor: '{colors.lcd}'
     textColor: '{colors.lcd-ink}'
     typography: '{typography.lcd-label}'
@@ -218,9 +216,9 @@ components:
 
 Feedback borrows the late-90s desktop music player: a graphite hardware housing, a recessed LCD window with lime phosphor ink, and chunky bevel buttons that sink when pressed. The waveform sits inside the LCD as segmented bars. The part you've already heard is lit, the rest shows as dim lime, and the empty cells stay faintly visible behind both, like the unlit segments on a real LCD.
 
-**Scope so far: the player, the app header, home, the project pages, and the track page.** The player means the track page's waveform player and the global mini-player. The app header sits on every page. Home (`/`, in all four states: signed out, pending, rejected, and signed in with the upload form and your tracks), the projects list (`/projects`), the project page (`/projects/[projectId]`, with its cover art), and the track page around its player (`/tracks/[trackId]`: the header block, the Project selector, the version history with its notes editor, and the new-version upload) are the working screens: the player's world extended to forms and lists, with flat graphite controls, 1px rules between rows, and the LCD well kept for things that read out (the status meter, the status badge, and the upload progress bar). A project's cover art is the one image in the system, and it sits bare, without chrome or an LCD well. Every page uses the same 48rem column under the header, but the bodies of sign-in and sign-up are still deliberately plain semantic HTML. The direction for everything not built yet (glossy LimeWire toolbars, results tables, window panels, Aqua surfaces, light mode, skins) is in CLAUDE.md section 9, "Visual style: Y2K / Winamp / LimeWire". It is not recorded here because none of it exists in code. When one of those surfaces gets built, add it to this file from the shipped code.
+**Scope so far: the player, the app header, home, the project pages, and the track page.** The player means the track page's waveform player and the global mini-player. The app header sits on every page. Home (`/`, in all four states: signed out, pending, rejected, and signed in with the upload form and your tracks), the projects list (`/projects`), the project page (`/projects/[projectId]`, with its cover art), and the track page around its player (`/tracks/[trackId]`: the header block, the Project selector, the version history with its notes editor, and the new-version upload) are the working screens: the player's world extended to forms and lists, with flat graphite controls, 1px rules between rows, and the LCD well kept for things that read out (the release type picker, the release type badge, and the upload progress bar). A project's cover art is the one image in the system, and it sits bare, without chrome or an LCD well. Every page uses the same 48rem column under the header, but the bodies of sign-in and sign-up are still deliberately plain semantic HTML. The direction for everything not built yet (glossy LimeWire toolbars, results tables, window panels, Aqua surfaces, light mode, skins) is in CLAUDE.md section 9, "Visual style: Y2K / Winamp / LimeWire". It is not recorded here because none of it exists in code. When one of those surfaces gets built, add it to this file from the shipped code.
 
-The system is quiet and practical: dark only, no decorative motion, and one bright signature per screen (the lit LCD of the player, the status meter on a project, or the upload bar on home while a file goes up). All tokens live in `app/globals.css` under `@theme`, and components use them, never one-off hex values.
+The system is quiet and practical: dark only, no decorative motion, and one bright signature per screen (the lit LCD of the player, the release type picker on a project, or the upload bar on home while a file goes up). All tokens live in `app/globals.css` under `@theme`, and components use them, never one-off hex values.
 
 **Key Characteristics:**
 
@@ -239,7 +237,7 @@ A green-tinted near-black world: graphite chrome, a deeper green-black LCD, lime
 
 ### Primary
 
-- **Phosphor Lime** (`lcd-ink`): what displays. The elapsed time, played waveform segments, the time in the mini-player, passed and current status segments (the current one as a solid fill with `lcd` text), the status badge's lit pips and word, the upload bar's lit stripes and percent, and the header wordmark. 14.5:1 on the LCD.
+- **Phosphor Lime** (`lcd-ink`): what displays. The elapsed time, played waveform segments, the time in the mini-player, the chosen segment in the release type picker and the A/B switch (a solid fill with `lcd` text), the release type badge's word, the upload bar's lit stripes and percent, and the header wordmark. 14.5:1 on the LCD.
 - **Signal Lime** (`accent`): interaction. The focus outline and glow, the hover color of buttons, links and nav items, the current nav item's underline, the dragged row's outline, the transport icon while playing or loading, the keyboard focus around a whole list row, the text-selection background (with `canvas` text), the caret, and native control accents. It is also the fill of the one primary button in a form, with `canvas` text (14:1).
 
 ### Secondary
@@ -263,13 +261,13 @@ A green-tinted near-black world: graphite chrome, a deeper green-black LCD, lime
 - **Button High / Low** (`button-hi` / `button-lo`): the transport button gradient, flipped when pressed.
 - **LCD Black** (`lcd`): the LCD window background.
 - **Dim Phosphor** (`lcd-dim`): waveform segments still to play, and the darker of the upload bar's lit stripes.
-- **Unlit Cell** (`lcd-cell`): every possible waveform segment, drawn behind the bars, the status badge's unlit pips, and the darker of the upload bar's unlit stripes.
+- **Unlit Cell** (`lcd-cell`): every possible waveform segment, drawn behind the bars, and the darker of the upload bar's unlit stripes.
 - **Ghost Segment** (`lcd-ghost`): the unlit "8" behind each LCD digit, and the lighter of the upload bar's unlit stripes.
-- **Unlit Label** (`lcd-unlit`): status segments still ahead: unlit, but readable as words. 6:1 on the LCD.
+- **Unlit Label** (`lcd-unlit`): segments not chosen (release types, the other A/B side): unlit, but readable as words. 6:1 on the LCD.
 
 ### Named Rules
 
-**The Lit and Unlit Rule.** The LCD always shows its unlit state: played audio is `lcd-ink`, audio still to play is `lcd-dim`, empty cells are `lcd-cell`, and every digit sits over a ghost "8" in `lcd-ghost`. Status stages work the same way: passed stages lit in `lcd-ink`, the current one solid `lcd-ink`, later ones in `lcd-unlit` (words must stay readable, so they don't drop to `lcd-cell`); the badge's pips are lit or `lcd-cell`. The upload bar too: its done part is lit stripes (`lcd-ink` and `lcd-dim`), and the rest of the track shows the same stripes held still in `lcd-ghost` and `lcd-cell`. Never draw LCD content on a blank window.
+**The Lit and Unlit Rule.** The LCD always shows its unlit state: played audio is `lcd-ink`, audio still to play is `lcd-dim`, empty cells are `lcd-cell`, and every digit sits over a ghost "8" in `lcd-ghost`. Segment pickers work the same way: the chosen segment solid `lcd-ink`, the rest in `lcd-unlit` (words must stay readable, so they don't drop to `lcd-cell`). The upload bar too: its done part is lit stripes (`lcd-ink` and `lcd-dim`), and the rest of the track shows the same stripes held still in `lcd-ghost` and `lcd-cell`. Never draw LCD content on a blank window.
 
 **The Two Limes Rule.** `lcd-ink` is what displays (LCD content and the wordmark); `accent` is what responds to you (focus, hover, the current nav item, the dragged row, selection, and the primary button's fill). Don't swap them.
 
@@ -289,7 +287,7 @@ A green-tinted near-black world: graphite chrome, a deeper green-black LCD, lime
 - **LCD Secondary** (400, 0.875rem, 1rem from `sm`): "/ total" in cyan.
 - **LCD Figure** (400, 1rem, tabular): track lengths in `ink` on home and project rows, in the length column and inline in the subtitle on phones (a muted "—" when there's none), the project page's two-digit track numbers in `muted`, the version number ("V3") in `ink` at the head of each version row, a version's length in `ink` (its own column from `sm`, inline in the meta line on phones), and the upload percent in `lcd-ink`.
 - **LCD Figure Small** (400, 0.875rem, tabular): the project's total length, inline in the small "Tracks" count line.
-- **LCD Label** (400, 0.75rem): the time line in the mini-player, the version and state word on the track player, and the status segment and badge words (uppercase on the last three).
+- **LCD Label** (400, 0.75rem): the time line in the mini-player, the version and state word on the track player, and the release type segment and badge words (uppercase on the last three).
 - **Headline** (600, 1.875rem): the page H1 ("Your tracks", "Projects", the project title, the track title, "Edit project", and the pending and rejected notices), balanced when it wraps; the track title also breaks long words. On the signed-out welcome the visible headline is the pitch at this size, capped at 24ch and balanced; the H1 "Feedback" there is visually hidden, since the wordmark already shows it.
 - **Section Title** (600, 1.125rem): H2s ("Upload a track", "Tracks", "Your projects", "Versions", "Upload a new version"); in a project's Edit mode the "Cover art" and "Delete project" H2s drop to 1rem.
 - **Title** (500, 0.875rem): the track title link in the mini-player. List titles use body size at 500.
@@ -298,7 +296,7 @@ A green-tinted near-black world: graphite chrome, a deeper green-black LCD, lime
 
 ### Named Rules
 
-**The Bitmap for Readouts Rule.** Silkscreen is for readouts and figures: times, lengths, totals, track numbers, percents, version numbers, state and stage words, and the wordmark. Titles, labels, buttons, errors, forms, comments, and body text use the sans. In sentence-like lines (subtitles, the version meta line, status lines) only the length switches to Silkscreen; file names, status words, dates, and an inline "v4" stay sans.
+**The Bitmap for Readouts Rule.** Silkscreen is for readouts and figures: times, lengths, totals, track numbers, percents, version numbers, state words, release types, and the wordmark. Titles, labels, buttons, errors, forms, comments, and body text use the sans. In sentence-like lines (subtitles, the version meta line, status lines) only the length switches to Silkscreen; file names, status words, dates, and an inline "v4" stay sans.
 
 ## Layout
 
@@ -306,15 +304,15 @@ Every page sits in a centered column, 48rem wide with 16px side gutters, under a
 
 The header is 56px tall: the wordmark, then the nav items stretched to the full height (12px side padding, 4px apart), then the account link pushed right.
 
-The project page stacks a muted "Projects" back link, then the header: a top-aligned row of the page cover (96px square, 128px from `sm`) and, 16px across (24px from `sm`), a column holding the title, the description 8px under it, and the cover control 8px under that (a text-link button, so its label lines up with the title and nothing fills toward the cover). Long titles break inside the column rather than pushing the cover. 20px below the header comes one wrapping row (16px across, 12px down) of the status meter, the privacy line, and Edit pushed right. A status error wraps onto its own line at the end of the row. Under "Tracks" (with its count and total on the same baseline) the running order is a list on 1px rules, each row a grid: grip (1.75rem), number (2rem), title and subtitle (the rest), then the remove button. From `sm` the columns widen (2rem, 2.5rem), gaps go to 12px, and a 4rem right-aligned length column appears; on phones the length moves into the subtitle line instead. Titles clamp to two lines on phones and one from `sm`. The add-a-track picker sits 20px under the list.
+The project page stacks a muted "Projects" back link, then the header: a top-aligned row of the page cover (96px square, 128px from `sm`) and, 16px across (24px from `sm`), a column holding the title, the description 8px under it, and the cover control 8px under that (a text-link button, so its label lines up with the title and nothing fills toward the cover). Long titles break inside the column rather than pushing the cover. 20px below the header comes one wrapping row (16px across, 12px down) of the release type picker, the privacy line, and Edit pushed right. A release type error wraps onto its own line at the end of the row. Under "Tracks" (with its count and total on the same baseline) the running order is a list on 1px rules, each row a grid: grip (1.75rem), number (2rem), title and subtitle (the rest), then the remove button. From `sm` the columns widen (2rem, 2.5rem), gaps go to 12px, and a 4rem right-aligned length column appears; on phones the length moves into the subtitle line instead. Titles clamp to two lines on phones and one from `sm`. The add-a-track picker sits 20px under the list.
 
-In Edit mode the header gives way to a stack 32px apart: the "Edit project" H1, the form (fields 16px apart, Save and Cancel 12px apart), the status row, the Cover art section (only when the project has a cover), and the Delete project section, last. Each of the last two opens with a 1px `rule` line 20px above its 1rem H2, then a muted line 4px below and its button 12px below that.
+In Edit mode the header gives way to a stack 32px apart: the "Edit project" H1, the form (fields 16px apart, Save and Cancel 12px apart), the release type row, the Cover art section (only when the project has a cover), and the Delete project section, last. Each of the last two opens with a 1px `rule` line 20px above its 1rem H2, then a muted line 4px below and its button 12px below that.
 
 Home, signed in, stacks the "Your tracks" H1, the upload section 24px below, then "Tracks" 48px below that. The upload section is a muted line on privacy and formats, then (up to 36rem wide, 16px apart) the file picker, sized to its button and file name, then Title and the primary Upload on one row; the progress bar and any status or error line follow in the same stack. The track list uses the projects list's row pattern: title over subtitle on the left, and from `sm` the length column at the right (on phones the length moves into the subtitle line). Titles clamp to two lines on phones and one from `sm`. Newest and Older links sit 16px under the list. Signed out, the pitch is followed 32px below by Sign in (primary) and Create an account, 12px apart and wrapping. Pending and rejected are the H1 with a muted paragraph 12px below, and nothing else in the body.
 
 The track page stacks a muted "Your tracks" back link (12px above the title), the H1 title, one small muted line 8px below ("In" and the project link, then the privacy sentence), then the Project selector 16px below, up to 28rem wide. The player follows 32px below, and the newest version's status line (processing, failed in `danger`, or upload not finished) sits 12px under it. "Versions" comes 48px below, its list on 1px rules with 12px tall padding; each row is a grid (12px gaps, top-aligned) of the V-number (2.5rem, 3rem from `sm`), the notes column (the notes, the meta line 4px under them, and under a failed version its reason as a `danger` line), from `sm` a right-aligned 4rem length column (a muted "—" until there's a length; on phones the length rides in the meta line instead), and the Edit notes icon button. In edit mode the form takes the notes column and the length column stays where it was. The history leaves out versions whose file never arrived, except the newest. "Upload a new version" closes the page 48px below: the H2 and a muted line, then (up to 36rem wide, 16px apart) the file picker, the optional "What changed?" textarea, and the primary "Upload new version" on its own line, followed by the same progress bar and status or error lines as home.
 
-The projects list puts the new-project form (input and Create on one row, up to 28rem wide) under the intro, then rows on 1px rules, 12px tall padding, centred vertically: the 48px cover first, then (16px across) the title and description, and the fixed-width status badge on the right, 16px from them. Descriptions clamp to two lines on phones and one from `sm`. The whole row is the link's hit area.
+The projects list puts the new-project form (input and Create on one row, up to 28rem wide) under the intro, then rows on 1px rules, 12px tall padding, centred vertically: the 48px cover first, then (16px across) the title and description, and the fixed-width release type badge on the right, 16px from them. Descriptions clamp to two lines on phones and one from `sm`. The whole row is the link's hit area.
 
 The track page player is two rows: the transport button and LCD readout side by side with a 12px gap, then a full-width waveform 12px below, all inside 12px of panel padding. The waveform is 96px tall, 128px from the `sm` breakpoint (640px).
 
@@ -324,12 +322,12 @@ The waveform's geometry is fixed in CSS pixels so it stays crisp at any width: e
 
 ## Elevation & Depth
 
-Depth belongs to the hardware. The page canvas and working screens are flat; separation there comes from 1px rules and solid `chrome-lo` fills. The player panel is raised, LCD windows (in the player, the status meter, and the status badge) are recessed, and the transport button is raised until pressed, when it sinks.
+Depth belongs to the hardware. The page canvas and working screens are flat; separation there comes from 1px rules and solid `chrome-lo` fills. The player panel is raised, LCD windows (in the player, the release type picker, and the release type badge) are recessed, and the transport button is raised until pressed, when it sinks.
 
 ### Shadow Vocabulary
 
 - **Panel** (`box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 2px 8px rgb(0 0 0 / 0.5)`): the player housing and mini-player bar.
-- **LCD well** (`box-shadow: inset 0 2px 5px rgb(0 0 0 / 0.75), 0 1px 0 rgb(255 255 255 / 0.07), 0 0 0 2px #1d211f, 0 0 0 3px #555d58`): every LCD window: readout, waveform, status meter, status badge, upload progress bar. The lip ring takes 3px outside the box, so give the window a 3px margin where it meets other content.
+- **LCD well** (`box-shadow: inset 0 2px 5px rgb(0 0 0 / 0.75), 0 1px 0 rgb(255 255 255 / 0.07), 0 0 0 2px #1d211f, 0 0 0 3px #555d58`): every LCD window: readout, waveform, release type picker, release type badge, A/B switch, upload progress bar. The lip ring takes 3px outside the box, so give the window a 3px margin where it meets other content.
 - **Bevel** (`box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 1px 2px rgb(0 0 0 / 0.6)`): transport buttons at rest.
 - **Bevel pressed** (`box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.65)`): transport buttons while pressed, with the gradient flipped.
 - **Focus glow** (`box-shadow: 0 0 10px color-mix(in oklab, #a8f03f 55%, transparent)`): paired with the focus outline on links, buttons, nav items, the wordmark, the file picker, whole list rows, and the player's controls; also the primary button's hover.
@@ -343,7 +341,7 @@ Depth belongs to the hardware. The page canvas and working screens are flat; sep
 
 ## Shapes
 
-Small, firm corners: 0.5rem on the track page's panel; 0.375rem on transport buttons, working buttons, and fields; 0.25rem on LCD windows, project covers, the dragged row, and the focus area of links, nav items, and whole list rows; 2px on status segments inside the meter and on the upload bar's track. List rows are square. The mini-player bar is square and drops its side and bottom borders, keeping only the top edge. Every hardware surface has a 1px `chrome-edge` outline; every working control a 1px `field-edge` one; a project cover a 1px `rule` one. Covers are always square: the image fills the square and is cropped to it.
+Small, firm corners: 0.5rem on the track page's panel; 0.375rem on transport buttons, working buttons, and fields; 0.25rem on LCD windows, project covers, the dragged row, and the focus area of links, nav items, and whole list rows; 2px on segments inside the release type picker and A/B switch and on the upload bar's track. List rows are square. The mini-player bar is square and drops its side and bottom borders, keeping only the top edge. Every hardware surface has a 1px `chrome-edge` outline; every working control a 1px `field-edge` one; a project cover a 1px `rule` one. Covers are always square: the image fills the square and is cropped to it.
 
 Icons are filled and square-cornered on a 24-unit grid, drawn in the same hand as the transport button's play and pause: grip (two columns of three squares), a down chevron, a cross for remove, a pencil for editing notes, and a square-headed eighth note on an empty cover (20px in a list, 32px on the page). They're 18px by default, inline SVG in `currentColor`, and decorative; the button around each carries the label (the cover's note has no button, and the project title beside it says what it is).
 
@@ -405,17 +403,17 @@ The track page's housing: graphite gradient, 1px edge, panel shadow, 0.5rem corn
 
 A solid `chrome-lo` bar (no gradient, since it carries text) with a 1px `chrome-edge` top border and the panel shadow, stuck to the bottom of every page once something has played. It holds the 44px transport button, the track title (sans, links to the track page, hover `accent`) above an LCD-face time line in lime and cyan, and a compact waveform window. An error replaces the time line in `danger`.
 
-### Status Meter
+### Release Type Picker
 
-The project page's signature: the project's stage (Idea, Demo, Mixing, Done) as a row of segments in one LCD window, padded 4px with 4px between segments. Each segment is an uppercase LCD label, 6px by 12px (16px sides from `sm`), with 2px corners. Passed stages are lit `lcd-ink`, the current one is a solid `lcd-ink` fill with `lcd` text, and later ones are `lcd-unlit`; non-current segments turn `accent` on hover. It's a radio group: arrow keys move along it, each choice saves at once, and keyboard focus draws the 2px accent outline at 2px offset around the segment. A failed save puts the stage back and says so in a `danger` line.
+The project page's signature: what kind of release the project is (Single, EP, Album, Compilation, new projects start as Single) as a row of segments in one LCD window, padded 4px with 4px between segments. Each segment is an uppercase LCD label, 6px by 12px (16px sides from `sm`), with 2px corners. The chosen type is a solid `lcd-ink` fill with `lcd` text, and the others are `lcd-unlit`, turning `accent` on hover. The types aren't steps, so nothing before the chosen one is lit. It's a radio group: arrow keys move along it, each choice saves at once, and keyboard focus draws the 2px accent outline at 2px offset around the segment. A failed save puts the type back and says so in a `danger` line.
 
 ### A/B Switch
 
-Compares the current version (A) with an older one (B) in the player panel. It uses the status meter's segments in one LCD window: two segments labelled like "A · v3" and "B · v2". The version in the player is the solid `lcd-ink` fill, the other is `lcd-unlit`, and hover turns it `accent`. It's a radio group, so arrow keys flip it, and so do the A and B keys anywhere in the panel. Switching carries on at the same moment, playing or paused as before. With two or more older versions, a compact field-style select labelled "Compare with" sits beside it (and wraps below it on phones) to pick B.
+Compares the current version (A) with an older one (B) in the player panel. It uses the release type picker's segments in one LCD window: two segments labelled like "A · v3" and "B · v2". The version in the player is the solid `lcd-ink` fill, the other is `lcd-unlit`, and hover turns it `accent`. It's a radio group, so arrow keys flip it, and so do the A and B keys anywhere in the panel. Switching carries on at the same moment, playing or paused as before. With two or more older versions, a compact field-style select labelled "Compare with" sits beside it (and wraps below it on phones) to pick B.
 
-### Status Badge
+### Release Type Badge
 
-The stage at list size: a fixed 7.5rem LCD window padded 4px by 8px, with four pips (6px by 10px, 2px apart; lit `lcd-ink` up to the current stage, `lcd-cell` after) and the stage word in uppercase `lcd-ink`. The fixed width keeps badges aligned down the list. Screen readers hear "Status:" before the word.
+The release type at list size: a fixed 7.5rem LCD window padded 4px by 8px, with the type centred in uppercase `lcd-ink` ("Compilation", the longest, still fits). The fixed width keeps badges aligned down the list. Screen readers hear "Release type:" before the word.
 
 ### Project Cover
 
@@ -450,7 +448,7 @@ One row of a track's version history (see Layout for the grid), read like a trac
 ### Do:
 
 - **Do** build new styled surfaces from the tokens and utilities in `app/globals.css`, never one-off hex values.
-- **Do** keep the LCD's unlit state visible: ghost "8"s behind digits, `lcd-cell` behind the waveform, `lcd-unlit` for stages ahead.
+- **Do** keep the LCD's unlit state visible: ghost "8"s behind digits, `lcd-cell` behind the waveform, `lcd-unlit` for segments not chosen.
 - **Do** use `accent` for focus on every themed control: a 2px outline at 2px offset plus the glow on buttons and links, at no offset with an accent edge on fields.
 - **Do** keep everything still: no marquees, visualizers, or animated effects. The only motion is a dragged row following the pointer and the upload bar's stripes drifting while an upload or processing start is in progress; both stay still at rest, and the stripes stop under reduced motion. Neither is a license to animate anything else.
 - **Do** put text on a solid backing (`canvas`, `chrome-lo`, or `lcd`), never on a gradient (CLAUDE.md section 9).
