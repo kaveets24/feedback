@@ -7,7 +7,6 @@ import type {
 } from '@feedback/shared';
 import type { PlayerItem } from '../../../lib/audio-store';
 import { formatDate, formatDuration, STATUS_LABELS } from '../../../lib/format';
-import { visibilitySentence } from '../../../lib/share';
 import { SharingSection } from '../../_sharing/sharing-section';
 import { TrackPlayer } from '../../_player/track-player';
 import { UploadForm } from '../../upload-form';
@@ -44,21 +43,6 @@ export function TrackView({
         </Link>
       </p>
       <h1 className="text-3xl font-semibold break-words text-balance">{track.title}</h1>
-      <p className="mt-2 text-sm text-muted">
-        {project && (
-          <>
-            In{' '}
-            <Link href={`/projects/${project.id}`} className="link">
-              {project.title}
-            </Link>
-            {' · '}
-          </>
-        )}
-        {visibilitySentence(track.visibility, 'track')}{' '}
-        <a href="#sharing" className="link">
-          Sharing
-        </a>
-      </p>
       <div className="mt-4 max-w-md">
         <ProjectSelect trackId={track.id} projectId={track.projectId} projects={projects} />
       </div>
