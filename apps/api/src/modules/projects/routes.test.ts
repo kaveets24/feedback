@@ -7,9 +7,11 @@ import {
   findProject,
   findTrack,
   listProjectTracks,
+  markVersionProcessing,
   moveTrackToProject,
   setAccessStatus,
   tracks,
+  trackVersions,
   upsertUserFromAuth,
   type Db,
 } from '@feedback/db';
@@ -366,6 +368,9 @@ describe('project routes', () => {
       it('adds a track to the end and returns the new list', async () => {
         const { me, project, url } = await projectWith('A');
         const b = await newTrack(me.id, 'B');
+        // Arrived, so the track list shows it.
+        const [v1] = await db.select().from(trackVersions).where(eq(trackVersions.trackId, b.id));
+        await markVersionProcessing(db, v1!.id);
 
         const res = await call('POST', url, 'u1', { trackId: b.id });
         expect(res.statusCode).toBe(200);

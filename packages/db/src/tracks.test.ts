@@ -173,12 +173,15 @@ describe('find helpers', () => {
 });
 
 describe('listTracksForOwner', () => {
+  /** A track whose v1 has arrived (`processing`), so it's listed. */
   async function trackFor(providerId: string, title: string) {
     const owner = await upsertUserFromAuth(db, {
       authProviderId: providerId,
       email: `${providerId}@x.test`,
     });
-    return createTrackWithFirstVersion(db, { ownerId: owner.id, title, original });
+    const created = await createTrackWithFirstVersion(db, { ownerId: owner.id, title, original });
+    const version = await markVersionProcessing(db, created.version.id);
+    return { track: created.track, version: version! };
   }
 
   it("lists only the owner's live tracks, newest first, with each one's newest version", async () => {
@@ -196,7 +199,7 @@ describe('listTracksForOwner', () => {
     expect(listed[0]?.latestVersion).toEqual({
       id: b.version.id,
       versionNumber: 1,
-      status: 'uploading',
+      status: 'processing',
       durationMs: null,
     });
     expect(listed[1]?.latestVersion).toMatchObject({
@@ -204,6 +207,26 @@ describe('listTracksForOwner', () => {
       versionNumber: 2,
       status: 'failed',
     });
+  });
+
+  it('leaves out tracks whose upload never finished, but keeps failed ones', async () => {
+    const listed = await trackFor('auth_1', 'Arrived');
+    const { ownerId } = listed.track;
+    const unfinished = await createTrackWithFirstVersion(db, {
+      ownerId,
+      title: 'Unfinished',
+      original,
+    });
+    const failed = await createTrackWithFirstVersion(db, { ownerId, title: 'Failed', original });
+    await markVersionFailed(db, failed.version.id, 'Bad file');
+
+    const titles = async () =>
+      (await listTracksForOwner(db, ownerId, { limit: 10 })).map(({ track }) => track.title);
+    expect(await titles()).toEqual(['Failed', 'Arrived']);
+
+    // Once its file arrives, it shows.
+    await markVersionProcessing(db, unfinished.version.id);
+    expect(await titles()).toEqual(['Failed', 'Unfinished', 'Arrived']);
   });
 
   it('pages with the last id of the previous page', async () => {

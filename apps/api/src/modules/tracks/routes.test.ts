@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   createTrackWithFirstVersion,
   markVersionFailed,
+  markVersionProcessing,
   setAccessStatus,
   tracks,
   trackVersions,
@@ -51,7 +52,8 @@ describe('track routes', () => {
       const me = await approvedUser('u1');
       const other = await approvedUser('u2');
       const first = await newTrack(me.id, 'First');
-      await newTrack(me.id, 'Second');
+      const second = await newTrack(me.id, 'Second');
+      await markVersionProcessing(db, second.version.id);
       await newTrack(other.id, 'Not mine');
       await markVersionFailed(db, first.version.id, 'Bad file');
 
@@ -78,7 +80,9 @@ describe('track routes', () => {
 
     it('pages with nextCursor until it is null', async () => {
       const me = await approvedUser('u1');
-      for (const title of ['1', '2', '3', '4', '5']) await newTrack(me.id, title);
+      for (const title of ['1', '2', '3', '4', '5']) {
+        await markVersionProcessing(db, (await newTrack(me.id, title)).version.id);
+      }
 
       const titles: string[] = [];
       let url = '/v1/tracks?limit=2';
@@ -92,6 +96,14 @@ describe('track routes', () => {
         url = `/v1/tracks?limit=2&cursor=${body.nextCursor}`;
       }
       expect(titles).toEqual(['5', '4', '3', '2', '1']);
+    });
+
+    it('leaves out a track whose upload never finished, though its page still loads', async () => {
+      const me = await approvedUser('u1');
+      const { track } = await newTrack(me.id, 'Unfinished');
+
+      expect((await get('/v1/tracks', 'u1')).json<TrackListResponse>().tracks).toEqual([]);
+      expect((await get(`/v1/tracks/${track.id}`, 'u1')).statusCode).toBe(200);
     });
 
     it('rejects a bad cursor or limit', async () => {
