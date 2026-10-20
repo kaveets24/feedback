@@ -68,10 +68,10 @@ export function TrackPlayer({
   };
 
   // Once this player has the audio, get the other side's stream URL ready so a switch is quick.
-  const otherId = b && (side === 'a' ? b.versionId : current.versionId);
+  const other = b && (side === 'a' ? b : current);
   useEffect(() => {
-    if (loaded && otherId) void audioStore.prefetch(otherId);
-  }, [loaded, otherId]);
+    if (loaded && other) void audioStore.prefetch(other);
+  }, [loaded, other]);
 
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.altKey || event.ctrlKey || event.metaKey || event.target instanceof HTMLSelectElement)

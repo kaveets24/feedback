@@ -5,6 +5,7 @@ import type {
   CreateShareLinkResponse,
   ShareLinkListResponse,
   ShareLinkResponse,
+  SharedResourceResponse,
 } from '@feedback/shared';
 import type { Actor } from '../../auth/plugin.ts';
 import { httpError } from '../../errors.ts';
@@ -76,6 +77,21 @@ export async function listResourceShareLinks(
   const now = new Date();
   const links = await listShareLinks(db, kind, resourceId);
   return { links: links.map((link) => toShareLinkResponse(link, now)) };
+}
+
+/**
+ * What the presented share link opens. Only when it works: active, and what it's for can be viewed
+ * with it (not private, and still there). Anything else is the usual 404, which says nothing about
+ * whether the link ever existed.
+ */
+export async function getSharedResource(db: Db, actor: Actor): Promise<SharedResourceResponse> {
+  const link = actor.shareLink;
+  if (!link) throw httpError(404, 'NOT_FOUND', 'Not found');
+  // An anonymous actor with only the link, so the owner's own session can't make it look valid.
+  const holder: Actor = { kind: 'anonymous', shareLink: link };
+  if (link.resourceType === 'track') await loadTrackAccess(db, holder, link.resourceId, 'view');
+  else await loadProjectFor(db, holder, link.resourceId, 'view');
+  return { resourceType: link.resourceType, resourceId: link.resourceId, role: link.role };
 }
 
 /**

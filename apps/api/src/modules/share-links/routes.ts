@@ -9,9 +9,15 @@ import {
   projectParamsSchema,
   shareLinkListResponseSchema,
   shareLinkParamsSchema,
+  sharedResourceResponseSchema,
   trackParamsSchema,
 } from '@feedback/shared';
-import { createShareLink, listResourceShareLinks, revokeShareLink } from './service.ts';
+import {
+  createShareLink,
+  getSharedResource,
+  listResourceShareLinks,
+  revokeShareLink,
+} from './service.ts';
 
 export function shareLinkRoutes(db: Db): FastifyPluginAsyncZod {
   return async (app) => {
@@ -61,6 +67,16 @@ export function shareLinkRoutes(db: Db): FastifyPluginAsyncZod {
         (request) => listResourceShareLinks(db, request.actor, kind, idOf(kind, request.params)),
       );
     }
+
+    app.get(
+      '/share-links/current',
+      {
+        schema: {
+          response: { 200: sharedResourceResponseSchema, 404: errorResponseSchema },
+        },
+      },
+      (request) => getSharedResource(db, request.actor),
+    );
 
     app.delete(
       '/share-links/:linkId',

@@ -79,11 +79,17 @@ describe('audio store', () => {
     const playing = store.play(item(1));
     expect(store.getState()).toMatchObject({ item: item(1), status: 'loading' });
     await playing;
-    expect(fetchStream).toHaveBeenCalledWith('version-1');
+    expect(fetchStream).toHaveBeenCalledWith('version-1', undefined);
     expect(audio.src).toBe('https://storage.test/version-1?sig=1');
     expect(audio.play).toHaveBeenCalledOnce();
     started();
     expect(store.getState().status).toBe('playing');
+  });
+
+  it('fetches the stream with the share link an item was opened with', async () => {
+    const { store, fetchStream } = setup();
+    await store.play({ ...item(1), shareToken: 'shared-token' });
+    expect(fetchStream).toHaveBeenCalledWith('version-1', 'shared-token');
   });
 
   it('starts from a given position once the source has loaded', async () => {
@@ -323,7 +329,7 @@ describe('audio store', () => {
       const { store, audio, fetchStream, started } = setup();
       await store.play(version(1));
       started();
-      await store.prefetch('version-1-2');
+      await store.prefetch(version(2));
       await store.switchTo(version(2));
       expect(fetchStream).toHaveBeenCalledTimes(2);
       expect(audio.src).toBe('https://storage.test/version-1-2?sig=2');

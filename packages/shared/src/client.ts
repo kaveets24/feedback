@@ -10,6 +10,7 @@ import {
   createShareLinkResponseSchema,
   SHARE_TOKEN_HEADER,
   shareLinkListResponseSchema,
+  sharedResourceResponseSchema,
   type CreateShareLinkRequest,
 } from './schemas/share-links.ts';
 import {
@@ -157,6 +158,8 @@ export function createApiClient({
         `/v1/projects/${encodeURIComponent(projectId)}/share-links`,
         shareLinkListResponseSchema,
       ),
+    /** What the client's `shareToken` opens; a 404 if the link doesn't work. */
+    getSharedResource: () => request('/v1/share-links/current', sharedResourceResponseSchema),
     /** Revokes a share link at once. Safe to repeat. */
     revokeShareLink: (linkId: string) =>
       send('DELETE', `/v1/share-links/${encodeURIComponent(linkId)}`, z.undefined()),

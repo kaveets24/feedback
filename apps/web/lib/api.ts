@@ -13,6 +13,15 @@ export function serverApi() {
 }
 
 /**
+ * API client for someone listening through a share link: the link's token and nothing else. It's
+ * anonymous on purpose, so a link works the same for everyone who holds it (signed in, waiting
+ * for approval, or signed out), and what it opens never depends on who's asking.
+ */
+export function sharedApi(shareToken: string) {
+  return createApiClient({ baseUrl: env.API_URL, shareToken });
+}
+
+/**
  * The signed-in user, fetched once per request: the header and the home page both need it, and
  * `cache` makes them share one API call.
  */
