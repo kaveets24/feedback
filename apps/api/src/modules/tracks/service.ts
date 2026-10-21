@@ -122,6 +122,7 @@ async function toTrackResponse(
     versions: versions
       .filter((version) => owner || version.status === 'ready')
       .map((version) => toVersionResponse(version, owner)),
+    canManage: owner,
   };
 }
 

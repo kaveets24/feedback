@@ -64,6 +64,8 @@ export type ProjectResponse = z.infer<typeof projectResponseSchema>;
  */
 export const projectDetailResponseSchema = projectResponseSchema.extend({
   coverUpload: coverResponseSchema.nullable(),
+  /** Whether the asker owns the project; see `trackResponseSchema.canManage`. */
+  canManage: z.boolean().default(false),
 });
 export type ProjectDetailResponse = z.infer<typeof projectDetailResponseSchema>;
 

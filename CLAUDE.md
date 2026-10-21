@@ -416,6 +416,8 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 ### Phase 5: Feedback
 
+**Complete** (2026-10-21).
+
 - [x] Profile settings, so comments can show who wrote them _(page: `/settings/profile`, linked from the header as Profile, only for the signed-in user: display name, bio, an optional city, and an optional picture. API: `GET`/`PATCH /v1/me/profile`; the first save creates the profile. Pictures: `POST /v1/me/avatars`, `.../avatars/:avatarId/complete`, `GET /v1/me/avatars/:avatarId`, `DELETE /v1/me/avatar`, processed like cover art. Styled, with a live preview of how the name signs a comment)_
 - [x] Timestamped comments on the waveform, threaded replies _(permissions and table done: `canAccessFeedback` with its hand-written matrix, and the `feedback` table, see section 5. API done: `GET`/`POST /v1/versions/:versionId/feedback` (list in threads, pinned comments in timeline order then general ones; comment at a moment up to the version's length, or generally; ready versions only), `POST /v1/feedback/:feedbackId/replies`, `PATCH /v1/feedback/:feedbackId` (the author edits the body, the artist resolves or reopens a thread), `DELETE /v1/feedback/:feedbackId` (soft; a deleted comment with replies keeps its place without its words or author). Each comment carries its author's display name and picture, never their id, and what the asker may do with it (`can`), so the UI never decides permissions itself. Reading works signed out; writing is a 401 until you sign in. Track page done: a Feedback section under the player shows the comments on the version it's showing (A or B), with a comment box whose moment follows the playhead until you type, replies, edit, delete, and resolve or reopen; ticks under the waveform jump to their comments. Listen page done: the same section under the player, readable by anyone with the link; approved, signed-in visitors comment through it, others get a Sign in to comment button (a modal) or a line saying their account is waiting for approval)_
 - [x] Per-version "what I want feedback on" prompt _(`track_versions.feedback_prompt`, set with `PATCH /v1/versions/:versionId` (`feedbackPrompt`, beside `changeNotes`) and returned on every version. The artist writes it in the Feedback section on the track page; listeners read it above the comment box)_
@@ -425,7 +427,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 ### Phase 6: Social layer
 
-- [ ] Public profiles, follows, activity feed of followed artists' public updates
+- [ ] Public profiles, follows, activity feed of followed artists' public updates _(started: the track and project pages open to anyone for public things, showing everyone but the owner the listen page's listener view (player, versions, comments; plain HTML apart from those), and a signed-out visitor who can't see one is sent to sign in, since it may be theirs. Track and project responses carry `canManage`, so the page knows whose controls to show. Unapproved accounts read public things as nobody (`viewerApi()` in `apps/web/lib/api.ts`), since the approval gate refuses their session)_
 - [ ] User-made playlists (may include others' accessible tracks)
 - [ ] Basic discovery: recent public, filter by genre/tag, search
 - [ ] Reporting/blocking basics

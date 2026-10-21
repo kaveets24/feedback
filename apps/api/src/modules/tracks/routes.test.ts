@@ -142,6 +142,7 @@ describe('track routes', () => {
         projectId: null,
         notes: null,
         currentVersionId: null,
+        canManage: true,
       });
       expect(body.versions.map((v) => v.versionNumber)).toEqual([2, 1]);
       expect(body.versions[1]).toMatchObject({ id: version.id, status: 'uploading' });

@@ -127,7 +127,7 @@ export async function getProject(
     respond(deps, project),
     owner ? pendingCoverUpload(deps.db, project) : null,
   ]);
-  return { ...response, coverUpload };
+  return { ...response, coverUpload, canManage: owner };
 }
 
 export async function updateProject(
