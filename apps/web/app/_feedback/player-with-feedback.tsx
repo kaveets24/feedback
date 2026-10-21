@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { FeedbackThread } from '@feedback/shared';
 import type { PlayerItem } from '../../lib/audio-store';
 import { TrackPlayer } from '../_player/track-player';
@@ -22,6 +22,8 @@ export function PlayerWithFeedback({
   signIn,
   status,
   onShow,
+  initialVersionId,
+  initialHighlightId,
 }: {
   current: PlayerItem;
   older: readonly PlayerItem[];
@@ -36,9 +38,20 @@ export function PlayerWithFeedback({
   status?: ReactNode;
   /** Told which version is shown, so a page can load its comments. */
   onShow?: (versionId: string) => void;
+  /** Opens at a comment (from a notification): its version shown, its thread lit and in view. */
+  initialVersionId?: string;
+  initialHighlightId?: string;
 }) {
-  const [shownId, setShownId] = useState(current.versionId);
-  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [shownId, setShownId] = useState(initialVersionId ?? current.versionId);
+  const [highlightId, setHighlightId] = useState<string | null>(initialHighlightId ?? null);
+
+  useEffect(() => {
+    if (initialHighlightId) {
+      document
+        .getElementById(`feedback-${initialHighlightId}`)
+        ?.scrollIntoView({ block: 'center' });
+    }
+  }, [initialHighlightId]);
   const shown = [current, ...older].find((v) => v.versionId === shownId) ?? current;
 
   const markers = useMemo(
@@ -79,6 +92,7 @@ export function PlayerWithFeedback({
           markers={markers}
           onMarker={showComment}
           onShow={show}
+          initialVersionId={initialVersionId}
         />
       </div>
       {status}

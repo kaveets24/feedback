@@ -22,6 +22,7 @@ import {
   CITIES,
   FEEDBACK_STATUSES,
   MAX_FEEDBACK_LENGTH,
+  NOTIFICATION_TYPES,
   RELEASE_TYPES,
   VERSION_STATUSES,
 } from '@feedback/shared';
@@ -37,6 +38,7 @@ export const coverStatus = pgEnum('cover_status', VERSION_STATUSES);
 export const avatarStatus = pgEnum('avatar_status', VERSION_STATUSES);
 export const shareResourceType = pgEnum('share_resource_type', RESOURCE_KINDS);
 export const feedbackStatus = pgEnum('feedback_status', FEEDBACK_STATUSES);
+export const notificationType = pgEnum('notification_type', NOTIFICATION_TYPES);
 /**
  * No longer read: every link lets signed-in holders comment (decided 2026-10-20). New links take
  * the column's default; a later migration drops it and this enum.
@@ -394,3 +396,33 @@ export const feedback = pgTable(
 );
 
 export type Feedback = typeof feedback.$inferSelect;
+
+/**
+ * Something for a user to know about: for now, someone else commenting or replying on one of
+ * their tracks. It points at the comment rather than copying it, so an edit shows and a deleted
+ * comment (or version) takes its notification with it.
+ */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    /** Who it's for. */
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: notificationType('type').notNull(),
+    feedbackId: uuid('feedback_id')
+      .notNull()
+      .references(() => feedback.id, { onDelete: 'cascade' }),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    index('notifications_user_id_id_idx').on(t.userId, t.id),
+    index('notifications_feedback_id_idx').on(t.feedbackId),
+  ],
+);
+
+export type Notification = typeof notifications.$inferSelect;

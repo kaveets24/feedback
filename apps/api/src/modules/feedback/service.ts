@@ -15,6 +15,7 @@ import type { Actor } from '../../auth/plugin.ts';
 import { httpError } from '../../errors.ts';
 import { COVER_URL_SECONDS } from '../covers/images.ts';
 import { loadVersionFor } from '../versions/service.ts';
+import { insertNotification } from '../notifications/repo.ts';
 import { findAuthors, findFeedback, insertFeedback, listFeedback, updateFeedback } from './repo.ts';
 
 // Comments on a track's versions (CLAUDE.md section 5). Every decision about a comment goes
@@ -71,6 +72,7 @@ export async function createFeedback(
     body: input.body,
     timestampMs,
   });
+  await notifyArtist(deps.db, track, row, 'comment');
   return threadOf(deps, actor, { track, project }, row.id);
 }
 
@@ -88,12 +90,13 @@ export async function replyToFeedback(
   if (actor.kind === 'anonymous') throw signInToComment();
   ensureAllowed(actor, scope, parent, 'reply');
 
-  await insertFeedback(deps.db, {
+  const reply = await insertFeedback(deps.db, {
     trackVersionId: parent.trackVersionId,
     parentId: parent.id,
     authorId: actor.user.id,
     body: input.body,
   });
+  await notifyArtist(deps.db, scope.track, reply, 'reply');
   return threadOf(deps, actor, scope, parent.id);
 }
 
@@ -148,6 +151,12 @@ export async function deleteFeedback(
   if (found.feedback.deletedAt) return;
   ensureAllowed(actor, scope, found.feedback, 'delete');
   await updateFeedback(deps.db, feedbackId, { deletedAt: new Date() });
+}
+
+/** Tells the artist about someone else's comment or reply on their track. */
+async function notifyArtist(db: Db, track: Track, row: Feedback, type: 'comment' | 'reply') {
+  if (row.authorId === track.ownerId) return;
+  await insertNotification(db, { userId: track.ownerId, type, feedbackId: row.id });
 }
 
 async function scopeOf(db: Db, track: Track): Promise<TrackScope> {
@@ -240,7 +249,7 @@ async function toThreads(
 const noProfile: FeedbackAuthor = { displayName: null, avatar: null };
 
 /** Each author's name and picture (a short-lived signed URL, like covers), by user id. */
-async function authorsFor(
+export async function authorsFor(
   db: Db,
   storage: Storage,
   userIds: string[],

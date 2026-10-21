@@ -4,7 +4,14 @@ import { loadOrNotFound } from '../../../lib/load';
 import { collectPages } from '../../../lib/pages';
 import { TrackView } from './track-view';
 
-export default async function TrackPage({ params }: { params: Promise<{ trackId: string }> }) {
+export default async function TrackPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ trackId: string }>;
+  /** `comment`: a comment (or reply) to open at, from a notification. */
+  searchParams: Promise<{ comment?: string }>;
+}) {
   const { isAuthenticated, redirectToSignIn } = await auth();
   if (!isAuthenticated) return redirectToSignIn();
 
@@ -19,5 +26,21 @@ export default async function TrackPage({ params }: { params: Promise<{ trackId:
   const ready = track.versions.filter((v) => v.status === 'ready');
   const lists = await Promise.all(ready.map((v) => serverApi().listFeedback(v.id)));
   const feedback = Object.fromEntries(ready.map((v, i) => [v.id, lists[i]!.threads]));
-  return <TrackView track={track} projects={projects} links={links} feedback={feedback} />;
+  const { comment } = await searchParams;
+  const openAt = ready.flatMap((v, i) =>
+    lists[i]!.threads.flatMap((t) =>
+      t.id === comment || t.replies.some((r) => r.id === comment)
+        ? [{ versionId: v.id, threadId: t.id }]
+        : [],
+    ),
+  )[0];
+  return (
+    <TrackView
+      track={track}
+      projects={projects}
+      links={links}
+      feedback={feedback}
+      openAt={openAt}
+    />
+  );
 }

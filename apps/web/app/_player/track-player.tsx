@@ -28,6 +28,7 @@ export function TrackPlayer({
   markers,
   onMarker,
   onShow,
+  initialVersionId,
 }: {
   current: PlayerItem;
   /** The track's other ready versions, newest first: what the current one can be compared with. */
@@ -37,15 +38,21 @@ export function TrackPlayer({
   onMarker?: (feedbackId: string) => void;
   /** Called with the version shown (A or B) whenever it changes, and once at first. */
   onShow?: (versionId: string) => void;
+  /** An older version to start on, as B (say, to open at a comment on it). */
+  initialVersionId?: string;
 }) {
   const loadedId = useAudio((s) => s.item?.versionId);
   // B starts as an older version that's already playing (back on the page after switching to it),
   // otherwise the previous one.
   const [compareId, setCompareId] = useState(
-    () => older.find((v) => v.versionId === audioStore.getState().item?.versionId)?.versionId,
+    () =>
+      older.find((v) => v.versionId === initialVersionId)?.versionId ??
+      older.find((v) => v.versionId === audioStore.getState().item?.versionId)?.versionId,
   );
   const b = older.find((v) => v.versionId === compareId) ?? older[0];
-  const [chosen, setChosen] = useState<Side>('a');
+  const [chosen, setChosen] = useState<Side>(() =>
+    older.some((v) => v.versionId === initialVersionId) ? 'b' : 'a',
+  );
   // Whichever side is loaded wins, so the switch never disagrees with what's playing.
   const side: Side =
     loadedId === current.versionId ? 'a' : b && loadedId === b.versionId ? 'b' : chosen;
