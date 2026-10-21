@@ -4,6 +4,9 @@ import { resetDb } from '@feedback/db/testing';
 import type { App } from '../../app.ts';
 import { buildTestApp, tokenFor } from '../../testing/app.ts';
 
+/** What a profile response carries when there's no picture and no upload. */
+const noPicture = { avatar: null, avatarUpload: null };
+
 describe('GET /v1/me', () => {
   let app: App;
   let db: Db;
@@ -101,7 +104,7 @@ describe('/v1/me/profile', () => {
     await approvedUser('u1');
     const res = await call('GET', 'u1');
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ displayName: null, bio: null, city: null });
+    expect(res.json()).toEqual({ displayName: null, bio: null, city: null, ...noPicture });
   });
 
   it('creates the profile on first save, without a handle', async () => {
@@ -110,12 +113,14 @@ describe('/v1/me/profile', () => {
       displayName: '  Night Owl ',
       bio: 'Bedroom pop.',
       city: 'portland-or',
+      ...noPicture,
     });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({
       displayName: 'Night Owl',
       bio: 'Bedroom pop.',
       city: 'portland-or',
+      ...noPicture,
     });
 
     expect((await call('GET', 'u1')).json()).toEqual(res.json());
@@ -136,6 +141,7 @@ describe('/v1/me/profile', () => {
       displayName: 'Night Owl',
       bio: 'Bedroom pop.',
       city: null,
+      ...noPicture,
     });
     expect((await call('PATCH', 'u1', { bio: '   ' })).json()).toMatchObject({ bio: null });
     expect((await call('PATCH', 'u1', { displayName: null })).json()).toMatchObject({
@@ -145,6 +151,7 @@ describe('/v1/me/profile', () => {
       displayName: null,
       bio: null,
       city: null,
+      ...noPicture,
     });
   });
 
@@ -158,8 +165,14 @@ describe('/v1/me/profile', () => {
       displayName: 'One',
       bio: null,
       city: 'new-orleans',
+      ...noPicture,
     });
-    expect((await call('GET', 'u2')).json()).toEqual({ displayName: 'Two', bio: null, city: null });
+    expect((await call('GET', 'u2')).json()).toEqual({
+      displayName: 'Two',
+      bio: null,
+      city: null,
+      ...noPicture,
+    });
   });
 
   it('rejects invalid input', async () => {

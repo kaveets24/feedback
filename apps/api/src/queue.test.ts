@@ -1,6 +1,6 @@
 import { Queue, Worker } from 'bullmq';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { COVER_QUEUE, TRANSCODE_QUEUE } from '@feedback/shared';
+import { AVATAR_QUEUE, COVER_QUEUE, TRANSCODE_QUEUE } from '@feedback/shared';
 import { bullmqJobQueue } from './queue.ts';
 
 // Against the compose Redis (pnpm services:up), in database 1 so local dev data in database 0
@@ -44,6 +44,24 @@ describe('bullmqJobQueue', () => {
     } finally {
       await covers.obliterate({ force: true });
       await covers.close();
+    }
+  });
+
+  it('adds one avatar job per picture, keyed by the avatar id', async () => {
+    const avatars = new Queue(AVATAR_QUEUE, { connection: { url: redisUrl } });
+    try {
+      await avatars.obliterate({ force: true });
+      const avatarId = crypto.randomUUID();
+      await queue.enqueueAvatar(avatarId);
+      await queue.enqueueAvatar(avatarId);
+
+      const jobs = await avatars.getJobs(['waiting']);
+      expect(jobs).toHaveLength(1);
+      expect(jobs[0]).toMatchObject({ id: avatarId, name: 'avatar', data: { avatarId } });
+      expect(jobs[0]?.opts).toMatchObject({ attempts: 3 });
+    } finally {
+      await avatars.obliterate({ force: true });
+      await avatars.close();
     }
   });
 

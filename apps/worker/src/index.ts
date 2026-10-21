@@ -1,7 +1,7 @@
 import { pino } from 'pino';
 import { createDb } from '@feedback/db';
 import { createStorage, loadStorageConfig } from '@feedback/storage';
-import { startCoverWorker } from './cover/worker.ts';
+import { startAvatarWorker, startCoverWorker } from './cover/worker.ts';
 import { loadEnv } from './env.ts';
 import { captureException, flushSentry, initSentry } from './sentry.ts';
 import { startTranscodeWorker } from './transcode/worker.ts';
@@ -34,6 +34,13 @@ const covers = startCoverWorker(
     report: (err, context) => captureException(err, { extra: context }),
   },
 );
+const avatars = startAvatarWorker(
+  { db, storage, log },
+  {
+    redisUrl: env.REDIS_URL,
+    report: (err, context) => captureException(err, { extra: context }),
+  },
+);
 log.info({ errorReporting: reporting }, 'worker started');
 
 // Checks error reporting end to end without crashing the worker (see docs/staging.md).
@@ -51,7 +58,7 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
       log.warn('shutdown timed out; exiting');
       process.exit(1);
     }, SHUTDOWN_TIMEOUT_MS).unref();
-    void Promise.all([transcoder.close(), covers.close()])
+    void Promise.all([transcoder.close(), covers.close(), avatars.close()])
       .then(() => Promise.all([db.close(), storage.close()]))
       .then(() => flushSentry(2000))
       .then(() => process.exit(0));

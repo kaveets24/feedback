@@ -17,6 +17,7 @@ import { registerErrorHandlers } from './errors.ts';
 import { loggerOptions } from './logger.ts';
 import { debugRoutes } from './modules/debug/routes.ts';
 import { healthRoutes } from './modules/health/routes.ts';
+import { avatarRoutes } from './modules/avatars/routes.ts';
 import { meRoutes } from './modules/me/routes.ts';
 import { coverRoutes } from './modules/covers/routes.ts';
 import { projectRoutes } from './modules/projects/routes.ts';
@@ -61,7 +62,8 @@ export async function buildApp(env: Env, deps: AppDeps) {
   await app.register(
     async (v1) => {
       await v1.register(healthRoutes(deps.queue));
-      await v1.register(meRoutes(deps.db));
+      await v1.register(meRoutes(deps));
+      await v1.register(avatarRoutes(deps));
       await v1.register(uploadRoutes(deps));
       await v1.register(versionRoutes(deps));
       await v1.register(trackRoutes(deps.db));

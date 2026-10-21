@@ -1,5 +1,12 @@
 import { Queue } from 'bullmq';
-import { COVER_QUEUE, TRANSCODE_QUEUE, type CoverJob, type TranscodeJob } from '@feedback/shared';
+import {
+  AVATAR_QUEUE,
+  COVER_QUEUE,
+  TRANSCODE_QUEUE,
+  type AvatarJob,
+  type CoverJob,
+  type TranscodeJob,
+} from '@feedback/shared';
 
 /** Where the API hands work to the worker. Tests swap in a fake. */
 export interface JobQueue {
@@ -10,6 +17,8 @@ export interface JobQueue {
   enqueueTranscode(versionId: string): Promise<void>;
   /** Queues re-encoding for an uploaded cover; the cover id is the job id, likewise. */
   enqueueCover(coverId: string): Promise<void>;
+  /** Queues re-encoding for an uploaded profile picture; the avatar id is the job id. */
+  enqueueAvatar(avatarId: string): Promise<void>;
   /** Whether Redis answers, and how many workers are consuming the transcode queue. */
   health(): Promise<QueueHealth>;
   /** Called with connection errors, which happen in the background (e.g. Redis restarting). */
@@ -77,10 +86,12 @@ export function bullmqJobQueue(
   };
   const transcode = new Queue<TranscodeJob>(TRANSCODE_QUEUE, queueOptions);
   const cover = new Queue<CoverJob>(COVER_QUEUE, queueOptions);
+  const avatar = new Queue<AvatarJob>(AVATAR_QUEUE, queueOptions);
   // An EventEmitter without an 'error' listener crashes the process, so listen from the start.
   let report: (err: Error) => void = () => {};
   transcode.on('error', (err) => report(err));
   cover.on('error', (err) => report(err));
+  avatar.on('error', (err) => report(err));
 
   return {
     async enqueueTranscode(versionId) {
@@ -93,6 +104,13 @@ export function bullmqJobQueue(
     async enqueueCover(coverId) {
       await withTimeout(
         cover.add('cover', { coverId }, { jobId: coverId }),
+        enqueueTimeoutMs,
+        'Timed out adding a job; is Redis reachable?',
+      );
+    },
+    async enqueueAvatar(avatarId) {
+      await withTimeout(
+        avatar.add('avatar', { avatarId }, { jobId: avatarId }),
         enqueueTimeoutMs,
         'Timed out adding a job; is Redis reachable?',
       );
@@ -114,7 +132,7 @@ export function bullmqJobQueue(
       report = listener;
     },
     close: async () => {
-      await Promise.all([transcode.close(), cover.close()]);
+      await Promise.all([transcode.close(), cover.close(), avatar.close()]);
     },
   };
 }

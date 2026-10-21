@@ -6,9 +6,11 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { pino } from 'pino';
 import {
+  createAvatar,
   createCover,
   createProject,
   createTrackWithFirstVersion,
+  markAvatarProcessing,
   markCoverProcessing,
   markVersionProcessing,
   upsertUserFromAuth,
@@ -125,4 +127,17 @@ export async function processingCover(db: Db, storage: Storage, original?: strin
   if (original) await storage.upload(cover.originalKey, original, 'image/png');
   await markCoverProcessing(db, cover.id);
   return cover;
+}
+
+/** A user's profile picture upload in `processing`, with `original` (if given) as its file. */
+export async function processingAvatar(db: Db, storage: Storage, original?: string) {
+  const user = await upsertUserFromAuth(db, { authProviderId: 'auth_avatar', email: 'a@x.test' });
+  const avatar = await createAvatar(db, {
+    userId: user.id,
+    contentType: 'image/png',
+    sizeBytes: 1,
+  });
+  if (original) await storage.upload(avatar.originalKey, original, 'image/png');
+  await markAvatarProcessing(db, avatar.id);
+  return avatar;
 }
