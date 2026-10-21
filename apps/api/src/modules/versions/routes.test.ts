@@ -74,6 +74,7 @@ describe('version routes', () => {
       trackId: track.id,
       versionNumber: 1,
       changeNotes: null,
+      feedbackPrompt: null,
       originalFilename: 'idea.wav',
       status: 'uploading',
       failureReason: null,
@@ -121,6 +122,21 @@ describe('version routes', () => {
       expect((await patch(version.id, { changeNotes: '  ' }, 'u1')).json().changeNotes).toBeNull();
       await patch(version.id, { changeNotes: 'Again' }, 'u1');
       expect((await patch(version.id, { changeNotes: null }, 'u1')).json().changeNotes).toBeNull();
+    });
+
+    it('sets what the artist wants feedback on, apart from the notes', async () => {
+      const { version } = await ownedVersion('u1');
+      await readyVersion(version.id);
+      await patch(version.id, { changeNotes: 'Tighter drums' }, 'u1');
+
+      const set = await patch(version.id, { feedbackPrompt: ' Is the vocal too loud? ' }, 'u1');
+      expect(set.json()).toMatchObject({
+        changeNotes: 'Tighter drums',
+        feedbackPrompt: 'Is the vocal too loud?',
+      });
+      const cleared = await patch(version.id, { feedbackPrompt: '' }, 'u1');
+      expect(cleared.json()).toMatchObject({ changeNotes: 'Tighter drums', feedbackPrompt: null });
+      expect((await patch(version.id, {}, 'u1')).statusCode).toBe(400);
     });
 
     it('returns 404 to anyone else and leaves the notes alone', async () => {

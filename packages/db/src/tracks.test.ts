@@ -13,7 +13,7 @@ import {
   markVersionFailed,
   markVersionProcessing,
   markVersionReady,
-  updateVersionNotes,
+  updateVersionText,
   withLatestVersions,
 } from './tracks.ts';
 import { upsertUserFromAuth } from './users.ts';
@@ -284,14 +284,21 @@ describe('createNextVersion', () => {
   });
 });
 
-describe('updateVersionNotes', () => {
-  it('replaces or clears the notes, and returns null for a missing version', async () => {
+describe('updateVersionText', () => {
+  it('sets or clears the notes and the prompt, each on its own; null for a missing version', async () => {
     const { version } = await newTrack();
-    expect(await updateVersionNotes(db, version.id, 'First idea')).toMatchObject({
+    expect(await updateVersionText(db, version.id, { changeNotes: 'First idea' })).toMatchObject({
       changeNotes: 'First idea',
+      feedbackPrompt: null,
     });
-    expect(await updateVersionNotes(db, version.id, null)).toMatchObject({ changeNotes: null });
-    expect(await updateVersionNotes(db, crypto.randomUUID(), 'x')).toBeNull();
+    expect(
+      await updateVersionText(db, version.id, { feedbackPrompt: 'Is the vocal too loud?' }),
+    ).toMatchObject({ changeNotes: 'First idea', feedbackPrompt: 'Is the vocal too loud?' });
+    expect(await updateVersionText(db, version.id, { changeNotes: null })).toMatchObject({
+      changeNotes: null,
+      feedbackPrompt: 'Is the vocal too loud?',
+    });
+    expect(await updateVersionText(db, crypto.randomUUID(), { changeNotes: 'x' })).toBeNull();
   });
 });
 

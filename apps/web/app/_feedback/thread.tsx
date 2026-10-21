@@ -1,30 +1,36 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useId, useState, useTransition, type ReactNode } from 'react';
 import { MAX_FEEDBACK_LENGTH, type FeedbackReply, type FeedbackThread } from '@feedback/shared';
 import type { ActionResult } from '../../lib/action-result';
 import { formatDate, formatDuration } from '../../lib/format';
 import { Avatar } from '../_shell/avatar';
 import { deleteFeedbackAction, replyToFeedbackAction, updateFeedbackAction } from './actions';
+import { useFeedbackPlace } from './context';
 
 /** A comment's actions are ghost buttons (repeated row actions), narrowed to sit in a line. */
 const ACTION = 'btn btn-ghost px-2';
 
-/** Runs an action, then refreshes the page's data; reports a failure through `onError`. */
+/**
+ * Runs an action (given the place's share token, if any), then reloads the comments; reports a
+ * failure through `onError`.
+ */
 function useMutation(onError: (message: string | null) => void) {
-  const router = useRouter();
+  const place = useFeedbackPlace();
   const [pending, startTransition] = useTransition();
-  const run = (action: () => Promise<ActionResult<unknown>>, onDone?: () => void) => {
+  const run = (
+    action: (shareToken: string | undefined) => Promise<ActionResult<unknown>>,
+    onDone?: () => void,
+  ) => {
     onError(null);
     startTransition(async () => {
-      const result = await action();
+      const result = await action(place.shareToken);
       if (!result.ok) {
         onError(result.message);
         return;
       }
       onDone?.();
-      router.refresh();
+      place.onChanged();
     });
   };
   return { pending, run };
@@ -152,7 +158,7 @@ function Comment({
           pending={pending}
           onSave={(body) =>
             run(
-              () => updateFeedbackAction(comment.id, { body }),
+              (token) => updateFeedbackAction(comment.id, { body }, token),
               () => setMode('view'),
             )
           }
@@ -177,7 +183,7 @@ function Comment({
               type="button"
               className="btn btn-danger"
               disabled={pending}
-              onClick={() => run(() => deleteFeedbackAction(comment.id))}
+              onClick={() => run((token) => deleteFeedbackAction(comment.id, token))}
             >
               {pending ? 'Deleting…' : 'Delete'}
             </button>
@@ -229,7 +235,9 @@ function ResolveButton({ thread }: { thread: FeedbackThread }) {
         className={ACTION}
         disabled={pending}
         onClick={() =>
-          run(() => updateFeedbackAction(thread.id, { status: resolved ? 'open' : 'resolved' }))
+          run((token) =>
+            updateFeedbackAction(thread.id, { status: resolved ? 'open' : 'resolved' }, token),
+          )
         }
       >
         {resolved ? 'Reopen' : 'Resolve'}
@@ -301,7 +309,7 @@ function ReplyForm({ threadId, onClose }: { threadId: string; onClose: () => voi
       className="space-y-3"
       onSubmit={(event) => {
         event.preventDefault();
-        run(() => replyToFeedbackAction(threadId, { body }), onClose);
+        run((token) => replyToFeedbackAction(threadId, { body }, token), onClose);
       }}
       onKeyDown={(event) => {
         if (event.key === 'Escape' && !pending) onClose();
