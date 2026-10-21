@@ -46,19 +46,19 @@ export async function AppHeader() {
         <div className="ml-auto flex items-center gap-3 sm:gap-4">
           {showNav && (
             <>
-              {/* On phones, where the header has no room for words, these two are icons. */}
+              {/* Notifications is always a bell; Profile is an icon only on phones, where words don't fit. */}
               <Link
                 href="/notifications"
-                className="link inline-flex items-center self-stretch text-sm text-muted max-sm:no-underline"
+                className="focus-glow inline-flex items-center self-stretch rounded-sm text-sm text-muted hover:text-accent sm:px-1"
                 aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
+                title="Notifications"
               >
-                <span className="sm:hidden">
-                  <BellIcon />
-                </span>
-                <span className="hidden sm:inline">Notifications</span>
+                <BellIcon />
                 {unread > 0 && (
-                  <span className="ml-1 font-lcd text-accent tabular-nums sm:ml-1.5">
-                    {unread > 99 ? '99+' : unread}
+                  // Phones have room for one digit, so the count stops at 9+ there.
+                  <span className="ml-1 font-lcd text-accent tabular-nums">
+                    <span className="sm:hidden">{unread > 9 ? '9+' : unread}</span>
+                    <span className="hidden sm:inline">{unread > 99 ? '99+' : unread}</span>
                   </span>
                 )}
               </Link>
