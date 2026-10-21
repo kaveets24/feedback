@@ -86,17 +86,18 @@ export async function createNextVersion(
 }
 
 /**
- * Replaces a version's change notes (null clears them). The audio of a ready version never
- * changes; its notes are the artist's to fix. Null if the version doesn't exist.
+ * Sets a version's change notes or feedback prompt (the ones given; null clears one). The audio
+ * of a ready version never changes; its words are the artist's to fix. Null if the version
+ * doesn't exist.
  */
-export async function updateVersionNotes(
+export async function updateVersionText(
   db: Db,
   versionId: string,
-  changeNotes: string | null,
+  changes: { changeNotes?: string | null; feedbackPrompt?: string | null },
 ): Promise<TrackVersion | null> {
   const [version] = await db
     .update(trackVersions)
-    .set({ changeNotes })
+    .set(changes)
     .where(eq(trackVersions.id, versionId))
     .returning();
   return version ?? null;

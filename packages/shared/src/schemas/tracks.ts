@@ -45,6 +45,11 @@ export const versionResponseSchema = z.object({
   /** What changed in this version, in the artist's words. */
   changeNotes: z.string().nullable(),
   /**
+   * What the artist wants feedback on in this version, shown above its comments. Defaults to null
+   * so a web build ahead of the API (a preview deploy) still reads older responses.
+   */
+  feedbackPrompt: z.string().nullable().default(null),
+  /**
    * The name of the file the artist uploaded. Null for anyone but the owner: file names can say
    * more than the artist means to share.
    */
@@ -64,8 +69,19 @@ export const versionParamsSchema = z.object({ versionId: z.uuid() });
 /** Change notes: up to 2000 characters. Blank (after trimming) is saved as none. */
 export const changeNotesSchema = z.string().trim().max(2000).nullable();
 
-/** `PATCH /v1/versions/:versionId`: the owner fixes a version's notes; null clears them. */
-export const updateVersionRequestSchema = z.object({ changeNotes: changeNotesSchema });
+/**
+ * `PATCH /v1/versions/:versionId`: the owner fixes a version's notes or what they want feedback
+ * on; null or blank clears one, and a field left out stays as it is.
+ */
+export const updateVersionRequestSchema = z
+  .object({
+    changeNotes: changeNotesSchema.optional(),
+    /** Same limits as notes: up to 2000 characters. */
+    feedbackPrompt: changeNotesSchema.optional(),
+  })
+  .refine((input) => input.changeNotes !== undefined || input.feedbackPrompt !== undefined, {
+    message: 'Nothing to change',
+  });
 export type UpdateVersionRequest = z.infer<typeof updateVersionRequestSchema>;
 
 /** `GET /v1/versions/:versionId/stream`: where the player loads a ready version's audio. */
