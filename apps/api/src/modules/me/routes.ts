@@ -41,7 +41,11 @@ export function meRoutes(deps: ProfileDeps): FastifyPluginAsyncZod {
       {
         schema: {
           body: updateProfileRequestSchema,
-          response: { 200: profileResponseSchema, 401: errorResponseSchema },
+          response: {
+            200: profileResponseSchema,
+            401: errorResponseSchema,
+            409: errorResponseSchema,
+          },
         },
       },
       async (request) => {

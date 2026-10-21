@@ -2,7 +2,8 @@ import type { Db, Profile, User } from '@feedback/db';
 import type { Storage } from '@feedback/storage';
 import { avatarForProfile } from '../avatars/service.ts';
 import type { MeResponse, ProfileResponse, UpdateProfileRequest } from '@feedback/shared';
-import { findProfile, saveProfile, type ProfileChanges } from './repo.ts';
+import { httpError } from '../../errors.ts';
+import { findProfile, isHandleTaken, saveProfile, type ProfileChanges } from './repo.ts';
 
 export async function getMe(db: Db, user: User): Promise<MeResponse> {
   const profile = await findProfile(db, user.id);
@@ -29,6 +30,7 @@ async function respond(
   profile: Profile | null,
 ): Promise<ProfileResponse> {
   return {
+    handle: profile?.handle ?? null,
     displayName: profile?.displayName ?? null,
     bio: profile?.bio ?? null,
     city: profile?.city ?? null,
@@ -47,9 +49,14 @@ export async function updateProfile(
   input: UpdateProfileRequest,
 ): Promise<ProfileResponse> {
   const changes: ProfileChanges = {};
+  if (input.handle !== undefined) changes.handle = input.handle;
   if (input.displayName !== undefined) changes.displayName = input.displayName;
   // A blank bio is no bio.
   if (input.bio !== undefined) changes.bio = input.bio || null;
   if (input.city !== undefined) changes.city = input.city;
-  return respond(deps, user, await saveProfile(deps.db, user.id, changes));
+  const saved = await saveProfile(deps.db, user.id, changes).catch((err: unknown) => {
+    if (isHandleTaken(err)) throw httpError(409, 'HANDLE_TAKEN', 'That handle is taken');
+    throw err;
+  });
+  return respond(deps, user, saved);
 }

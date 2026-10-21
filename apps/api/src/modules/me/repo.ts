@@ -6,7 +6,19 @@ export async function findProfile(db: Db, userId: string): Promise<Profile | nul
   return profile ?? null;
 }
 
-export type ProfileChanges = Partial<Pick<Profile, 'displayName' | 'bio' | 'city'>>;
+export type ProfileChanges = Partial<Pick<Profile, 'handle' | 'displayName' | 'bio' | 'city'>>;
+
+/** Whether `err` is a save refused because someone else already has the handle. */
+export function isHandleTaken(err: unknown): boolean {
+  // Drizzle wraps the driver's error; postgres.js names the constraint that was broken.
+  const cause = err instanceof Error && err.cause ? err.cause : err;
+  return (
+    typeof cause === 'object' &&
+    cause !== null &&
+    'constraint_name' in cause &&
+    cause.constraint_name === 'profiles_handle_unique'
+  );
+}
 
 /** Applies `changes` to the user's profile, creating it first if they don't have one yet. */
 export async function saveProfile(

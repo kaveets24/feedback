@@ -246,7 +246,7 @@ async function toThreads(
     }));
 }
 
-const noProfile: FeedbackAuthor = { displayName: null, avatar: null };
+const noProfile: FeedbackAuthor = { displayName: null, handle: null, avatar: null };
 
 /** Each author's name and picture (a short-lived signed URL, like covers), by user id. */
 export async function authorsFor(
@@ -257,14 +257,14 @@ export async function authorsFor(
   const found = await findAuthors(db, userIds);
   const expiresAt = new Date(Date.now() + COVER_URL_SECONDS * 1000).toISOString();
   const entries = await Promise.all(
-    [...found].map(async ([userId, { displayName, avatarKey }]) => {
+    [...found].map(async ([userId, { displayName, handle, avatarKey }]) => {
       const avatar = avatarKey
         ? {
             url: await storage.presignDownload({ key: avatarKey, expiresIn: COVER_URL_SECONDS }),
             expiresAt,
           }
         : null;
-      return [userId, { displayName, avatar }] as const;
+      return [userId, { displayName, handle, avatar }] as const;
     }),
   );
   return new Map(entries);
