@@ -32,7 +32,7 @@ Read this file fully before making changes. If something here conflicts with a r
 - Audio feature extraction / ML / embeddings
 - Reputation scores, leaderboards, give-to-get credits
 - Payments and monetization, **except** $1 artist donations (see "Donations" in section 11), plus direct messaging and live streaming
-- Mobile apps (planned for Phase 8; keep the API client-agnostic so it's easy later)
+- Mobile apps (planned for Phase 8; keep the API client-agnostic so it's easy later) and desktop apps (a folder-sync app is an idea in the parking lot, section 11)
 
 ---
 
@@ -462,6 +462,14 @@ Listeners can send an artist a small donation to support a work in progress.
 ### Later / parking lot
 
 Reputation and give-to-get credits, local/geo features and place-based listening, audio analysis and auto-tagging, collaboration (stems, co-owners), embeds, invites to specific users or emails (a `shares` table plus a visibility level between `private` and `unlisted`; dropped from Phase 4 on 2026-10-15).
+
+**Desktop sync app (idea, 2026-10-20).** A small Mac and Windows app that watches the music folders you pick (a DAW's bounce or export folder, say) and uploads new bounces as new versions automatically, so shipping v4 is just exporting it. Not planned yet; things to settle before building it:
+
+- **Matching files to tracks:** how a new file becomes the next version of the right track rather than a new one (a file-name convention, a per-folder mapping, or asking the first time), and what happens to files it can't place.
+- **Privacy:** everything it uploads is private, like any upload (rule 1 in section 6). It never changes visibility or makes links, and you choose the folders; it never scans the whole disk.
+- **Auth:** long-lived, revocable device sign-in through `AuthPort`, not a pasted session token.
+- **Same API, no special paths:** it uses the presigned upload flow (section 7) and the typed client in `packages/shared`, like web and mobile. Duplicate and half-written files (a bounce still being exported) need care, plus quotas and rate limits (Phase 7).
+- **Stack:** pick one (e.g. Tauri or Electron) in an ADR when the time comes.
 
 ---
 
