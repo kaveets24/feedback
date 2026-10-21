@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   ACTIONS,
   canAccess,
+  canAccessFeedback,
+  FEEDBACK_ACTIONS,
   effectiveVisibility,
   isLinkActive,
   isWider,
@@ -12,6 +14,7 @@ import {
   VISIBILITIES,
   type AccessContext,
   type Actor,
+  type FeedbackItem,
   type Visibility,
 } from './index.ts';
 
@@ -299,5 +302,84 @@ describe('isWider and narrowest', () => {
     expect(narrowest('public', 'unlisted')).toBe('unlisted');
     expect(narrowest('private', 'public')).toBe('private');
     expect(narrowest('unlisted', 'unlisted')).toBe('unlisted');
+  });
+});
+
+describe('canAccessFeedback', () => {
+  const author: Actor = { kind: 'user', userId: 'user-author' };
+  const comment: FeedbackItem = { authorId: 'user-author' };
+
+  const FEEDBACK_ACTORS = {
+    artist: owner,
+    author,
+    'other listener': stranger,
+    anonymous,
+  } as const satisfies Record<string, Actor>;
+  type FeedbackActor = keyof typeof FEEDBACK_ACTORS;
+
+  /**
+   * What each person may do to the comment, given they can view the track. Written out by hand;
+   * change a cell only alongside the rule it encodes (CLAUDE.md section 6, rules 8 and 11).
+   */
+  const FEEDBACK_MATRIX: Record<FeedbackActor, string> = {
+    artist: 'read reply delete resolve',
+    author: 'read reply edit delete',
+    'other listener': 'read reply',
+    // Reading needs no account; replying does.
+    anonymous: 'read',
+  };
+
+  it.each(
+    (Object.keys(FEEDBACK_ACTORS) as FeedbackActor[]).flatMap((who) =>
+      FEEDBACK_ACTIONS.map((action) => ({ who, action })),
+    ),
+  )('on a public track: $who may $action?', ({ who, action }) => {
+    const track = { kind: 'track' as const, ownerId: OWNER_ID, visibility: 'public' as const };
+    const expected = FEEDBACK_MATRIX[who].split(' ').includes(action);
+    expect(canAccessFeedback(FEEDBACK_ACTORS[who], track, comment, action)).toBe(expected);
+  });
+
+  // The same table holds at every track visibility, with or without a link, for whoever can view
+  // the track; anyone who can't, the author included, gets nothing at all.
+  it.each(
+    VISIBILITIES.flatMap((trackVisibility) =>
+      [false, true].flatMap((withLink) =>
+        (Object.keys(FEEDBACK_ACTORS) as FeedbackActor[]).map((who) => ({
+          trackVisibility,
+          withLink,
+          who,
+        })),
+      ),
+    ),
+  )('a $trackVisibility track (link: $withLink): $who', ({ trackVisibility, withLink, who }) => {
+    const track = { kind: 'track' as const, ownerId: OWNER_ID, visibility: trackVisibility };
+    const context = withLink ? link(trackVisibility) : undefined;
+    const actor = FEEDBACK_ACTORS[who];
+    const canView = canAccess(actor, track, 'view', context);
+    const allowed = FEEDBACK_ACTIONS.filter((action) =>
+      canAccessFeedback(actor, track, comment, action, context),
+    ).join(' ');
+    expect(allowed).toBe(canView ? FEEDBACK_MATRIX[who] : NONE);
+  });
+
+  it('shuts everything off when the link expires or is revoked, even for the author', () => {
+    const track = { kind: 'track' as const, ownerId: OWNER_ID, visibility: 'unlisted' as const };
+    expect(canAccessFeedback(author, track, comment, 'read', link('unlisted'))).toBe(true);
+    for (const ended of [
+      link('unlisted', { revokedAt: NOW }),
+      link('unlisted', { expiresAt: NOW }),
+    ]) {
+      for (const action of FEEDBACK_ACTIONS) {
+        expect(canAccessFeedback(author, track, comment, action, ended)).toBe(false);
+      }
+    }
+  });
+
+  it('lets the artist do everything to their own comment, even on a private track', () => {
+    const track = { kind: 'track' as const, ownerId: OWNER_ID, visibility: 'private' as const };
+    const allowed = FEEDBACK_ACTIONS.filter((action) =>
+      canAccessFeedback(owner, track, { authorId: OWNER_ID }, action),
+    ).join(' ');
+    expect(allowed).toBe('read reply edit delete resolve');
   });
 });

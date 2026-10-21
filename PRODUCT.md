@@ -27,7 +27,7 @@ Feedback is a social app for sharing unfinished music. Artists upload rough song
 SoundCloud meets Google Docs comments, for work-in-progress music. What sets it apart:
 
 - **Versions are first-class.** Every comment belongs to a specific version, so the artist can see what changed and whether a note still applies.
-- **Comments are timestamped on the waveform** and work like a to-do list (open or resolved), with an option for artist-only comments.
+- **Comments are timestamped on the waveform** and work like a to-do list (open or resolved). Everyone who can hear a track can read its comments.
 - **Private is the default everywhere.** Sharing works by unguessable links that can expire and be revoked, which is what makes people comfortable uploading unfinished work.
 
 ## Operating Context
@@ -39,7 +39,7 @@ SoundCloud meets Google Docs comments, for work-in-progress music. What sets it 
 
 ## Capabilities and Constraints
 
-- Domain terms (use them consistently): track, version, project, playlist, share link, feedback (comment), resolved/open, artist-only.
+- Domain terms (use them consistently): track, version, project, playlist, share link, feedback (comment), resolved/open.
 - Visibility levels: private, unlisted (link holders), public. Anyone who can see a track can comment on it, if signed in; links carry no roles. Downloads are off by default.
 - Audio plays from short-lived signed URLs. Only one track plays at a time, through a single global mini-player that keeps playing across page changes.
 - The waveform player is the centerpiece: it draws peaks, supports click-to-seek, and shows comment markers that jump to their comments.

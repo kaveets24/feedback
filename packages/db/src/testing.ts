@@ -31,6 +31,6 @@ export async function prepareTestDatabase(name: string): Promise<void> {
 /** Empties every table so each test starts clean. */
 export async function resetDb(db: Db): Promise<void> {
   await db.execute(
-    sql`truncate table share_links, track_versions, tracks, project_covers, projects, profiles, avatars, users restart identity cascade`,
+    sql`truncate table feedback, share_links, track_versions, tracks, project_covers, projects, profiles, avatars, users restart identity cascade`,
   );
 }

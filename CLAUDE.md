@@ -171,7 +171,7 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 
 **Feedback**
 
-- `feedback`: id, track_version_id, author_id, parent_id (nullable, for replies), timestamp_ms (nullable, null = general comment), body, visibility (`public | artist_only`), status (`open | resolved`), resolved_at, deleted_at
+- `feedback`: id, track_version_id, author_id, parent_id (nullable, for replies), timestamp_ms (nullable, null = general comment), body (up to 2000 characters, not blank), visibility (`public | artist_only`), status (`open | resolved`), resolved_at (set exactly when resolved), deleted_at. No per-comment visibility: everyone who can see the track can read its comments (artist-only comments were dropped on 2026-10-21 as more than we need). Replies go one level deep: a reply's parent is a top-level comment on the same version (a composite foreign key on `(parent_id, track_version_id)` enforces the version; the API, the depth). Replies have no timestamp and are never resolved (a check constraint enforces both). Comments are soft-deleted; deleting a version or an account removes them (decided 2026-10-21)
 - `feedback_votes`: feedback_id, user_id (a "helpful" mark)
 
 **Social**
@@ -207,7 +207,7 @@ Applied to projects (and optionally overridden per track):
 5. **Audio is served via short-lived signed URLs** (target: 5 to 15 minutes). The API issues a signed URL only after `canAccess(..., 'listen')` passes. Never return permanent public URLs for non-public audio.
 6. Share links: unguessable (at least 128 bits of entropy), stored hashed, support expiry and revocation. Revoking takes effect immediately. A link never makes anyone an owner, and is made for a track or a project; a project's link reaches only those of its tracks that aren't private (decided 2026-10-20). Tokens are 32 random bytes (base64url) and travel in the `x-share-token` request header, never a query string; the API hashes and looks up the link on every request (`apps/api/src/auth/share-link.ts`), so revoking takes effect on the next one. A malformed or unknown token is ignored, not refused. A share URL is `/listen#<token>`: the token sits in the fragment, which browsers never send to a server, so it stays out of request logs and referrers; the page reads it in the browser and opens the link through server actions that call the API with only the token, never the visitor's session (`sharedApi()` in `apps/web/lib/api.ts`), so a link works the same for everyone who holds it. The web app turns off Next's dev logging of server action arguments for the same reason.
 7. A track inherits its project's visibility unless `visibility_override` is set. An override can only be **more restrictive** than the project unless the owner explicitly widens it. A loose track (no project) uses its own `visibility`; a project track's own `visibility` is ignored (`effectiveVisibility()`). **Moving a track never widens who can hear it:** joining a project with a wider visibility gives the track an override at its old visibility (`overrideOnJoin()`), and leaving a project sets its own `visibility` to the effective one it had (decided 2026-10-20).
-8. `artist_only` feedback is visible only to the track owner and the feedback's author.
+8. Everyone who can see a track can read all of its comments; there are no private or artist-only comments (decided 2026-10-21). Decisions about one comment go through `canAccessFeedback(actor, track, feedback, action)` in `packages/authz`, which first requires `canAccess(..., 'view')` on the track: losing access to a track (a revoked link, say) takes away its comments too, your own included. Its actions: `read`; `reply` (may comment on the track, so signed in); `edit` (the author only); `delete` (the author, or the track owner); `resolve` and reopen (the track owner only).
 9. Unauthenticated access to a non-public resource returns `404`, not `403`, to avoid leaking existence.
 10. Deleting a project or track revokes all share links and invalidates outstanding signed URLs as soon as practical. Today that's when they expire: the API refuses new stream URLs at once, but one already issued keeps working until its 10 minutes run out (the same holds after revoking a link or making something private).
 11. Commenting needs an account: anonymous visitors, with a link or on something public, can view and listen only. There are no guest comments.
@@ -226,7 +226,7 @@ The service starts invite only. Anyone can create an account, but it stays `pend
 
 ### Testing requirement
 
-`packages/authz` must have exhaustive table-driven tests covering every combination of visibility x action x (owner / link-holder / stranger / anonymous). Any change to permission logic requires test updates in the same commit. Treat a permissions bug as a P0.
+`packages/authz` must have exhaustive table-driven tests covering every combination of visibility x action x (owner / link-holder / stranger / anonymous), and for feedback, action x (artist / author / other listener / anonymous) at every track visibility, with and without a link. Any change to permission logic requires test updates in the same commit. Treat a permissions bug as a P0.
 
 ---
 
@@ -417,9 +417,9 @@ Get the app onto a staging environment as early as possible, so every later phas
 ### Phase 5: Feedback
 
 - [x] Profile settings, so comments can show who wrote them _(page: `/settings/profile`, linked from the header as Profile, only for the signed-in user: display name, bio, an optional city, and an optional picture. API: `GET`/`PATCH /v1/me/profile`; the first save creates the profile. Pictures: `POST /v1/me/avatars`, `.../avatars/:avatarId/complete`, `GET /v1/me/avatars/:avatarId`, `DELETE /v1/me/avatar`, processed like cover art. Styled, with a live preview of how the name signs a comment)_
-- [ ] Timestamped comments on the waveform, threaded replies
+- [ ] Timestamped comments on the waveform, threaded replies _(permissions and table done: `canAccessFeedback` with its hand-written matrix, and the `feedback` table, see section 5. Next: the API, then the track page and listen page)_
 - [ ] Per-version "what I want feedback on" prompt
-- [ ] Open/resolved status, artist-only vs public comments
+- [ ] Open/resolved status _(artist-only comments dropped 2026-10-21: every comment is visible to everyone who can see the track)_
 - [ ] Notifications (in-app first, email digest optional)
 - **Done when:** a listener can comment at 1:23, the artist is notified, replies, and marks it resolved.
 
