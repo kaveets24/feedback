@@ -14,9 +14,11 @@ export default async function ProfilePage() {
   const profile = await loadOrNotFound(() => serverApi().getProfile());
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6">
-      <h1>Your profile</h1>
-      <p>Only you can see this page. Other people see your name, and only next to your comments.</p>
+    <main className="mx-auto max-w-3xl px-4 pt-6 pb-16">
+      <h1 className="text-3xl font-semibold text-balance">Your profile</h1>
+      <p className="mt-2 mb-6 max-w-[65ch] text-muted">
+        Only you can see this page. Other people see your name, and only next to your comments.
+      </p>
       <ProfileForm profile={profile} />
     </main>
   );
