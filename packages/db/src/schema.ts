@@ -17,7 +17,14 @@ import {
 } from 'drizzle-orm/pg-core';
 import { v7 as uuidv7 } from 'uuid';
 import { RESOURCE_KINDS, VISIBILITIES } from '@feedback/authz';
-import { ACCESS_STATUSES, CITIES, RELEASE_TYPES, VERSION_STATUSES } from '@feedback/shared';
+import {
+  ACCESS_STATUSES,
+  CITIES,
+  FEEDBACK_STATUSES,
+  MAX_FEEDBACK_LENGTH,
+  RELEASE_TYPES,
+  VERSION_STATUSES,
+} from '@feedback/shared';
 
 export const accessStatus = pgEnum('access_status', ACCESS_STATUSES);
 export const visibility = pgEnum('visibility', VISIBILITIES);
@@ -29,6 +36,7 @@ export const coverStatus = pgEnum('cover_status', VERSION_STATUSES);
 /** A profile picture upload goes through the same lifecycle too. */
 export const avatarStatus = pgEnum('avatar_status', VERSION_STATUSES);
 export const shareResourceType = pgEnum('share_resource_type', RESOURCE_KINDS);
+export const feedbackStatus = pgEnum('feedback_status', FEEDBACK_STATUSES);
 /**
  * No longer read: every link lets signed-in holders comment (decided 2026-10-20). New links take
  * the column's default; a later migration drops it and this enum.
@@ -327,3 +335,62 @@ export const shareLinks = pgTable(
 );
 
 export type ShareLink = typeof shareLinks.$inferSelect;
+
+/**
+ * A comment on one version of a track (CLAUDE.md section 5), at a moment in it or about the whole
+ * thing. Replies go one level deep: a reply's parent is a top-level comment on the same version
+ * (the foreign key enforces the version; the API, the depth). Replies have no timestamp of their
+ * own and are never resolved. Everyone who can see the track can read every comment. Comments are only
+ * soft-deleted, so a thread keeps its shape; deleting a version or an account removes them.
+ */
+export const feedback = pgTable(
+  'feedback',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    trackVersionId: uuid('track_version_id')
+      .notNull()
+      .references(() => trackVersions.id, { onDelete: 'cascade' }),
+    authorId: uuid('author_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** The top-level comment this replies to, or null for a top-level comment. */
+    parentId: uuid('parent_id'),
+    /** Where in the version it's pinned, or null for a general comment. */
+    timestampMs: integer('timestamp_ms'),
+    body: text('body').notNull(),
+    status: feedbackStatus('status').notNull().default('open'),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    index('feedback_track_version_id_timestamp_ms_idx').on(t.trackVersionId, t.timestampMs),
+    index('feedback_parent_id_idx').on(t.parentId),
+    index('feedback_author_id_idx').on(t.authorId),
+    // Target of the parent foreign key below, which keeps a reply on its parent's version.
+    unique('feedback_id_track_version_id_unique').on(t.id, t.trackVersionId),
+    foreignKey({
+      name: 'feedback_parent_fk',
+      columns: [t.parentId, t.trackVersionId],
+      foreignColumns: [t.id, t.trackVersionId],
+    }).onDelete('cascade'),
+    check('feedback_body_not_blank', sql`char_length(trim(${t.body})) > 0`),
+    check(
+      'feedback_body_max_length',
+      sql`char_length(${t.body}) <= ${sql.raw(String(MAX_FEEDBACK_LENGTH))}`,
+    ),
+    check('feedback_timestamp_non_negative', sql`${t.timestampMs} >= 0`),
+    check(
+      'feedback_reply_shape',
+      sql`${t.parentId} is null or (${t.timestampMs} is null and ${t.status} = 'open')`,
+    ),
+    check(
+      'feedback_resolved_iff_resolved_at',
+      sql`(${t.status} = 'resolved') = (${t.resolvedAt} is not null)`,
+    ),
+  ],
+);
+
+export type Feedback = typeof feedback.$inferSelect;
