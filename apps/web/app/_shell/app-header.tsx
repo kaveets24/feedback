@@ -1,7 +1,9 @@
 import { SignOutButton } from '@clerk/nextjs';
 import { auth } from '@clerk/nextjs/server';
 import Link from 'next/link';
+import type { CoverImage } from '@feedback/shared';
 import { getMe, serverApi } from '../../lib/api';
+import { Avatar } from './avatar';
 import { BellIcon, PersonIcon } from './icons';
 import { NavLinks } from './nav-links';
 
@@ -27,11 +29,20 @@ async function unreadCount(): Promise<number> {
   }
 }
 
+/** The user's profile picture; none if the API can't say, since the icon stands in for it. */
+async function ownAvatar(): Promise<CoverImage | null> {
+  try {
+    return (await serverApi().getProfile()).avatar;
+  } catch {
+    return null;
+  }
+}
+
 /** The bar at the top of every page: the wordmark, the main sections, and the account. */
 export async function AppHeader() {
   const { isAuthenticated } = await auth();
   const showNav = isAuthenticated && (await canUseApp());
-  const unread = showNav ? await unreadCount() : 0;
+  const [unread, avatar] = showNav ? await Promise.all([unreadCount(), ownAvatar()]) : [0, null];
 
   return (
     <header className="border-b border-rule">
@@ -46,7 +57,7 @@ export async function AppHeader() {
         <div className="ml-auto flex items-center gap-3 sm:gap-4">
           {showNav && (
             <>
-              {/* Notifications is always a bell; Profile is an icon only on phones, where words don't fit. */}
+              {/* Icons, not words: the bell, and your picture (or the person until you have one). */}
               <Link
                 href="/notifications"
                 className="focus-glow inline-flex items-center self-stretch rounded-sm text-sm text-muted hover:text-accent sm:px-1"
@@ -64,13 +75,15 @@ export async function AppHeader() {
               </Link>
               <Link
                 href="/settings/profile"
-                className="link inline-flex items-center self-stretch text-sm text-muted max-sm:no-underline"
+                className="group focus-glow inline-flex items-center self-stretch rounded-sm text-muted hover:text-accent sm:px-1"
                 aria-label="Profile"
+                title="Profile"
               >
-                <span className="sm:hidden">
+                {avatar ? (
+                  <Avatar avatar={avatar} size="header" className="group-hover:border-accent" />
+                ) : (
                   <PersonIcon />
-                </span>
-                <span className="hidden sm:inline">Profile</span>
+                )}
               </Link>
             </>
           )}
