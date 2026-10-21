@@ -144,3 +144,54 @@ export function canAccess(
   if (actor.kind === 'anonymous' && SIGNED_IN_ONLY.includes(action)) return false;
   return ROLE_ACTIONS[role].includes(action);
 }
+
+// Feedback (comments) on a track's versions. Every comment is visible to everyone who can see
+// the track; canAccessFeedback answers the questions about changing one.
+
+/**
+ * What can be done to an existing comment. Writing a new top-level comment is `canAccess(...,
+ * 'comment')` on the track; `reply` is answering this one.
+ */
+export const FEEDBACK_ACTIONS = ['read', 'reply', 'edit', 'delete', 'resolve'] as const;
+export type FeedbackAction = (typeof FEEDBACK_ACTIONS)[number];
+
+/** The parts of a comment its permissions depend on. */
+export interface FeedbackItem {
+  authorId: string;
+}
+
+/**
+ * Whether `actor` may do `action` to `feedback`, a comment on a version of `track`. `track` and
+ * `context` are what canAccess takes for the track; nobody gets anything on a comment without
+ * being able to view its track, authors included.
+ *
+ * - `read`: anyone who can view the track.
+ * - `reply`: anyone who may comment on the track (so, signed in).
+ * - `edit`: its author only. Nobody else rewrites someone's words.
+ * - `delete`: its author, or the artist (on their own track).
+ * - `resolve` (and reopen): the artist only.
+ */
+export function canAccessFeedback(
+  actor: Actor,
+  track: Resource,
+  feedback: FeedbackItem,
+  action: FeedbackAction,
+  context?: AccessContext,
+): boolean {
+  if (!canAccess(actor, track, 'view', context)) return false;
+  const isArtist = roleFor(actor, track, context) === 'owner';
+  const isAuthor = actor.kind === 'user' && actor.userId === feedback.authorId;
+
+  switch (action) {
+    case 'read':
+      return true;
+    case 'reply':
+      return canAccess(actor, track, 'comment', context);
+    case 'edit':
+      return isAuthor;
+    case 'delete':
+      return isAuthor || isArtist;
+    case 'resolve':
+      return isArtist;
+  }
+}
