@@ -1,27 +1,41 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import type { FeedbackThread } from '@feedback/shared';
-import type { PlayerItem } from '../../../lib/audio-store';
-import { FeedbackSection } from '../../_feedback/feedback-section';
-import type { FeedbackMarker } from '../../_feedback/markers';
-import { TrackPlayer } from '../../_player/track-player';
+import type { PlayerItem } from '../../lib/audio-store';
+import { TrackPlayer } from '../_player/track-player';
+import { FeedbackSection, type Threads } from './feedback-section';
+import type { FeedbackMarker } from './markers';
 
 /**
  * The player and the comments on whichever version it shows (A or B), with a marker under the
- * waveform for each pinned comment. `status` (the newest upload's state) sits between them.
+ * waveform for each pinned comment. Used by the track page and the listen page. `status` (the
+ * newest upload's state, on the track page) sits between them.
  */
-export function TrackListening({
+export function PlayerWithFeedback({
   current,
   older,
   feedback,
+  prompts,
+  canComment,
+  canEditPrompt,
+  signIn,
   status,
+  onShow,
 }: {
   current: PlayerItem;
   older: readonly PlayerItem[];
-  /** Comments by version id, for every ready version. */
-  feedback: Readonly<Record<string, readonly FeedbackThread[]>>;
-  status: ReactNode;
+  /** Comments by version id: loaded, still loading (absent), or failed to load (null). */
+  feedback: Readonly<Record<string, Threads>>;
+  /** What the artist wants feedback on, by version id. */
+  prompts: Readonly<Record<string, string | null>>;
+  canComment: boolean;
+  canEditPrompt: boolean;
+  /** In the comment box's place for someone who can't comment. */
+  signIn?: ReactNode;
+  status?: ReactNode;
+  /** Told which version is shown, so a page can load its comments. */
+  onShow?: (versionId: string) => void;
 }) {
   const [shownId, setShownId] = useState(current.versionId);
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -32,7 +46,7 @@ export function TrackListening({
       Object.fromEntries(
         Object.entries(feedback).map(([versionId, threads]) => [
           versionId,
-          threads.flatMap((t): FeedbackMarker[] =>
+          (threads ?? []).flatMap((t: FeedbackThread): FeedbackMarker[] =>
             t.timestampMs === null || t.deleted
               ? []
               : [{ id: t.id, timestampMs: t.timestampMs, resolved: t.status === 'resolved' }],
@@ -40,6 +54,14 @@ export function TrackListening({
         ]),
       ),
     [feedback],
+  );
+
+  const show = useCallback(
+    (versionId: string) => {
+      setShownId(versionId);
+      onShow?.(versionId);
+    },
+    [onShow],
   );
 
   function showComment(id: string) {
@@ -56,15 +78,18 @@ export function TrackListening({
           older={older}
           markers={markers}
           onMarker={showComment}
-          onShow={setShownId}
+          onShow={show}
         />
       </div>
       {status}
       <FeedbackSection
         item={shown}
-        threads={feedback[shown.versionId] ?? []}
-        canComment
+        threads={feedback[shown.versionId]}
+        prompt={prompts[shown.versionId] ?? null}
+        canComment={canComment}
+        canEditPrompt={canEditPrompt}
         highlightId={highlightId}
+        signIn={signIn}
       />
     </>
   );

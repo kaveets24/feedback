@@ -1,10 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { SignInButton, useAuth } from '@clerk/nextjs';
+import { useEffect, useMemo, useState } from 'react';
 import type { TrackResponse, VersionResponse } from '@feedback/shared';
 import type { PlayerItem } from '../../lib/audio-store';
 import { formatDate, formatDuration } from '../../lib/format';
-import { TrackPlayer } from '../_player/track-player';
+import { listenerAction, listSharedFeedbackAction, type Listener } from '../_feedback/actions';
+import { FeedbackPlaceContext } from '../_feedback/context';
+import type { Threads } from '../_feedback/feedback-section';
+import { PlayerWithFeedback } from '../_feedback/player-with-feedback';
 import { ProjectCover } from '../projects/project-cover';
 import { openShareAction, type Shared } from './actions';
 
@@ -65,20 +69,99 @@ function playerItem(track: TrackResponse, version: VersionResponse, token: strin
   };
 }
 
-/** The player for a track's current version, with A/B against its other versions. */
+/**
+ * The player for a track's current version, with A/B against its other versions, and the comments
+ * on the version it shows, loaded as it's shown. Anyone with the link can read them; an approved,
+ * signed-in visitor can comment, through the link and as themselves.
+ */
 function Player({ track, token }: { track: TrackResponse; token: string }) {
   // Listeners only get ready versions, newest first; the current one leads.
   const items = track.versions.map((v) => playerItem(track, v, token));
   const current = items.find((i) => i.versionId === track.currentVersionId);
+  const { isSignedIn } = useAuth();
+  const [listener, setListener] = useState<Listener | null>(null);
+  const [shownId, setShownId] = useState(current?.versionId);
+  const [feedback, setFeedback] = useState<Record<string, Threads>>({});
+
+  // Who's here decides what the comments say they may do, so it's settled before they load, and
+  // again after signing in or out (the sign-in is a modal, so the page and its link stay put).
+  useEffect(() => {
+    let live = true;
+    void listenerAction().then((who) => live && setListener(who));
+    return () => {
+      live = false;
+    };
+  }, [isSignedIn]);
+
+  // Bumped after each change to the comments, to load them again.
+  const [changes, setChanges] = useState(0);
+  useEffect(() => {
+    if (!listener || !shownId) return;
+    let live = true;
+    void listSharedFeedbackAction(token, shownId).then((result) => {
+      if (!live) return;
+      setFeedback((all) => ({ ...all, [shownId]: result.ok ? result.data.threads : null }));
+    });
+    return () => {
+      live = false;
+    };
+  }, [listener, shownId, token, changes]);
+
+  const place = useMemo(
+    () => ({ shareToken: token, onChanged: () => setChanges((n) => n + 1) }),
+    [token],
+  );
+
   if (!current) return <p>There’s nothing to play yet.</p>;
-  return <TrackPlayer current={current} older={items.filter((i) => i !== current)} />;
+  return (
+    <FeedbackPlaceContext.Provider value={place}>
+      <PlayerWithFeedback
+        current={current}
+        older={items.filter((i) => i !== current)}
+        feedback={feedback}
+        prompts={Object.fromEntries(track.versions.map((v) => [v.id, v.feedbackPrompt]))}
+        canComment={listener === 'approved'}
+        canEditPrompt={false}
+        signIn={<SignInToComment listener={listener} />}
+        onShow={setShownId}
+      />
+    </FeedbackPlaceContext.Provider>
+  );
+}
+
+/** In the comment box's place for someone who can't comment (yet), saying why. */
+function SignInToComment({ listener }: { listener: Listener | null }) {
+  switch (listener) {
+    case 'anonymous':
+      return (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {/* A modal, so the page (and the link in its address) stays put. */}
+          <SignInButton mode="modal">
+            <button type="button" className="btn">
+              Sign in to comment
+            </button>
+          </SignInButton>
+          <p className="text-sm text-muted">You can listen and read without an account.</p>
+        </div>
+      );
+    case 'pending':
+      return (
+        <p className="text-sm text-muted">
+          Your account is waiting for approval. You can comment once it’s approved.
+        </p>
+      );
+    case 'rejected':
+      return <p className="text-sm text-muted">Your account can’t comment.</p>;
+    default:
+      return null;
+  }
 }
 
 function SharedTrack({ track, token }: { track: TrackResponse; token: string }) {
   return (
     <>
       <h1>{track.title}</h1>
-      <p>Shared with you by link. You can listen.</p>
+      <p>Shared with you by link. You can listen, and comment once you’re signed in.</p>
       <Player track={track} token={token} />
       <h2>Versions</h2>
       <ul>
@@ -111,7 +194,7 @@ function SharedProject({
       <ProjectCover cover={project.cover} size="page" alt={`Cover art for ${project.title}`} />
       <h1>{project.title}</h1>
       {project.description && <p>{project.description}</p>}
-      <p>Shared with you by link. You can listen.</p>
+      <p>Shared with you by link. You can listen, and comment once you’re signed in.</p>
       {selected ? (
         <Player key={selected.id} track={selected} token={token} />
       ) : (

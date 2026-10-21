@@ -8,11 +8,11 @@ import type {
 } from '@feedback/shared';
 import type { PlayerItem } from '../../../lib/audio-store';
 import { formatDate, formatDuration, STATUS_LABELS } from '../../../lib/format';
+import { PlayerWithFeedback } from '../../_feedback/player-with-feedback';
 import { SharingSection } from '../../_sharing/sharing-section';
 import { UploadForm } from '../../upload-form';
 import { ProcessingStatus } from './processing-status';
 import { ProjectSelect } from './project-select';
-import { TrackListening } from './track-listening';
 import { VersionItem } from './version-item';
 import { VersionRow } from './version-notes';
 
@@ -55,10 +55,13 @@ export function TrackView({
       </div>
 
       {currentItem ? (
-        <TrackListening
+        <PlayerWithFeedback
           current={currentItem}
           older={older}
           feedback={feedback}
+          prompts={Object.fromEntries(track.versions.map((v) => [v.id, v.feedbackPrompt]))}
+          canComment
+          canEditPrompt
           status={latest && <LatestStatus version={latest} />}
         />
       ) : (

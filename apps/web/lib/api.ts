@@ -22,6 +22,20 @@ export function sharedApi(shareToken: string) {
 }
 
 /**
+ * API client for commenting through a share link: the link's token plus the visitor's session,
+ * since a comment needs an author. Only for comments, and only for approved accounts (anyone else
+ * would be refused by the approval gate); opening the link itself stays `sharedApi`, so what a
+ * link opens never depends on who's asking.
+ */
+export function sharedApiAs(shareToken: string) {
+  return createApiClient({
+    baseUrl: env.API_URL,
+    shareToken,
+    getToken: async () => (await auth()).getToken(),
+  });
+}
+
+/**
  * The signed-in user, fetched once per request: the header and the home page both need it, and
  * `cache` makes them share one API call.
  */

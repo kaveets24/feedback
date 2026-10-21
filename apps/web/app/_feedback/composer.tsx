@@ -1,12 +1,12 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useId, useState, useTransition } from 'react';
 import { MAX_FEEDBACK_LENGTH } from '@feedback/shared';
 import type { PlayerItem } from '../../lib/audio-store';
 import { formatDuration } from '../../lib/format';
 import { useAudio } from '../_player/store';
 import { createFeedbackAction } from './actions';
+import { useFeedbackPlace } from './context';
 
 /**
  * Writes a new comment on the version in the player. While the box is empty, the moment follows
@@ -15,7 +15,7 @@ import { createFeedbackAction } from './actions';
  * moment to pin to, so the comment is general.
  */
 export function Composer({ item }: { item: PlayerItem }) {
-  const router = useRouter();
+  const place = useFeedbackPlace();
   const id = useId();
   const [body, setBody] = useState('');
   const [heldMs, setHeldMs] = useState<number | null>(null);
@@ -31,10 +31,11 @@ export function Composer({ item }: { item: PlayerItem }) {
     if (!body.trim() || pending) return;
     setError(null);
     startTransition(async () => {
-      const result = await createFeedbackAction(item.versionId, {
-        body,
-        timestampMs: pinned ? atMs : null,
-      });
+      const result = await createFeedbackAction(
+        item.versionId,
+        { body, timestampMs: pinned ? atMs : null },
+        place.shareToken,
+      );
       if (!result.ok) {
         setError(result.message);
         return;
@@ -42,7 +43,7 @@ export function Composer({ item }: { item: PlayerItem }) {
       setBody('');
       setHeldMs(null);
       setPinned(true);
-      router.refresh();
+      place.onChanged();
     });
   }
 
