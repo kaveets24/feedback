@@ -3,6 +3,7 @@ export * from './schemas/avatars.ts';
 export * from './schemas/common.ts';
 export * from './schemas/covers.ts';
 export * from './schemas/feedback.ts';
+export * from './schemas/follows.ts';
 export * from './schemas/health.ts';
 export * from './schemas/me.ts';
 export * from './schemas/notifications.ts';

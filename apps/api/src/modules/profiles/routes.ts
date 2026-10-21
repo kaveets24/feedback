@@ -23,7 +23,7 @@ export function profileRoutes(deps: CoverDeps): FastifyPluginAsyncZod {
         },
       },
       async (request, reply) => {
-        const profile = await getPublicProfile(deps, request.params.handle);
+        const profile = await getPublicProfile(deps, request.actor, request.params.handle);
         // The picture is a signed URL: no cache should keep it.
         void reply.header('cache-control', 'no-store');
         return profile;

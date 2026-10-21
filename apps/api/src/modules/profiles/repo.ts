@@ -21,6 +21,13 @@ export async function findPublicProfile(db: Db, handle: string): Promise<Profile
 }
 
 /**
+ * Whether a track is public by its effective visibility: a loose track's own, or a project track's
+ * override or else its project's. Needs `projects` left-joined on the track's live project.
+ */
+export const isPublicTrack = sql`(case when ${projects.id} is null then ${tracks.visibility}
+  else coalesce(${tracks.visibilityOverride}, ${projects.visibility}) end) = 'public'`;
+
+/**
  * An owner's public tracks with a ready version, newest first, paged by id like
  * `listTracksForOwner`. Public means by effective visibility: a loose track's own, or a project
  * track's override or else its live project's. The service still checks each with `canAccess`.
@@ -40,8 +47,7 @@ export async function listPublicTracks(
         isNull(tracks.deletedAt),
         isNotNull(tracks.currentVersionId),
         before ? lt(tracks.id, before) : undefined,
-        sql`(case when ${projects.id} is null then ${tracks.visibility}
-          else coalesce(${tracks.visibilityOverride}, ${projects.visibility}) end) = 'public'`,
+        isPublicTrack,
       ),
     )
     .orderBy(desc(tracks.id))
