@@ -14,13 +14,24 @@ const LINKS = [
     label: 'Projects',
     matches: (path: string) => path === '/projects' || path.startsWith('/projects/'),
   },
+  {
+    href: '/feed',
+    label: 'Feed',
+    matches: (path: string) => path === '/feed',
+  },
 ];
 
-/** The main sections, with the current one underlined in the accent. */
+/**
+ * The main sections, with the current one underlined in the accent. On phones they take a row of
+ * their own under the wordmark, lined up with it; from `sm` they sit beside it.
+ */
 export function NavLinks() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Main" className="flex h-full items-stretch gap-1">
+    <nav
+      aria-label="Main"
+      className="order-last -ml-2 flex h-11 w-full items-stretch gap-1 sm:order-none sm:ml-0 sm:h-14 sm:w-auto"
+    >
       {LINKS.map(({ href, label, matches }) => {
         const current = matches(pathname);
         return (
