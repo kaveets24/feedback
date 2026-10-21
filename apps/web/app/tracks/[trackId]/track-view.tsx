@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type {
+  FeedbackThread,
   ProjectResponse,
   ShareLinkResponse,
   TrackResponse,
@@ -8,22 +9,28 @@ import type {
 import type { PlayerItem } from '../../../lib/audio-store';
 import { formatDate, formatDuration, STATUS_LABELS } from '../../../lib/format';
 import { SharingSection } from '../../_sharing/sharing-section';
-import { TrackPlayer } from '../../_player/track-player';
 import { UploadForm } from '../../upload-form';
 import { ProcessingStatus } from './processing-status';
 import { ProjectSelect } from './project-select';
+import { TrackListening } from './track-listening';
 import { VersionItem } from './version-item';
 import { VersionRow } from './version-notes';
 
-/** The track page's body: its place, the player, the version history, and a new version's upload. */
+/**
+ * The track page's body: its place, the player and its comments, the version history, sharing,
+ * and a new version's upload.
+ */
 export function TrackView({
   track,
   projects,
   links,
+  feedback,
 }: {
   track: TrackResponse;
   projects: ProjectResponse[];
   links: ShareLinkResponse[];
+  /** Comments by version id, for every ready version. */
+  feedback: Readonly<Record<string, readonly FeedbackThread[]>>;
 }) {
   const project = projects.find((p) => p.id === track.projectId);
   const [latest] = track.versions;
@@ -47,15 +54,15 @@ export function TrackView({
         <ProjectSelect trackId={track.id} projectId={track.projectId} projects={projects} />
       </div>
 
-      {currentItem && (
-        <div className="mt-8">
-          <TrackPlayer current={currentItem} older={older} />
-        </div>
-      )}
-      {latest && (
-        <div className="mt-3">
-          <LatestVersion version={latest} />
-        </div>
+      {currentItem ? (
+        <TrackListening
+          current={currentItem}
+          older={older}
+          feedback={feedback}
+          status={latest && <LatestStatus version={latest} />}
+        />
+      ) : (
+        latest && <LatestStatus version={latest} />
       )}
 
       <section aria-labelledby="versions-heading" className="mt-12">
@@ -157,6 +164,14 @@ function VersionMeta({ version }: { version: VersionResponse }) {
         <p className="mt-1 text-sm text-pretty text-danger">{version.failureReason}</p>
       )}
     </>
+  );
+}
+
+function LatestStatus({ version }: { version: VersionResponse }) {
+  return (
+    <div className="mt-3 empty:hidden">
+      <LatestVersion version={version} />
+    </div>
   );
 }
 

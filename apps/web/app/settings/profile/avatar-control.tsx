@@ -17,7 +17,7 @@ import {
   removeAvatarAction,
   startAvatarUploadAction,
 } from './actions';
-import { Avatar } from './avatar';
+import { Avatar } from '../../_shell/avatar';
 
 type State =
   | { step: 'idle' }

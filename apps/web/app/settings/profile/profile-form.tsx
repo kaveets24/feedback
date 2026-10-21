@@ -4,7 +4,7 @@ import { useActionState, useState } from 'react';
 import { CITY_LABELS, CITY_REGIONS, type ProfileResponse } from '@feedback/shared';
 import { DownIcon } from '../../_shell/icons';
 import { updateProfileAction } from './actions';
-import { Avatar } from './avatar';
+import { Avatar } from '../../_shell/avatar';
 
 /** Name, bio and city, saved together. The name previews as it will sign a comment. */
 export function ProfileForm({ profile }: { profile: ProfileResponse }) {
