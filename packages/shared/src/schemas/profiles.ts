@@ -25,6 +25,9 @@ export const CITIES = [
   'amsterdam',
   'paris',
   'tokyo',
+  'lisbon',
+  'barcelona',
+  'madrid',
 ] as const;
 export const citySchema = z.enum(CITIES);
 export type City = z.infer<typeof citySchema>;
@@ -48,6 +51,9 @@ export const CITY_LABELS: Record<City, string> = {
   amsterdam: 'Amsterdam',
   paris: 'Paris',
   tokyo: 'Tokyo',
+  lisbon: 'Lisbon',
+  barcelona: 'Barcelona',
+  madrid: 'Madrid',
 };
 
 /** The city picker's groups, each alphabetical. Every city is in exactly one (tested). */
@@ -70,7 +76,10 @@ export const CITY_REGIONS: readonly { label: string; cities: readonly City[] }[]
       'seattle',
     ],
   },
-  { label: 'Europe', cities: ['amsterdam', 'berlin', 'london', 'paris'] },
+  {
+    label: 'Europe',
+    cities: ['amsterdam', 'barcelona', 'berlin', 'lisbon', 'london', 'madrid', 'paris'],
+  },
   { label: 'Asia', cities: ['tokyo'] },
 ];
 

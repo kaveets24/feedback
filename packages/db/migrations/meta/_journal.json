@@ -71,6 +71,13 @@
       "when": 1792547851044,
       "tag": "0009_more_cities",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792548861946,
+      "tag": "0010_iberian_cities",
+      "breakpoints": true
     }
   ]
 }
