@@ -1,8 +1,8 @@
 import type { CoverImage } from '@feedback/shared';
-import { PersonIcon } from '../../_shell/icons';
+import { PersonIcon } from './icons';
 
 const SIZES = {
-  /** Inline in the name preview, the size it signs a comment at. */
+  /** Inline beside a name, the size it signs a comment at. */
   inline: { box: 'size-5', icon: 12 },
   /** On the profile page, beside its controls. */
   page: { box: 'size-20', icon: 32 },

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import type { PlaybackStatus, PlayerItem } from '../../lib/audio-store';
+import { MarkerRail, type FeedbackMarker } from '../_feedback/markers';
 import { AbSwitch, type Side } from './ab-switch';
 import { LcdTime } from './lcd-time';
 import { audioStore, useAudio } from './store';
@@ -24,10 +25,18 @@ const STATE_LABELS: Record<PlaybackStatus, string> = {
 export function TrackPlayer({
   current,
   older,
+  markers,
+  onMarker,
+  onShow,
 }: {
   current: PlayerItem;
   /** The track's other ready versions, newest first: what the current one can be compared with. */
   older: readonly PlayerItem[];
+  /** Pinned comments by version id, drawn under the waveform of the version shown. */
+  markers?: Readonly<Record<string, readonly FeedbackMarker[]>>;
+  onMarker?: (feedbackId: string) => void;
+  /** Called with the version shown (A or B) whenever it changes, and once at first. */
+  onShow?: (versionId: string) => void;
 }) {
   const loadedId = useAudio((s) => s.item?.versionId);
   // B starts as an older version that's already playing (back on the page after switching to it),
@@ -66,6 +75,10 @@ export function TrackPlayer({
     if (side === 'b') show(next);
     setCompareId(versionId);
   };
+
+  useEffect(() => {
+    onShow?.(item.versionId);
+  }, [item.versionId, onShow]);
 
   // Once this player has the audio, get the other side's stream URL ready so a switch is quick.
   const other = b && (side === 'a' ? b : current);
@@ -109,6 +122,13 @@ export function TrackPlayer({
         onSeek={seek}
         onToggle={toggle}
       />
+      {markers && onMarker && (
+        <MarkerRail
+          markers={markers[item.versionId] ?? []}
+          durationMs={item.durationMs}
+          onSelect={onMarker}
+        />
+      )}
       {b && (
         <div className="mt-3">
           <AbSwitch

@@ -16,5 +16,8 @@ export default async function TrackPage({ params }: { params: Promise<{ trackId:
     const page = await serverApi().listProjects({ cursor, limit: 100 });
     return { items: page.projects, nextCursor: page.nextCursor };
   });
-  return <TrackView track={track} projects={projects} links={links} />;
+  const ready = track.versions.filter((v) => v.status === 'ready');
+  const lists = await Promise.all(ready.map((v) => serverApi().listFeedback(v.id)));
+  const feedback = Object.fromEntries(ready.map((v, i) => [v.id, lists[i]!.threads]));
+  return <TrackView track={track} projects={projects} links={links} feedback={feedback} />;
 }
