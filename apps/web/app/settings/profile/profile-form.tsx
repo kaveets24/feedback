@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { CITIES, CITY_LABELS, type ProfileResponse } from '@feedback/shared';
+import { CITY_LABELS, CITY_REGIONS, type ProfileResponse } from '@feedback/shared';
 import { DownIcon } from '../../_shell/icons';
 import { updateProfileAction } from './actions';
 
@@ -74,10 +74,14 @@ export function ProfileForm({ profile }: { profile: ProfileResponse }) {
             className="field appearance-none pr-10"
           >
             <option value="">None</option>
-            {CITIES.map((city) => (
-              <option key={city} value={city}>
-                {CITY_LABELS[city]}
-              </option>
+            {CITY_REGIONS.map((region) => (
+              <optgroup key={region.label} label={region.label}>
+                {region.cities.map((city) => (
+                  <option key={city} value={city}>
+                    {CITY_LABELS[city]}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
           <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted">

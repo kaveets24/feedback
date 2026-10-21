@@ -151,13 +151,13 @@ describe('/v1/me/profile', () => {
   it("keeps each user's profile to themselves", async () => {
     await approvedUser('u1');
     await approvedUser('u2');
-    await call('PATCH', 'u1', { displayName: 'One', city: 'chicago' });
+    await call('PATCH', 'u1', { displayName: 'One', city: 'new-orleans' });
     await call('PATCH', 'u2', { displayName: 'Two' });
 
     expect((await call('GET', 'u1')).json()).toEqual({
       displayName: 'One',
       bio: null,
-      city: 'chicago',
+      city: 'new-orleans',
     });
     expect((await call('GET', 'u2')).json()).toEqual({ displayName: 'Two', bio: null, city: null });
   });

@@ -3,6 +3,8 @@ import { z } from 'zod';
 /**
  * The cities a profile can name. Only a label the user picks for themselves: nothing filters,
  * sorts, or ranks by it (location features are out of scope, CLAUDE.md section 1). Optional.
+ * New cities go at the end, since Postgres adds enum values there; `CITY_REGIONS` sets the order
+ * people see.
  */
 export const CITIES = [
   'san-francisco',
@@ -13,6 +15,16 @@ export const CITIES = [
   'new-york',
   'miami',
   'portland-or',
+  'atlanta',
+  'detroit',
+  'new-orleans',
+  'austin',
+  'nashville',
+  'london',
+  'berlin',
+  'amsterdam',
+  'paris',
+  'tokyo',
 ] as const;
 export const citySchema = z.enum(CITIES);
 export type City = z.infer<typeof citySchema>;
@@ -26,7 +38,41 @@ export const CITY_LABELS: Record<City, string> = {
   'new-york': 'New York',
   miami: 'Miami',
   'portland-or': 'Portland, OR',
+  atlanta: 'Atlanta',
+  detroit: 'Detroit',
+  'new-orleans': 'New Orleans',
+  austin: 'Austin',
+  nashville: 'Nashville',
+  london: 'London',
+  berlin: 'Berlin',
+  amsterdam: 'Amsterdam',
+  paris: 'Paris',
+  tokyo: 'Tokyo',
 };
+
+/** The city picker's groups, each alphabetical. Every city is in exactly one (tested). */
+export const CITY_REGIONS: readonly { label: string; cities: readonly City[] }[] = [
+  {
+    label: 'North America',
+    cities: [
+      'atlanta',
+      'austin',
+      'chicago',
+      'detroit',
+      'los-angeles',
+      'miami',
+      'nashville',
+      'new-orleans',
+      'new-york',
+      'philadelphia',
+      'portland-or',
+      'san-francisco',
+      'seattle',
+    ],
+  },
+  { label: 'Europe', cities: ['amsterdam', 'berlin', 'london', 'paris'] },
+  { label: 'Asia', cities: ['tokyo'] },
+];
 
 /** What other people see a user called, e.g. on their comments. */
 export const displayNameSchema = z.string().trim().min(1).max(50);
