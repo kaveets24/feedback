@@ -181,5 +181,7 @@ export const publicProfileResponseSchema = z.object({
   city: citySchema.nullable(),
   /** A short-lived signed URL; never log it. */
   avatar: coverImageSchema.nullable(),
+  /** Whether the asker follows them; false when signed out, and for older API responses. */
+  following: z.boolean().default(false),
 });
 export type PublicProfileResponse = z.infer<typeof publicProfileResponseSchema>;

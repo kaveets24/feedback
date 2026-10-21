@@ -21,6 +21,7 @@ import { avatarRoutes } from './modules/avatars/routes.ts';
 import { meRoutes } from './modules/me/routes.ts';
 import { coverRoutes } from './modules/covers/routes.ts';
 import { feedbackRoutes } from './modules/feedback/routes.ts';
+import { followRoutes } from './modules/follows/routes.ts';
 import { notificationRoutes } from './modules/notifications/routes.ts';
 import { profileRoutes } from './modules/profiles/routes.ts';
 import { projectRoutes } from './modules/projects/routes.ts';
@@ -68,6 +69,7 @@ export async function buildApp(env: Env, deps: AppDeps) {
       await v1.register(meRoutes(deps));
       await v1.register(avatarRoutes(deps));
       await v1.register(profileRoutes(deps));
+      await v1.register(followRoutes(deps));
       await v1.register(uploadRoutes(deps));
       await v1.register(versionRoutes(deps));
       await v1.register(trackRoutes(deps.db));

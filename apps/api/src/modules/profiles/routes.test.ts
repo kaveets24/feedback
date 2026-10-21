@@ -88,6 +88,7 @@ describe('public profiles', () => {
           bio: 'Bedroom pop.',
           city: 'miami',
           avatar: null,
+          following: false,
         });
       }
     });

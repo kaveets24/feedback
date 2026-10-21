@@ -8,6 +8,7 @@ import { formatDuration } from '../../../lib/format';
 import { loadOrNotFound } from '../../../lib/load';
 import { collectPages } from '../../../lib/pages';
 import { Avatar } from '../../_shell/avatar';
+import { FollowButton } from './follow-button';
 
 type Params = { params: Promise<{ handle: string }> };
 
@@ -41,7 +42,8 @@ export default async function PublicProfilePage({ params }: Params) {
     }),
   ]);
   const { isAuthenticated } = await auth();
-  const isYou = isAuthenticated && (await getMe()).profile?.handle === profile.handle;
+  const me = isAuthenticated ? await getMe() : null;
+  const isYou = me?.profile?.handle === profile.handle;
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-6">
@@ -52,6 +54,10 @@ export default async function PublicProfilePage({ params }: Params) {
         {profile.city && <> · {CITY_LABELS[profile.city]}</>}
       </p>
       {profile.bio && <p>{profile.bio}</p>}
+      {/* Accounts waiting for approval (or turned away) can't follow, so they get no button. */}
+      {!isYou && (!me || me.accessStatus === 'approved') && (
+        <FollowButton handle={profile.handle} following={profile.following} signedIn={!!me} />
+      )}
       {isYou && (
         <p>
           This is your public page: everyone sees it like this, with only what you’ve made public.{' '}

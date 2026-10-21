@@ -17,6 +17,11 @@ import {
   createCoverResponseSchema,
   type CreateCoverRequest,
 } from './schemas/covers.ts';
+import {
+  feedResponseSchema,
+  followingResponseSchema,
+  type FollowListQuery,
+} from './schemas/follows.ts';
 import { meResponseSchema } from './schemas/me.ts';
 import {
   notificationListResponseSchema,
@@ -121,7 +126,7 @@ export function createApiClient({
   const post = <T>(path: string, schema: z.ZodType<T>, body?: unknown) =>
     send('POST', path, schema, body);
 
-  const pageQuery = ({ cursor, limit }: TrackListQuery | ProjectListQuery) => {
+  const pageQuery = ({ cursor, limit }: TrackListQuery | ProjectListQuery | FollowListQuery) => {
     const query = new URLSearchParams();
     if (cursor) query.set('cursor', cursor);
     if (limit !== undefined) query.set('limit', String(limit));
@@ -150,6 +155,17 @@ export function createApiClient({
         `/v1/profiles/${encodeURIComponent(handle)}/projects${pageQuery(query)}`,
         projectListResponseSchema,
       ),
+    /** Follows someone with a public page; following them again changes nothing. */
+    followProfile: (handle: string) =>
+      send('PUT', `/v1/profiles/${encodeURIComponent(handle)}/follow`, z.undefined()),
+    unfollowProfile: (handle: string) =>
+      send('DELETE', `/v1/profiles/${encodeURIComponent(handle)}/follow`, z.undefined()),
+    /** Who the signed-in user follows, most recent first. */
+    listFollowing: (query: FollowListQuery = {}) =>
+      request(`/v1/me/following${pageQuery(query)}`, followingResponseSchema),
+    /** New public work by the people the signed-in user follows, newest first. */
+    getFeed: (query: FollowListQuery = {}) =>
+      request(`/v1/feed${pageQuery(query)}`, feedResponseSchema),
     /** Starts uploading a profile picture; PUT the image to `upload`, then `completeAvatarUpload`. */
     startAvatarUpload: (input: CreateAvatarRequest) =>
       post('/v1/me/avatars', createAvatarResponseSchema, input),

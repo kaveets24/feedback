@@ -10,6 +10,7 @@ import { httpError } from '../../errors.ts';
 import { COVER_URL_SECONDS, coverImages, type CoverDeps } from '../covers/images.ts';
 import { toProjectResponse } from '../projects/service.ts';
 import { toTrackSummaries } from '../tracks/service.ts';
+import { isFollowing } from '../follows/repo.ts';
 import { findPublicProfile, listPublicProjects, listPublicTracks } from './repo.ts';
 
 // Someone's public page. It shows what everyone may see, decided as nobody in particular: the
@@ -23,12 +24,15 @@ async function loadProfile(db: CoverDeps['db'], handle: string): Promise<Profile
   return profile;
 }
 
+/** Their page, and whether the asker follows them (the one thing that depends on who's asking). */
 export async function getPublicProfile(
   { db, storage }: CoverDeps,
+  actor: Actor,
   handle: string,
 ): Promise<PublicProfileResponse> {
   const profile = await loadProfile(db, handle);
   const avatar = profile.currentAvatarId ? await currentAvatar(db, profile.userId) : null;
+  const following = actor.kind === 'user' && (await isFollowing(db, actor.user.id, profile.userId));
   return {
     // Set, since that's how it was found.
     handle: profile.handle ?? handle,
@@ -44,6 +48,7 @@ export async function getPublicProfile(
           expiresAt: new Date(Date.now() + COVER_URL_SECONDS * 1000).toISOString(),
         }
       : null,
+    following,
   };
 }
 

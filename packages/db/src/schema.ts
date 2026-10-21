@@ -426,3 +426,30 @@ export const notifications = pgTable(
 );
 
 export type Notification = typeof notifications.$inferSelect;
+
+/**
+ * One user following another, to see their new public work in the feed. Only people with a public
+ * page can be followed (the API finds them by handle); nobody follows themselves.
+ */
+export const follows = pgTable(
+  'follows',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    followerId: uuid('follower_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    followeeId: uuid('followee_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('follows_follower_id_followee_id_idx').on(t.followerId, t.followeeId),
+    index('follows_followee_id_idx').on(t.followeeId),
+    check('follows_not_self', sql`${t.followerId} <> ${t.followeeId}`),
+  ],
+);
+
+export type Follow = typeof follows.$inferSelect;
