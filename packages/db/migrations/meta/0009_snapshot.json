@@ -73,12 +73,8 @@
           "name": "profiles_user_id_users_id_fk",
           "tableFrom": "profiles",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -88,9 +84,7 @@
         "profiles_handle_unique": {
           "name": "profiles_handle_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "handle"
-          ]
+          "columns": ["handle"]
         }
       },
       "policies": {},
@@ -199,12 +193,8 @@
           "name": "project_covers_project_id_projects_id_fk",
           "tableFrom": "project_covers",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -323,12 +313,8 @@
           "name": "projects_owner_id_users_id_fk",
           "tableFrom": "projects",
           "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -336,12 +322,8 @@
           "name": "projects_current_cover_id_project_covers_id_fk",
           "tableFrom": "projects",
           "tableTo": "project_covers",
-          "columnsFrom": [
-            "current_cover_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["current_cover_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -351,10 +333,7 @@
         "projects_id_owner_id_unique": {
           "name": "projects_id_owner_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id",
-            "owner_id"
-          ]
+          "columns": ["id", "owner_id"]
         }
       },
       "policies": {},
@@ -474,12 +453,8 @@
           "name": "share_links_created_by_users_id_fk",
           "tableFrom": "share_links",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -628,12 +603,8 @@
           "name": "track_versions_track_id_tracks_id_fk",
           "tableFrom": "track_versions",
           "tableTo": "tracks",
-          "columnsFrom": [
-            "track_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["track_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -788,12 +759,8 @@
           "name": "tracks_owner_id_users_id_fk",
           "tableFrom": "tracks",
           "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -801,12 +768,8 @@
           "name": "tracks_current_version_id_track_versions_id_fk",
           "tableFrom": "tracks",
           "tableTo": "track_versions",
-          "columnsFrom": [
-            "current_version_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["current_version_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -814,14 +777,8 @@
           "name": "tracks_project_owner_fk",
           "tableFrom": "tracks",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id",
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id",
-            "owner_id"
-          ],
+          "columnsFrom": ["project_id", "owner_id"],
+          "columnsTo": ["id", "owner_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -904,12 +861,8 @@
           "name": "users_approved_by_users_id_fk",
           "tableFrom": "users",
           "tableTo": "users",
-          "columnsFrom": [
-            "approved_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["approved_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -919,16 +872,12 @@
         "users_auth_provider_id_unique": {
           "name": "users_auth_provider_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "auth_provider_id"
-          ]
+          "columns": ["auth_provider_id"]
         },
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -940,11 +889,7 @@
     "public.access_status": {
       "name": "access_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "approved",
-        "rejected"
-      ]
+      "values": ["pending", "approved", "rejected"]
     },
     "public.city": {
       "name": "city",
@@ -973,57 +918,32 @@
     "public.cover_status": {
       "name": "cover_status",
       "schema": "public",
-      "values": [
-        "uploading",
-        "processing",
-        "ready",
-        "failed"
-      ]
+      "values": ["uploading", "processing", "ready", "failed"]
     },
     "public.link_role": {
       "name": "link_role",
       "schema": "public",
-      "values": [
-        "comment",
-        "listen"
-      ]
+      "values": ["comment", "listen"]
     },
     "public.release_type": {
       "name": "release_type",
       "schema": "public",
-      "values": [
-        "single",
-        "ep",
-        "album",
-        "compilation"
-      ]
+      "values": ["single", "ep", "album", "compilation"]
     },
     "public.share_resource_type": {
       "name": "share_resource_type",
       "schema": "public",
-      "values": [
-        "project",
-        "track"
-      ]
+      "values": ["project", "track"]
     },
     "public.track_version_status": {
       "name": "track_version_status",
       "schema": "public",
-      "values": [
-        "uploading",
-        "processing",
-        "ready",
-        "failed"
-      ]
+      "values": ["uploading", "processing", "ready", "failed"]
     },
     "public.visibility": {
       "name": "visibility",
       "schema": "public",
-      "values": [
-        "private",
-        "unlisted",
-        "public"
-      ]
+      "values": ["private", "unlisted", "public"]
     }
   },
   "schemas": {},
