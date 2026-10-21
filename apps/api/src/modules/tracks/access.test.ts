@@ -106,7 +106,12 @@ describe('access by visibility', () => {
       const res = await call('GET', `/v1/tracks/${t.id}`, as);
       expect(res.statusCode).toBe(200);
       const body = res.json<TrackResponse>();
-      expect(body).toMatchObject({ visibility: 'public', notes: null, projectId: null });
+      expect(body).toMatchObject({
+        visibility: 'public',
+        notes: null,
+        projectId: null,
+        canManage: false,
+      });
       expect(body.versions).toEqual([
         expect.objectContaining({ id: v1.id, status: 'ready', originalFilename: null }),
       ]);
@@ -145,6 +150,7 @@ describe('access by visibility', () => {
       const { track: t } = await track(owner.id, 'public');
       const body = (await call('GET', `/v1/tracks/${t.id}`, 'u1')).json<TrackResponse>();
       expect(body.notes).toBe('Ask Sam about the bridge');
+      expect(body.canManage).toBe(true);
       expect(body.versions.map((v) => [v.status, v.originalFilename])).toEqual([
         ['processing', original.filename],
         ['failed', original.filename],
@@ -259,10 +265,14 @@ describe('access by visibility', () => {
 
       const res = await call('GET', `/v1/projects/${project.id}`);
       expect(res.statusCode).toBe(200);
-      expect(res.json<ProjectDetailResponse>().coverUpload).toBeNull();
+      expect(res.json<ProjectDetailResponse>()).toMatchObject({
+        coverUpload: null,
+        canManage: false,
+      });
       const mine = await call('GET', `/v1/projects/${project.id}`, 'u1');
-      expect(mine.json<ProjectDetailResponse>().coverUpload).toMatchObject({
-        status: 'processing',
+      expect(mine.json<ProjectDetailResponse>()).toMatchObject({
+        coverUpload: { status: 'processing' },
+        canManage: true,
       });
       const status = await call('GET', `/v1/projects/${project.id}/covers/${cover.id}`);
       expect(status.statusCode).toBe(404);

@@ -159,6 +159,11 @@ export const trackResponseSchema = z.object({
   createdAt: z.iso.datetime(),
   currentVersionId: z.uuid().nullable(),
   versions: z.array(versionResponseSchema),
+  /**
+   * Whether the asker owns the track, so a page shows the owner's controls rather than a
+   * listener's view. Defaults to false so a web build ahead of the API still reads older responses.
+   */
+  canManage: z.boolean().default(false),
 });
 export type TrackResponse = z.infer<typeof trackResponseSchema>;
 
