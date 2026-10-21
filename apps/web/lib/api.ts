@@ -13,6 +13,17 @@ export function serverApi() {
 }
 
 /**
+ * API client for seeing what's open to anyone (public tracks and projects): as the signed-in user
+ * once they're approved, so the API says what they may do (comment, say), and otherwise as nobody,
+ * since the approval gate refuses an unapproved session even for public things.
+ */
+export async function viewerApi() {
+  const { isAuthenticated } = await auth();
+  if (isAuthenticated && (await getMe()).accessStatus === 'approved') return serverApi();
+  return createApiClient({ baseUrl: env.API_URL });
+}
+
+/**
  * API client for someone listening through a share link: the link's token and nothing else. It's
  * anonymous on purpose, so a link works the same for everyone who holds it (signed in, waiting
  * for approval, or signed out), and what it opens never depends on who's asking.

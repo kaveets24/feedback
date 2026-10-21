@@ -1,28 +1,37 @@
-import { auth } from '@clerk/nextjs/server';
 import Link from 'next/link';
-import { serverApi } from '../../../lib/api';
+import { serverApi, viewerApi } from '../../../lib/api';
 import { formatDuration, totalDurationMs } from '../../../lib/format';
-import { loadOrNotFound } from '../../../lib/load';
+import { loadOrSignIn } from '../../../lib/load';
 import { collectPages } from '../../../lib/pages';
+import { ListenerProject } from '../../_listen/listener-view';
 import { SharingSection } from '../../_sharing/sharing-section';
 import { ReleaseTypePicker } from '../release-type-picker';
 import { AddTrackForm } from './add-track-form';
 import { ProjectDetails } from './project-details';
 import { ProjectTracks } from './project-tracks';
 
+/**
+ * A project: everything for its owner, and what a listener may see for anyone else, which only
+ * reaches them for a public project (link holders come by the listen page).
+ */
 export default async function ProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
-  const { isAuthenticated, redirectToSignIn } = await auth();
-  if (!isAuthenticated) return redirectToSignIn();
-
   const { projectId } = await params;
-  const api = serverApi();
-  const [project, { tracks }, { links }] = await loadOrNotFound(() =>
-    Promise.all([
-      api.getProject(projectId),
-      api.listProjectTracks(projectId),
-      api.listProjectShareLinks(projectId),
-    ]),
+  const viewer = await viewerApi();
+  const [project, { tracks }] = await loadOrSignIn(() =>
+    Promise.all([viewer.getProject(projectId), viewer.listProjectTracks(projectId)]),
   );
+  if (!project.canManage) {
+    // The list has no waveforms; each track's own response does. Projects hold tens of tracks.
+    const full = await loadOrSignIn(() => Promise.all(tracks.map((t) => viewer.getTrack(t.id))));
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-6">
+        <ListenerProject project={project} tracks={full} token={null} />
+      </main>
+    );
+  }
+
+  const api = serverApi();
+  const { links } = await api.listProjectShareLinks(projectId);
   // Everything the picker can offer: the artist's other tracks, and their projects' names.
   const [allTracks, allProjects] = await Promise.all([
     collectPages(async (cursor) => {

@@ -14,10 +14,10 @@ import {
   type VersionResponse,
 } from '@feedback/shared';
 import { toResult, type ActionResult } from '../../lib/action-result';
-import { getMe, serverApi, sharedApi, sharedApiAs } from '../../lib/api';
+import { getMe, serverApi, sharedApi, sharedApiAs, viewerApi } from '../../lib/api';
 
-// Comment calls to the API. On the track page they go with the user's session; on the listen
-// page, with the share link's token too (`shareToken`), so the link counts. Server actions are
+// Comment calls to the API. They go with the user's session; on the listen page, with the share
+// link's token too (`shareToken`), so the link counts. Server actions are
 // public endpoints, so input is checked here as well as by the API. The page refreshes its own
 // data afterwards, so these don't revalidate.
 
@@ -27,7 +27,7 @@ const INVALID = 'Comments need some words, up to 2000 characters.';
 // The API's 404 is terse; this says what likely happened and what to do.
 const GONE = 'That comment or track is gone, or you can no longer see it. Reload the page.';
 
-/** Who's at the listen page, for what the comment box offers them. */
+/** Who's listening, for what the comment box offers them. */
 export type Listener = 'anonymous' | 'pending' | 'approved' | 'rejected';
 
 export async function listenerAction(): Promise<Listener> {
@@ -50,18 +50,25 @@ async function call<T>(run: () => Promise<T>): Promise<ActionResult<T>> {
 }
 
 /**
- * A version's comments through a share link. An approved, signed-in visitor asks as themselves,
- * so the API says what they may do with each comment; anyone else asks as the link alone.
+ * A version's comments for a listener: through a share link (`shareToken`), or with none (null)
+ * for a public track. An approved, signed-in visitor asks as themselves, so the API says what they
+ * may do with each comment; anyone else asks as the link alone, or as nobody.
  */
-export async function listSharedFeedbackAction(
+export async function listListenerFeedbackAction(
   shareToken: unknown,
   versionId: unknown,
 ): Promise<ActionResult<FeedbackListResponse>> {
-  const token = shareTokenSchema.safeParse(shareToken);
   const parsedId = id.safeParse(versionId);
-  if (!token.success || !parsedId.success) return { ok: false, message: GONE };
-  const asSelf = (await listenerAction()) === 'approved';
-  const api = asSelf ? sharedApiAs(token.data) : sharedApi(token.data);
+  if (!parsedId.success) return { ok: false, message: GONE };
+  let api;
+  if (shareToken === null) {
+    api = await viewerApi();
+  } else {
+    const token = shareTokenSchema.safeParse(shareToken);
+    if (!token.success) return { ok: false, message: GONE };
+    const asSelf = (await listenerAction()) === 'approved';
+    api = asSelf ? sharedApiAs(token.data) : sharedApi(token.data);
+  }
   try {
     return await call(() => api.listFeedback(parsedId.data));
   } catch (err) {
