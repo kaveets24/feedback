@@ -145,7 +145,7 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 **Identity**
 
 - `users`: id, auth_provider_id, email, access_status (`pending | approved | rejected`, default `pending`), approved_at, approved_by, created_at
-- `profiles`: user_id, handle (unique, lowercase; nullable until handles get format rules, see section 13), display_name (what others see, e.g. on comments), bio, city (nullable; one of `CITIES` in `packages/shared`, decided 2026-10-20), avatar_url, links. A user has no profile row until they first save `/settings/profile`, which only they can see; others see only the display name for now.
+- `profiles`: user_id, handle (unique, lowercase; nullable until handles get format rules, see section 13), display_name (what others see, e.g. on comments), bio, city (nullable; one of `CITIES` in `packages/shared`, decided 2026-10-20; the picker groups them by region with `CITY_REGIONS`, and new ones are appended since Postgres adds enum values at the end), avatar_url, links. A user has no profile row until they first save `/settings/profile`, which only they can see; others see only the display name for now.
 
 **Music**
 
