@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useId, useState, useTransition, type ReactNode } from 'react';
 import { MAX_FEEDBACK_LENGTH, type FeedbackReply, type FeedbackThread } from '@feedback/shared';
 import type { ActionResult } from '../../lib/action-result';
@@ -142,7 +143,16 @@ function Comment({
       <p className="flex flex-wrap items-center gap-x-2 text-sm">
         <Avatar avatar={comment.author?.avatar ?? null} size="inline" />
         <span className="font-medium break-words text-ink">
-          {comment.author?.displayName ?? <span className="text-muted">Someone</span>}
+          {comment.author?.handle ? (
+            <Link
+              href={`/@${comment.author.handle}`}
+              className="focus-glow rounded-sm hover:text-accent"
+            >
+              {comment.author.displayName ?? `@${comment.author.handle}`}
+            </Link>
+          ) : (
+            (comment.author?.displayName ?? <span className="text-muted">Someone</span>)
+          )}
         </span>
         <span className="text-muted">
           <time dateTime={comment.createdAt}>{formatDate(comment.createdAt)}</time>

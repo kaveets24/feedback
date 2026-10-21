@@ -125,7 +125,7 @@ describe('feedback routes', () => {
         status: 'open',
         resolvedAt: null,
         deleted: false,
-        author: { displayName: null, avatar: null },
+        author: { displayName: null, handle: null, avatar: null },
         can: { reply: true, edit: true, delete: true, resolve: false },
         replies: [],
       });
@@ -159,7 +159,10 @@ describe('feedback routes', () => {
 
     it('signs comments with the author’s name and picture', async () => {
       const { v1 } = await newTrack();
-      await request('PATCH', '/v1/me/profile', { as: 'u2', payload: { displayName: 'Night Owl' } });
+      await request('PATCH', '/v1/me/profile', {
+        as: 'u2',
+        payload: { displayName: 'Night Owl', handle: 'night_owl' },
+      });
       const listener = await upsertUserFromAuth(db, { authProviderId: 'u2', email: 'u2@x.test' });
       const avatar = await createAvatar(db, {
         userId: listener.id,
@@ -170,7 +173,7 @@ describe('feedback routes', () => {
       await markAvatarReady(db, avatar.id, `avatars/${avatar.id}.jpg`);
 
       const thread = await comment(v1.id, 'u2', { body: 'Hi' });
-      expect(thread.author!.displayName).toBe('Night Owl');
+      expect(thread.author).toMatchObject({ displayName: 'Night Owl', handle: 'night_owl' });
       expect(new URL(thread.author!.avatar!.url).pathname).toContain(`avatars/${avatar.id}.jpg`);
       // Never who they are underneath.
       expect(JSON.stringify(thread)).not.toContain(listener.id);

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import {
+  ApiError,
   createAvatarRequestSchema,
   updateProfileRequestSchema,
   type AvatarResponse,
@@ -25,19 +26,39 @@ export async function updateProfileAction(
   };
   // Server actions are public endpoints, so input is checked here as well as by the API.
   const parsed = updateProfileRequestSchema.safeParse({
+    handle: text('handle'),
     displayName: text('displayName'),
     bio: text('bio'),
     city: text('city'),
   });
   if (!parsed.success) {
+    const handleIssue = parsed.error.issues.find((issue) => issue.path[0] === 'handle');
+    if (handleIssue) {
+      return {
+        ok: false,
+        message:
+          handleIssue.code === 'custom'
+            ? 'That handle is reserved. Try another.'
+            : 'Handles are 3 to 20 lowercase letters, numbers, or underscores.',
+      };
+    }
     return {
       ok: false,
       message: 'Check the form: names are up to 50 characters and bios up to 500.',
     };
   }
 
-  const result = await toResult(() => serverApi().updateProfile(parsed.data));
-  if (!result.ok) return { ok: false, message: "Couldn't save your profile. Try again." };
+  try {
+    await serverApi().updateProfile(parsed.data);
+  } catch (err) {
+    if (err instanceof ApiError && err.code === 'HANDLE_TAKEN') {
+      return { ok: false, message: 'Someone already has that handle. Try another.' };
+    }
+    if (err instanceof ApiError && err.status < 500) {
+      return { ok: false, message: "Couldn't save your profile. Try again." };
+    }
+    throw err;
+  }
   revalidatePath('/settings/profile');
   return { ok: true, message: 'Saved.' };
 }

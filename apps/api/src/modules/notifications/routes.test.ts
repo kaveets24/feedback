@@ -99,7 +99,7 @@ describe('notification routes', () => {
         type: 'comment',
         read: false,
         createdAt: expect.any(String),
-        actor: { displayName: 'Sam', avatar: null },
+        actor: { displayName: 'Sam', handle: null, avatar: null },
         track: { id: track.id, title: 'Night drive' },
         versionNumber: 1,
         feedbackId: thread.id,

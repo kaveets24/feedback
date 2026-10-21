@@ -41,6 +41,8 @@ export type UpdateFeedbackRequest = z.infer<typeof updateFeedbackRequestSchema>;
 /** Who wrote a comment, as everyone sees them: their display name and picture, never their id. */
 export const feedbackAuthorSchema = z.object({
   displayName: z.string().nullable(),
+  /** Their public page's handle, if they have one. Defaults to null for older API responses. */
+  handle: z.string().nullable().default(null),
   /** A short-lived signed URL; never log it. */
   avatar: coverImageSchema.nullable(),
 });

@@ -23,7 +23,11 @@ import {
   unreadCountResponseSchema,
   type NotificationListQuery,
 } from './schemas/notifications.ts';
-import { profileResponseSchema, type UpdateProfileRequest } from './schemas/profiles.ts';
+import {
+  profileResponseSchema,
+  publicProfileResponseSchema,
+  type UpdateProfileRequest,
+} from './schemas/profiles.ts';
 import {
   createShareLinkResponseSchema,
   SHARE_TOKEN_HEADER,
@@ -131,6 +135,21 @@ export function createApiClient({
     /** Changes the signed-in user's profile (null clears a field), creating it on first save. */
     updateProfile: (changes: UpdateProfileRequest) =>
       send('PATCH', '/v1/me/profile', profileResponseSchema, changes),
+    /** Someone's public page, by handle (any case); a 404 if there's none. */
+    getPublicProfile: (handle: string) =>
+      request(`/v1/profiles/${encodeURIComponent(handle)}`, publicProfileResponseSchema),
+    /** Someone's public tracks, newest first. Pass `nextCursor` back as `cursor` for more. */
+    listProfileTracks: (handle: string, query: TrackListQuery = {}) =>
+      request(
+        `/v1/profiles/${encodeURIComponent(handle)}/tracks${pageQuery(query)}`,
+        trackListResponseSchema,
+      ),
+    /** Someone's public projects, newest first. Pass `nextCursor` back as `cursor` for more. */
+    listProfileProjects: (handle: string, query: ProjectListQuery = {}) =>
+      request(
+        `/v1/profiles/${encodeURIComponent(handle)}/projects${pageQuery(query)}`,
+        projectListResponseSchema,
+      ),
     /** Starts uploading a profile picture; PUT the image to `upload`, then `completeAvatarUpload`. */
     startAvatarUpload: (input: CreateAvatarRequest) =>
       post('/v1/me/avatars', createAvatarResponseSchema, input),

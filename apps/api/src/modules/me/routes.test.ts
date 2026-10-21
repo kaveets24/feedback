@@ -4,8 +4,8 @@ import { resetDb } from '@feedback/db/testing';
 import type { App } from '../../app.ts';
 import { buildTestApp, tokenFor } from '../../testing/app.ts';
 
-/** What a profile response carries when there's no picture and no upload. */
-const noPicture = { avatar: null, avatarUpload: null };
+/** What a profile response carries with no handle, no picture, and no upload. */
+const noHandleOrPicture = { handle: null, avatar: null, avatarUpload: null };
 
 describe('GET /v1/me', () => {
   let app: App;
@@ -104,7 +104,7 @@ describe('/v1/me/profile', () => {
     await approvedUser('u1');
     const res = await call('GET', 'u1');
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ displayName: null, bio: null, city: null, ...noPicture });
+    expect(res.json()).toEqual({ displayName: null, bio: null, city: null, ...noHandleOrPicture });
   });
 
   it('creates the profile on first save, without a handle', async () => {
@@ -113,14 +113,14 @@ describe('/v1/me/profile', () => {
       displayName: '  Night Owl ',
       bio: 'Bedroom pop.',
       city: 'portland-or',
-      ...noPicture,
+      ...noHandleOrPicture,
     });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({
       displayName: 'Night Owl',
       bio: 'Bedroom pop.',
       city: 'portland-or',
-      ...noPicture,
+      ...noHandleOrPicture,
     });
 
     expect((await call('GET', 'u1')).json()).toEqual(res.json());
@@ -141,7 +141,7 @@ describe('/v1/me/profile', () => {
       displayName: 'Night Owl',
       bio: 'Bedroom pop.',
       city: null,
-      ...noPicture,
+      ...noHandleOrPicture,
     });
     expect((await call('PATCH', 'u1', { bio: '   ' })).json()).toMatchObject({ bio: null });
     expect((await call('PATCH', 'u1', { displayName: null })).json()).toMatchObject({
@@ -151,7 +151,7 @@ describe('/v1/me/profile', () => {
       displayName: null,
       bio: null,
       city: null,
-      ...noPicture,
+      ...noHandleOrPicture,
     });
   });
 
@@ -165,14 +165,41 @@ describe('/v1/me/profile', () => {
       displayName: 'One',
       bio: null,
       city: 'new-orleans',
-      ...noPicture,
+      ...noHandleOrPicture,
     });
     expect((await call('GET', 'u2')).json()).toEqual({
       displayName: 'Two',
       bio: null,
       city: null,
-      ...noPicture,
+      ...noHandleOrPicture,
     });
+  });
+
+  it('sets a handle in lowercase, and null takes it away', async () => {
+    await approvedUser('u1');
+    const res = await call('PATCH', 'u1', { handle: ' Night_Owl ' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ handle: 'night_owl' });
+    expect((await call('GET', 'u1')).json()).toMatchObject({ handle: 'night_owl' });
+
+    expect((await call('PATCH', 'u1', { displayName: 'Owl' })).json()).toMatchObject({
+      handle: 'night_owl',
+    });
+    expect((await call('PATCH', 'u1', { handle: null })).json()).toMatchObject({ handle: null });
+  });
+
+  it('refuses a handle someone else has, in any case, and keeps the rest unsaved', async () => {
+    await approvedUser('u1');
+    await approvedUser('u2');
+    await call('PATCH', 'u1', { handle: 'night_owl' });
+
+    const res = await call('PATCH', 'u2', { handle: 'NIGHT_OWL', displayName: 'Two' });
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toMatchObject({ error: { code: 'HANDLE_TAKEN' } });
+    expect((await call('GET', 'u2')).json()).toMatchObject({ handle: null, displayName: null });
+
+    // Saving your own handle again is fine.
+    expect((await call('PATCH', 'u1', { handle: 'night_owl' })).statusCode).toBe(200);
   });
 
   it('rejects invalid input', async () => {
@@ -183,6 +210,9 @@ describe('/v1/me/profile', () => {
       { bio: 'x'.repeat(501) },
       { city: 'boston' },
       { city: 'Portland, OR' },
+      { handle: 'ab' },
+      { handle: 'night-owl' },
+      { handle: 'settings' },
     ]) {
       expect((await call('PATCH', 'u1', payload)).statusCode).toBe(400);
     }

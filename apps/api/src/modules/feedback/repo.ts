@@ -77,18 +77,19 @@ export async function updateFeedback(
 export async function findAuthors(
   db: Db,
   userIds: string[],
-): Promise<Map<string, { displayName: string | null; avatarKey: string | null }>> {
+): Promise<
+  Map<string, { displayName: string | null; handle: string | null; avatarKey: string | null }>
+> {
   if (userIds.length === 0) return new Map();
   const rows = await db
     .select({
       userId: profiles.userId,
       displayName: profiles.displayName,
+      handle: profiles.handle,
       avatarKey: avatars.imageKey,
     })
     .from(profiles)
     .leftJoin(avatars, and(eq(avatars.id, profiles.currentAvatarId), eq(avatars.status, 'ready')))
     .where(inArray(profiles.userId, userIds));
-  return new Map(
-    rows.map(({ userId, displayName, avatarKey }) => [userId, { displayName, avatarKey }]),
-  );
+  return new Map(rows.map(({ userId, ...author }) => [userId, author]));
 }

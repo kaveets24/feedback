@@ -39,7 +39,7 @@ export async function getNotifications(
       type: notification.type,
       read: notification.readAt !== null,
       createdAt: notification.createdAt.toISOString(),
-      actor: authors.get(feedback.authorId) ?? { displayName: null, avatar: null },
+      actor: authors.get(feedback.authorId) ?? { displayName: null, handle: null, avatar: null },
       track,
       versionNumber,
       feedbackId: feedback.id,

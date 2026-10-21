@@ -1,18 +1,24 @@
 'use client';
 
+import Link from 'next/link';
 import { useActionState, useState } from 'react';
 import { CITY_LABELS, CITY_REGIONS, type ProfileResponse } from '@feedback/shared';
 import { DownIcon } from '../../_shell/icons';
 import { updateProfileAction } from './actions';
 import { Avatar } from '../../_shell/avatar';
 
-/** Name, bio and city, saved together. The name previews as it will sign a comment. */
+/**
+ * Handle, name, bio and city, saved together. The handle previews as its page's address, and the
+ * name as it will sign a comment.
+ */
 export function ProfileForm({ profile }: { profile: ProfileResponse }) {
   const [state, action, pending] = useActionState(updateProfileAction, null);
+  const [handle, setHandle] = useState(profile.handle ?? '');
   const [name, setName] = useState(profile.displayName ?? '');
   // "Saved." describes the last save, so it goes once the form changes again.
   const [edited, setEdited] = useState(false);
   const shownName = name.trim();
+  const shownHandle = handle.trim().toLowerCase();
 
   return (
     <form
@@ -22,6 +28,41 @@ export function ProfileForm({ profile }: { profile: ProfileResponse }) {
       className="max-w-xl space-y-4"
       aria-label="Your profile"
     >
+      <div>
+        <label htmlFor="handle" className="mb-1 block text-sm font-medium">
+          Handle <span className="font-normal text-muted">(optional)</span>
+        </label>
+        <input
+          id="handle"
+          name="handle"
+          maxLength={20}
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          value={handle}
+          onChange={(event) => setHandle(event.target.value)}
+          aria-describedby="handle-preview"
+          className="field sm:max-w-xs"
+        />
+        <p id="handle-preview" className="mt-2 text-sm break-words text-muted">
+          {!shownHandle ? (
+            'Pick one for a public page showing only your public tracks and projects.'
+          ) : shownHandle === profile.handle ? (
+            <>
+              Your public page:{' '}
+              <Link href={`/@${profile.handle}`} className="link">
+                /@{profile.handle}
+              </Link>
+            </>
+          ) : (
+            <>
+              Your public page will be <span className="text-ink">/@{shownHandle}</span>. Letters,
+              numbers, and underscores.
+            </>
+          )}
+        </p>
+      </div>
+
       <div>
         <label htmlFor="display-name" className="mb-1 block text-sm font-medium">
           Name
