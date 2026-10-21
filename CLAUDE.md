@@ -145,7 +145,8 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 **Identity**
 
 - `users`: id, auth_provider_id, email, access_status (`pending | approved | rejected`, default `pending`), approved_at, approved_by, created_at
-- `profiles`: user_id, handle (unique, lowercase; nullable until handles get format rules, see section 13), display_name (what others see, e.g. on comments), bio, city (nullable; one of `CITIES` in `packages/shared`, decided 2026-10-20; the picker groups them by region with `CITY_REGIONS`, and new ones are appended since Postgres adds enum values at the end), avatar_url, links. A user has no profile row until they first save `/settings/profile`, which only they can see; others see only the display name for now.
+- `profiles`: user_id, handle (unique, lowercase; nullable until handles get format rules, see section 13), display_name (what others see, e.g. on comments), bio, current_avatar_id (the newest `ready` picture, see `avatars`), city (nullable; one of `CITIES` in `packages/shared`, decided 2026-10-20; the picker groups them by region with `CITY_REGIONS`, and new ones are appended since Postgres adds enum values at the end), avatar_url (never used; a later migration drops it), links. A user has no profile row until they first save `/settings/profile` or a picture finishes processing, which only they can see; others see only the display name for now.
+- `avatars`: id, user_id, status (`uploading | processing | ready | failed`, the cover lifecycle), failure_reason, original_key, original_content_type, original_size_bytes, image_key (the re-encoded JPEG). A profile picture upload; it becomes the profile's current picture only if it's newer than the current one, and removing the picture clears `current_avatar_id` and keeps the rows (decided 2026-10-20).
 
 **Music**
 
@@ -254,6 +255,7 @@ Client                API                      B2/S3              Worker
 - ffmpeg treats originals as hostile: it may read only local files (no URLs, so a crafted playlist can't fetch anything) with only the demuxers for the accepted formats, keeps only the first audio stream, and drops all metadata (tags can hold things the artist didn't mean to share).
 - A file that can't be used fails at once with a reason; any other error is retried (3 attempts, set by the API when it queues the job), and the last failed attempt marks the version failed and reports to Sentry.
 - **Cover art** uses the same flow on its own `cover` queue: the browser PUTs a JPEG, PNG, or WebP (up to 10 MB) to `cover-originals/<coverId>`, the API sniffs its bytes on complete, and the worker (`apps/worker/src/cover/`) re-encodes it with ffmpeg, with the same input guards (only the three image demuxers, only local files), refusing anything over 50 megapixels before decoding. ffmpeg applies EXIF orientation, centre-crops to a square, scales down to at most 1024px, and writes `covers/<coverId>.jpg` with no metadata at all (photo EXIF can hold GPS location), then deletes the original. Covers are served like audio: short-lived signed URLs (10 minutes) in project responses.
+- **Profile pictures** go through the same steps on an `avatar` queue (`avatar-originals/<avatarId>` in, `avatars/<avatarId>.jpg` out, at most 512px), with the same image job in `apps/worker/src/cover/`. Only the user's own profile response carries the signed URL for now; others will see it next to comments.
 
 ---
 
@@ -414,7 +416,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 ### Phase 5: Feedback
 
-- [x] Profile settings, so comments can show who wrote them _(page: `/settings/profile`, linked from the header as Profile, only for the signed-in user: display name, bio, and an optional city. API: `GET`/`PATCH /v1/me/profile`; the first save creates the profile. Styled, with a live preview of how the name signs a comment)_
+- [x] Profile settings, so comments can show who wrote them _(page: `/settings/profile`, linked from the header as Profile, only for the signed-in user: display name, bio, an optional city, and an optional picture. API: `GET`/`PATCH /v1/me/profile`; the first save creates the profile. Pictures: `POST /v1/me/avatars`, `.../avatars/:avatarId/complete`, `GET /v1/me/avatars/:avatarId`, `DELETE /v1/me/avatar`, processed like cover art. Styled, with a live preview of how the name signs a comment)_
 - [ ] Timestamped comments on the waveform, threaded replies
 - [ ] Per-version "what I want feedback on" prompt
 - [ ] Open/resolved status, artist-only vs public comments

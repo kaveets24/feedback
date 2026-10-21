@@ -26,6 +26,8 @@ export const city = pgEnum('city', CITIES);
 export const trackVersionStatus = pgEnum('track_version_status', VERSION_STATUSES);
 /** A cover upload goes through the same lifecycle as a version: uploading, processing, ready or failed. */
 export const coverStatus = pgEnum('cover_status', VERSION_STATUSES);
+/** A profile picture upload goes through the same lifecycle too. */
+export const avatarStatus = pgEnum('avatar_status', VERSION_STATUSES);
 export const shareResourceType = pgEnum('share_resource_type', RESOURCE_KINDS);
 /**
  * No longer read: every link lets signed-in holders comment (decided 2026-10-20). New links take
@@ -74,7 +76,12 @@ export const profiles = pgTable(
     bio: text('bio'),
     /** A label the user picks, never used to filter, sort, or rank. */
     city: city('city'),
+    /** Never set or read; superseded by `current_avatar_id`, and a later migration drops it. */
     avatarUrl: text('avatar_url'),
+    /** The newest `ready` picture; one still processing or failed never replaces it. */
+    currentAvatarId: uuid('current_avatar_id').references((): AnyPgColumn => avatars.id, {
+      onDelete: 'set null',
+    }),
     links: jsonb('links').$type<ProfileLink[]>().notNull().default([]),
     ...timestamps,
   },
@@ -82,6 +89,43 @@ export const profiles = pgTable(
 );
 
 export type Profile = typeof profiles.$inferSelect;
+
+/**
+ * A profile picture upload. Like a project cover, the original is never shown: the worker
+ * re-encodes it into a square JPEG with all metadata dropped (photo EXIF can hold GPS location),
+ * stores that at `image_key`, and deletes the original. It belongs to the user, not the profile
+ * row, since a user may upload one before ever saving their profile.
+ */
+export const avatars = pgTable(
+  'avatars',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    status: avatarStatus('status').notNull().default('uploading'),
+    /** Shown to the user when status is `failed`. */
+    failureReason: text('failure_reason'),
+    originalKey: text('original_key').notNull(),
+    originalContentType: text('original_content_type').notNull(),
+    originalSizeBytes: bigint('original_size_bytes', { mode: 'number' }).notNull(),
+    /** The re-encoded JPEG, once `ready`. */
+    imageKey: text('image_key'),
+    ...timestamps,
+  },
+  (t) => [
+    index('avatars_user_id_id_idx').on(t.userId, t.id),
+    check('avatars_ready_has_image', sql`${t.status} <> 'ready' or ${t.imageKey} is not null`),
+    check(
+      'avatars_failed_has_reason',
+      sql`${t.status} <> 'failed' or ${t.failureReason} is not null`,
+    ),
+  ],
+);
+
+export type Avatar = typeof avatars.$inferSelect;
 
 /**
  * An artist's own body of work (album, EP, idea folder). Projects are only soft-deleted; deleting

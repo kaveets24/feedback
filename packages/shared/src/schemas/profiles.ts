@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { avatarResponseSchema } from './avatars.ts';
+import { coverImageSchema } from './covers.ts';
 
 /**
  * The cities a profile can name. Only a label the user picks for themselves: nothing filters,
@@ -96,6 +98,13 @@ export const profileResponseSchema = z.object({
   displayName: z.string().nullable(),
   bio: z.string().nullable(),
   city: citySchema.nullable(),
+  /**
+   * The profile picture, as a short-lived signed URL (never log it). Defaults to null so a web
+   * build ahead of the API (a preview deploy) still reads older responses.
+   */
+  avatar: coverImageSchema.nullable().default(null),
+  /** The newest picture upload while it's processing or after it failed, so the page can say so. */
+  avatarUpload: avatarResponseSchema.nullable().default(null),
 });
 export type ProfileResponse = z.infer<typeof profileResponseSchema>;
 

@@ -1,5 +1,4 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import type { Db } from '@feedback/db';
 import {
   errorResponseSchema,
   meResponseSchema,
@@ -7,9 +6,10 @@ import {
   updateProfileRequestSchema,
 } from '@feedback/shared';
 import { httpError } from '../../errors.ts';
-import { getMe, getProfile, updateProfile } from './service.ts';
+import { getMe, getProfile, updateProfile, type ProfileDeps } from './service.ts';
 
-export function meRoutes(db: Db): FastifyPluginAsyncZod {
+export function meRoutes(deps: ProfileDeps): FastifyPluginAsyncZod {
+  const { db } = deps;
   return async (app) => {
     app.get(
       '/me',
@@ -32,7 +32,7 @@ export function meRoutes(db: Db): FastifyPluginAsyncZod {
       async (request) => {
         const { actor } = request;
         if (actor.kind === 'anonymous') throw httpError(401, 'UNAUTHENTICATED', 'Sign in required');
-        return getProfile(db, actor.user);
+        return getProfile(deps, actor.user);
       },
     );
 
@@ -47,7 +47,7 @@ export function meRoutes(db: Db): FastifyPluginAsyncZod {
       async (request) => {
         const { actor } = request;
         if (actor.kind === 'anonymous') throw httpError(401, 'UNAUTHENTICATED', 'Sign in required');
-        return updateProfile(db, actor.user, request.body);
+        return updateProfile(deps, actor.user, request.body);
       },
     );
   };

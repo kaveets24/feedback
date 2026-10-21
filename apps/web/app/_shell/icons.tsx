@@ -30,3 +30,8 @@ export const EditIcon = () => (
 export const NoteIcon = ({ size }: { size?: number }) => (
   <Icon size={size} d="M14 4h6v4h-4v11H8v-5h6z" />
 );
+
+/** A square head over shoulders: someone with no profile picture yet. */
+export const PersonIcon = ({ size }: { size?: number }) => (
+  <Icon size={size} d="M8 3h8v8H8zM4 14h16v7H4z" />
+);

@@ -38,6 +38,6 @@ export type CoverResponse = z.infer<typeof coverResponseSchema>;
 
 export const coverParamsSchema = z.object({ projectId: z.uuid(), coverId: z.uuid() });
 
-/** Where the browser loads a project's cover: a short-lived signed URL, so never log it. */
+/** Where the browser loads a cover or profile picture: a short-lived signed URL, so never log it. */
 export const coverImageSchema = z.object({ url: z.url(), expiresAt: z.iso.datetime() });
 export type CoverImage = z.infer<typeof coverImageSchema>;

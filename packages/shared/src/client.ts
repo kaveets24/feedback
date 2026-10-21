@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import {
+  avatarResponseSchema,
+  createAvatarResponseSchema,
+  type CreateAvatarRequest,
+} from './schemas/avatars.ts';
 import { errorResponseSchema } from './schemas/common.ts';
 import {
   coverResponseSchema,
@@ -114,6 +119,17 @@ export function createApiClient({
     /** Changes the signed-in user's profile (null clears a field), creating it on first save. */
     updateProfile: (changes: UpdateProfileRequest) =>
       send('PATCH', '/v1/me/profile', profileResponseSchema, changes),
+    /** Starts uploading a profile picture; PUT the image to `upload`, then `completeAvatarUpload`. */
+    startAvatarUpload: (input: CreateAvatarRequest) =>
+      post('/v1/me/avatars', createAvatarResponseSchema, input),
+    /** Call once the PUT succeeds. Safe to repeat; returns the picture upload's state. */
+    completeAvatarUpload: (avatarId: string) =>
+      post(`/v1/me/avatars/${encodeURIComponent(avatarId)}/complete`, avatarResponseSchema),
+    /** A picture upload's state, to poll while it processes. */
+    getAvatar: (avatarId: string) =>
+      request(`/v1/me/avatars/${encodeURIComponent(avatarId)}`, avatarResponseSchema),
+    /** Takes the signed-in user's profile picture off. */
+    removeAvatar: () => send('DELETE', '/v1/me/avatar', z.undefined()),
     /** Starts an upload: creates the track and its v1, and returns where to PUT the file. */
     createUpload: (input: CreateUploadRequest) =>
       post('/v1/uploads', createUploadResponseSchema, input),
