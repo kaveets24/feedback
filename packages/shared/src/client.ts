@@ -6,6 +6,13 @@ import {
 } from './schemas/avatars.ts';
 import { errorResponseSchema } from './schemas/common.ts';
 import {
+  feedbackListResponseSchema,
+  feedbackThreadSchema,
+  type CreateFeedbackRequest,
+  type CreateReplyRequest,
+  type UpdateFeedbackRequest,
+} from './schemas/feedback.ts';
+import {
   coverResponseSchema,
   createCoverResponseSchema,
   type CreateCoverRequest,
@@ -213,6 +220,21 @@ export function createApiClient({
         `/v1/projects/${encodeURIComponent(projectId)}/covers/${encodeURIComponent(coverId)}`,
         coverResponseSchema,
       ),
+    /** Every comment on a version, in threads, with what the asker may do with each. */
+    listFeedback: (versionId: string) =>
+      request(`/v1/versions/${encodeURIComponent(versionId)}/feedback`, feedbackListResponseSchema),
+    /** Comments on a version (signed in); returns the new thread. */
+    createFeedback: (versionId: string, input: CreateFeedbackRequest) =>
+      post(`/v1/versions/${encodeURIComponent(versionId)}/feedback`, feedbackThreadSchema, input),
+    /** Replies to a top-level comment; returns its thread. */
+    replyToFeedback: (feedbackId: string, input: CreateReplyRequest) =>
+      post(`/v1/feedback/${encodeURIComponent(feedbackId)}/replies`, feedbackThreadSchema, input),
+    /** Edits a comment's body, or resolves or reopens it; returns its thread. */
+    updateFeedback: (feedbackId: string, input: UpdateFeedbackRequest) =>
+      send('PATCH', `/v1/feedback/${encodeURIComponent(feedbackId)}`, feedbackThreadSchema, input),
+    /** Deletes a comment. */
+    deleteFeedback: (feedbackId: string) =>
+      send('DELETE', `/v1/feedback/${encodeURIComponent(feedbackId)}`, z.undefined()),
     /** Takes the project's cover off. */
     removeCover: (projectId: string) =>
       send('DELETE', `/v1/projects/${encodeURIComponent(projectId)}/cover`, z.undefined()),

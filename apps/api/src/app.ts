@@ -20,6 +20,7 @@ import { healthRoutes } from './modules/health/routes.ts';
 import { avatarRoutes } from './modules/avatars/routes.ts';
 import { meRoutes } from './modules/me/routes.ts';
 import { coverRoutes } from './modules/covers/routes.ts';
+import { feedbackRoutes } from './modules/feedback/routes.ts';
 import { projectRoutes } from './modules/projects/routes.ts';
 import { shareLinkRoutes } from './modules/share-links/routes.ts';
 import { uploadRoutes } from './modules/uploads/routes.ts';
@@ -69,6 +70,7 @@ export async function buildApp(env: Env, deps: AppDeps) {
       await v1.register(trackRoutes(deps.db));
       await v1.register(projectRoutes(deps));
       await v1.register(coverRoutes(deps));
+      await v1.register(feedbackRoutes(deps));
       await v1.register(shareLinkRoutes(deps.db));
       if (env.MONITORING_TEST_ERRORS) await v1.register(debugRoutes);
       v1.get('/openapi.json', { schema: { hide: true }, config: { allowUnapproved: true } }, () =>

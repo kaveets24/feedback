@@ -1,8 +1,12 @@
 import {
   canAccess,
+  canAccessFeedback,
   effectiveVisibility,
   type AccessContext,
   type Action,
+  type FeedbackAction,
+  type FeedbackItem,
+  type Resource,
   type Actor as AuthzActor,
   type ResourceKind,
   type Visibility,
@@ -51,6 +55,21 @@ export function canAccessProject(actor: Actor, project: Project, action: Action)
   );
 }
 
+/** A track as `canAccess` sees it, and the actor's share link for it or its project, if any. */
+function trackAccess(
+  actor: Actor,
+  track: Track,
+  project: Project | null,
+): { resource: Resource; context: AccessContext | undefined } {
+  const visibility = effectiveVisibility(track, project);
+  const targets: LinkTarget[] = [{ kind: 'track', id: track.id, visibility }];
+  if (project) targets.push({ kind: 'project', id: project.id, visibility: project.visibility });
+  return {
+    resource: { kind: 'track', ownerId: track.ownerId, visibility },
+    context: linkContext(actor, targets),
+  };
+}
+
 /**
  * Whether the actor may perform `action` on a track, judged by its effective visibility (CLAUDE.md
  * section 6, rule 7; pass the live project it's in, or null for a loose track), counting a share
@@ -62,13 +81,18 @@ export function canAccessTrack(
   project: Project | null,
   action: Action,
 ): boolean {
-  const visibility = effectiveVisibility(track, project);
-  const targets: LinkTarget[] = [{ kind: 'track', id: track.id, visibility }];
-  if (project) targets.push({ kind: 'project', id: project.id, visibility: project.visibility });
-  return canAccess(
-    authzActor(actor),
-    { kind: 'track', ownerId: track.ownerId, visibility },
-    action,
-    linkContext(actor, targets),
-  );
+  const { resource, context } = trackAccess(actor, track, project);
+  return canAccess(authzActor(actor), resource, action, context);
+}
+
+/** Whether the actor may perform `action` on a comment on one of this track's versions. */
+export function canAccessTrackFeedback(
+  actor: Actor,
+  track: Track,
+  project: Project | null,
+  feedback: FeedbackItem,
+  action: FeedbackAction,
+): boolean {
+  const { resource, context } = trackAccess(actor, track, project);
+  return canAccessFeedback(authzActor(actor), resource, feedback, action, context);
 }
