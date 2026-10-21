@@ -23,7 +23,7 @@ API and worker and left the monitoring vendor open.
 | Postgres     | Neon project `feedback-staging`, same region as the Fly app                        |
 | Redis        | None yet; added in Phase 2 when the worker gets its first queue                    |
 | Auth         | A separate Clerk application for staging, with the same `email` session claim      |
-| Domains      | Platform domains (`*.vercel.app`, `*.fly.dev`) until we buy a domain               |
+| Domains      | Platform domains (`*.vercel.app`, `*.fly.dev`) until we buy a domain (see 0009)    |
 
 - **Fly.io over Railway** because Fly deploys a prebuilt image (`fly deploy --image`), which
   fits "build once, promote the same image", and its `release_command` runs migrations in a
