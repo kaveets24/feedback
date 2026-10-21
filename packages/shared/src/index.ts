@@ -5,6 +5,7 @@ export * from './schemas/covers.ts';
 export * from './schemas/feedback.ts';
 export * from './schemas/health.ts';
 export * from './schemas/me.ts';
+export * from './schemas/notifications.ts';
 export * from './schemas/profiles.ts';
 export * from './schemas/projects.ts';
 export * from './schemas/share-links.ts';

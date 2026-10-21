@@ -18,6 +18,11 @@ import {
   type CreateCoverRequest,
 } from './schemas/covers.ts';
 import { meResponseSchema } from './schemas/me.ts';
+import {
+  notificationListResponseSchema,
+  unreadCountResponseSchema,
+  type NotificationListQuery,
+} from './schemas/notifications.ts';
 import { profileResponseSchema, type UpdateProfileRequest } from './schemas/profiles.ts';
 import {
   createShareLinkResponseSchema,
@@ -220,6 +225,21 @@ export function createApiClient({
         `/v1/projects/${encodeURIComponent(projectId)}/covers/${encodeURIComponent(coverId)}`,
         coverResponseSchema,
       ),
+    /** Your notifications, newest first, a page at a time. */
+    listNotifications: ({ cursor, limit }: NotificationListQuery = {}) => {
+      const query = new URLSearchParams();
+      if (cursor) query.set('cursor', cursor);
+      if (limit !== undefined) query.set('limit', String(limit));
+      return request(
+        `/v1/notifications${query.size ? `?${query}` : ''}`,
+        notificationListResponseSchema,
+      );
+    },
+    /** How many of your notifications are unread. */
+    getUnreadCount: () => request('/v1/notifications/unread-count', unreadCountResponseSchema),
+    /** Marks these of your notifications read. */
+    markNotificationsRead: (ids: string[]) =>
+      send('POST', '/v1/notifications/read', z.undefined(), { ids }),
     /** Every comment on a version, in threads, with what the asker may do with each. */
     listFeedback: (versionId: string) =>
       request(`/v1/versions/${encodeURIComponent(versionId)}/feedback`, feedbackListResponseSchema),
