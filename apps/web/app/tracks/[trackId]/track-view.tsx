@@ -25,12 +25,15 @@ export function TrackView({
   projects,
   links,
   feedback,
+  openAt,
 }: {
   track: TrackResponse;
   projects: ProjectResponse[];
   links: ShareLinkResponse[];
   /** Comments by version id, for every ready version. */
   feedback: Readonly<Record<string, readonly FeedbackThread[]>>;
+  /** A thread to open at (from a notification), and its version. */
+  openAt?: { versionId: string; threadId: string };
 }) {
   const project = projects.find((p) => p.id === track.projectId);
   const [latest] = track.versions;
@@ -63,6 +66,8 @@ export function TrackView({
           canComment
           canEditPrompt
           status={latest && <LatestStatus version={latest} />}
+          initialVersionId={openAt?.versionId}
+          initialHighlightId={openAt?.threadId}
         />
       ) : (
         latest && <LatestStatus version={latest} />

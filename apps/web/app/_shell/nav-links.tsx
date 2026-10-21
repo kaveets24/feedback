@@ -28,7 +28,7 @@ export function NavLinks() {
             key={href}
             href={href}
             aria-current={current ? 'page' : undefined}
-            className={`focus-glow flex items-center rounded-sm px-3 text-sm font-medium hover:text-accent ${
+            className={`focus-glow flex items-center rounded-sm px-2 text-sm font-medium hover:text-accent sm:px-3 ${
               current ? 'text-ink shadow-[inset_0_-2px_0_var(--color-accent)]' : 'text-muted'
             }`}
           >

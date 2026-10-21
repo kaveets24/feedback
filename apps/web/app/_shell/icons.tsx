@@ -35,3 +35,8 @@ export const NoteIcon = ({ size }: { size?: number }) => (
 export const PersonIcon = ({ size }: { size?: number }) => (
   <Icon size={size} d="M8 3h8v8H8zM4 14h16v7H4z" />
 );
+
+/** A square-shouldered bell: notifications, in the header on phones. */
+export const BellIcon = ({ size }: { size?: number }) => (
+  <Icon size={size} d="M11 2h2v2h-2zM7 5h10v9l2 2v2H5v-2l2-2zM10 19h4v3h-4z" />
+);
