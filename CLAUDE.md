@@ -145,7 +145,7 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 **Identity**
 
 - `users`: id, auth_provider_id, email, access_status (`pending | approved | rejected`, default `pending`), approved_at, approved_by, created_at
-- `profiles`: user_id, handle (unique, lowercase; nullable until handles get format rules, see section 13), display_name (what others see, e.g. on comments), bio, current_avatar_id (the newest `ready` picture, see `avatars`), city (nullable; one of `CITIES` in `packages/shared`, decided 2026-10-20; the picker groups them by region with `CITY_REGIONS`, and new ones are appended since Postgres adds enum values at the end), avatar_url (never used; a later migration drops it), links. A user has no profile row until they first save `/settings/profile` or a picture finishes processing, which only they can see; others see only the display name for now.
+- `profiles`: user_id, handle (unique, nullable; 3 to 20 lowercase letters, digits, or underscores, and not one of `RESERVED_HANDLES` in `packages/shared`, decided 2026-10-21; typed in any case and kept lowercase. Setting one gives an approved account a public page at `/@handle`, and clearing it takes the page down), display_name (what others see, e.g. on comments), bio, current_avatar_id (the newest `ready` picture, see `avatars`), city (nullable; one of `CITIES` in `packages/shared`, decided 2026-10-20; the picker groups them by region with `CITY_REGIONS`, and new ones are appended since Postgres adds enum values at the end), avatar_url (never used; a later migration drops it), links. A user has no profile row until they first save `/settings/profile` or a picture finishes processing. `/settings/profile` is theirs alone; the public page shows the handle, display name, bio, city and picture, and lists only their public tracks and projects (decided as nobody in particular, so the owner sees the same page as everyone). Comments show the display name and picture, linked to the public page when there's a handle.
 - `avatars`: id, user_id, status (`uploading | processing | ready | failed`, the cover lifecycle), failure_reason, original_key, original_content_type, original_size_bytes, image_key (the re-encoded JPEG). A profile picture upload; it becomes the profile's current picture only if it's newer than the current one, and removing the picture clears `current_avatar_id` and keeps the rows (decided 2026-10-20).
 
 **Music**
@@ -427,7 +427,7 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 ### Phase 6: Social layer
 
-- [ ] Public profiles, follows, activity feed of followed artists' public updates _(started: the track and project pages open to anyone for public things, showing everyone but the owner the listen page's listener view (player, versions, comments; plain HTML apart from those), and a signed-out visitor who can't see one is sent to sign in, since it may be theirs. Track and project responses carry `canManage`, so the page knows whose controls to show. Unapproved accounts read public things as nobody (`viewerApi()` in `apps/web/lib/api.ts`), since the approval gate refuses their session)_
+- [ ] Public profiles, follows, activity feed of followed artists' public updates _(started: the track and project pages open to anyone for public things, showing everyone but the owner the listen page's listener view (player, versions, comments; plain HTML apart from those), and a signed-out visitor who can't see one is sent to sign in, since it may be theirs. Track and project responses carry `canManage`, so the page knows whose controls to show. Unapproved accounts read public things as nobody (`viewerApi()` in `apps/web/lib/api.ts`), since the approval gate refuses their session. Public profiles done: a handle on `/settings/profile` (a taken one is a 409 `HANDLE_TAKEN`) gives an approved account a page at `/@handle`, which a rewrite in `next.config.ts` serves from `/profiles/[handle]`, plain HTML until styled. API: `GET /v1/profiles/:handle`, and `/tracks` and `/projects` under it (cursor pages, public only); anything else is a 404. Comment authors carry their handle)_
 - [ ] User-made playlists (may include others' accessible tracks)
 - [ ] Basic discovery: recent public, filter by genre/tag, search
 - [ ] Reporting/blocking basics
@@ -494,7 +494,6 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 
 ## 13. Open questions (resolve before or during the relevant phase)
 
-- Handle format rules
 - Max upload size and per-user storage quota
 - Email provider for notification digests (Resend or Postmark)
 - Moderation approach for public content
