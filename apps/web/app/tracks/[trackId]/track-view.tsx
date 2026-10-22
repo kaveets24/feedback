@@ -48,7 +48,7 @@ export function TrackView({
   return (
     <main className="mx-auto max-w-3xl px-4 pt-6 pb-16">
       <p className="mb-3 text-sm">
-        <Link href="/" className="link text-muted">
+        <Link href="/tracks" className="link text-muted">
           Your tracks
         </Link>
       </p>

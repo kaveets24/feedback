@@ -1,31 +1,19 @@
-import { auth } from '@clerk/nextjs/server';
-import type { Metadata } from 'next';
 import Link from 'next/link';
 import { z } from 'zod';
 import type { FollowedArtist } from '@feedback/shared';
-import { serverApi } from '../../lib/api';
-import { formatDate, formatDuration } from '../../lib/format';
-import { loadOrNotFound } from '../../lib/load';
-import { collectPages } from '../../lib/pages';
-
-export const metadata: Metadata = { title: 'Feed · Feedback' };
+import { serverApi } from '../lib/api';
+import { formatDate, formatDuration } from '../lib/format';
+import { loadOrNotFound } from '../lib/load';
+import { collectPages } from '../lib/pages';
 
 const name = (artist: FollowedArtist) => artist.displayName ?? `@${artist.handle}`;
 
 /**
- * New public work by the people the signed-in user follows, newest first: each new track, and
- * each new version of one. Under it, who they follow. Plain HTML until this page is styled
- * (CLAUDE.md section 9).
+ * Home for an approved account: new public work by the people they follow, newest first (each
+ * new track, and each new version of one), and under it who they follow. Plain HTML until it's
+ * styled (CLAUDE.md section 9).
  */
-export default async function FeedPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ cursor?: string }>;
-}) {
-  const { isAuthenticated, redirectToSignIn } = await auth();
-  if (!isAuthenticated) return redirectToSignIn();
-
-  const { cursor } = await searchParams;
+export async function HomeFeed({ cursor }: { cursor: string | undefined }) {
   const api = serverApi();
   // An invalid cursor (a hand-edited URL) shows the first page rather than an error.
   const first = !z.uuid().safeParse(cursor).success;
@@ -47,11 +35,17 @@ export default async function FeedPage({
       <h1>Feed</h1>
       {page.items.length === 0 ? (
         <p>
-          {!first
-            ? 'Nothing older.'
-            : following.length === 0
-              ? 'Follow artists from their pages to see their new public tracks here.'
-              : 'Nothing new from the people you follow yet.'}
+          {!first ? (
+            'Nothing older.'
+          ) : following.length === 0 ? (
+            // Likely a new account, so it also says where their own work lives.
+            <>
+              Follow artists from their pages to see their new public tracks here. To upload your
+              own, go to <Link href="/tracks">Tracks</Link>.
+            </>
+          ) : (
+            'Nothing new from the people you follow yet.'
+          )}
         </p>
       ) : (
         <ul>
@@ -68,9 +62,9 @@ export default async function FeedPage({
         </ul>
       )}
       <p>
-        {!first && <Link href="/feed">Newest</Link>}
+        {!first && <Link href="/">Newest</Link>}
         {!first && page.nextCursor && ' · '}
-        {page.nextCursor && <Link href={`/feed?cursor=${page.nextCursor}`}>Older</Link>}
+        {page.nextCursor && <Link href={`/?cursor=${page.nextCursor}`}>Older</Link>}
       </p>
 
       {first && following.length > 0 && (
