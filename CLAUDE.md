@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 > Name: **Feedback**
-> A social app for sharing unfinished music: upload rough song ideas, organize them into projects and playlists, control exactly who can hear them, and collect feedback pinned to specific moments in a track.
+> A social app for sharing unfinished music: upload rough song ideas, organize them into projects, control exactly who can hear them, and collect feedback pinned to specific moments in a track.
 
 Read this file fully before making changes. If something here conflicts with a request, ask before deviating. Update this file whenever a decision changes.
 
@@ -31,7 +31,7 @@ Read this file fully before making changes. If something here conflicts with a r
 - Geolocation, maps, places, PostGIS, location-based discovery or ranking. The one exception is a profile's optional city, a label the user picks from a fixed list that nothing filters, sorts, or ranks by (see `profiles` in section 5)
 - Audio feature extraction / ML / embeddings
 - Reputation scores, leaderboards, give-to-get credits
-- Payments and monetization, **except** $1 artist donations (see "Donations" in section 11), plus direct messaging and live streaming
+- Payments and monetization (the app starts free; $1 artist donations are parked, section 11), plus direct messaging and live streaming
 - Mobile apps (planned for Phase 8; keep the API client-agnostic so it's easy later) and desktop apps (a folder-sync app is an idea in the parking lot, section 11)
 
 ---
@@ -157,12 +157,6 @@ Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All t
 - Versions are **immutable** once `ready`. New edits = new version.
 - A version belongs to its track, never directly to a project. `(track_id, version_number)` is unique; numbers count up per track and are **never reused** (a failed v3 stays v3, the next upload is v4). Everything else refers to a version by its `id`.
 - Status moves `uploading -> processing -> ready`, or to `failed` from either of the first two; `ready` and `failed` are terminal. The transition table is `canTransition()` in `packages/shared`, and the status updates in `packages/db` are compare-and-set, so repeats are harmless.
-
-**Organization**
-
-- `playlists`: id, owner_id, title, description, visibility
-- `playlist_items`: playlist_id, track_version_id or track_id, position, added_at
-- Distinction: **projects are the artist's own work**. **Playlists are curated collections** that may include other users' tracks the viewer has permission to hear.
 
 **Sharing**
 
@@ -428,23 +422,10 @@ Get the app onto a staging environment as early as possible, so every later phas
 ### Phase 6: Social layer
 
 - [x] Public profiles, follows, activity feed of followed artists' public updates _(the track and project pages open to anyone for public things, showing everyone but the owner the listen page's listener view (player, versions, comments; plain HTML apart from those), and a signed-out visitor who can't see one is sent to sign in, since it may be theirs. Track and project responses carry `canManage`, so the page knows whose controls to show. Unapproved accounts read public things as nobody (`viewerApi()` in `apps/web/lib/api.ts`), since the approval gate refuses their session. Public profiles done: a handle on `/settings/profile` (a taken one is a 409 `HANDLE_TAKEN`) gives an approved account a page at `/@handle`, which a rewrite in `next.config.ts` serves from `/profiles/[handle]`, plain HTML until styled. API: `GET /v1/profiles/:handle`, and `/tracks` and `/projects` under it (cursor pages, public only); anything else is a 404. Comment authors carry their handle. Follows and the feed done: Follow or Unfollow on `/@handle` (Sign in to follow when signed out; nothing for accounts waiting for approval), and `/feed`, linked in the header's nav, plain HTML until styled: the people you follow's new public tracks and new versions, newest first, then who you follow. The feed is computed when it's read (ready versions of tracks that are public by effective visibility, checked with `canAccess` as nobody in particular, like the public page), so making a track private takes it out at once. API: `PUT`/`DELETE /v1/profiles/:handle/follow` (repeats change nothing; following yourself is a 400 `CANNOT_FOLLOW_SELF`), `GET /v1/me/following`, `GET /v1/feed` (cursor pages), and `following` on `GET /v1/profiles/:handle`)_
-- [ ] User-made playlists (may include others' accessible tracks)
 - [ ] Basic discovery: recent public, filter by genre/tag, search
 - [ ] Reporting/blocking basics
-- **Done when:** a new user can sign up, follow artists, build a playlist, and discover public work.
-
-### Donations (planned, after Phase 6)
-
-Listeners can send an artist a small donation to support a work in progress.
-
-- **Capped at $1 per donation** to start, to limit fraud, scams, and chargeback exposure. Enforce the cap server-side; never trust an amount from the client. Raising the cap is a deliberate decision recorded here.
-- Payment provider handles card data and artist payouts (no card data touches our servers). Proposed: Stripe Connect; confirm before building.
-- Artists must opt in and complete the provider's identity verification before they can receive donations.
-- Donations attach to a track (and the version being listened to) so artists see which work earned support.
-- Abuse controls: per-donor rate limits, block self-donations, and a way to report and refund.
-- No public donation totals or leaderboards (consistent with section 1).
-- Payment state is driven by provider webhooks, verified by signature and handled idempotently.
-- **Done when:** a listener can donate $1 to an opted-in artist on a track page, the artist sees it, and attempts to exceed the cap or donate to yourself are rejected and tested.
+- Playlists and likes were dropped from this phase on 2026-10-22: projects already group an artist's own work, and follows and the feed cover keeping up with artists. Both are in the parking lot.
+- **Done when:** a new user can sign up, follow artists, and discover public work.
 
 ### Phase 7: Hardening and launch prep
 
@@ -465,7 +446,9 @@ Listeners can send an artist a small donation to support a work in progress.
 
 ### Later / parking lot
 
-Reputation and give-to-get credits, local/geo features and place-based listening, audio analysis and auto-tagging, collaboration (stems, co-owners), embeds, invites to specific users or emails (a `shares` table plus a visibility level between `private` and `unlisted`; dropped from Phase 4 on 2026-10-15).
+Reputation and give-to-get credits, local/geo features and place-based listening, audio analysis and auto-tagging, collaboration (stems, co-owners), embeds, invites to specific users or emails (a `shares` table plus a visibility level between `private` and `unlisted`; dropped from Phase 4 on 2026-10-15), playlists (curated collections that can include other people's tracks) and likes (a private list of tracks you liked), both dropped from Phase 6 on 2026-10-22.
+
+**$1 artist donations (parked 2026-10-22: the app starts free).** If they come back, the earlier plan still holds: a $1 cap enforced server-side, a provider that handles cards and payouts (Stripe Connect was the proposal), artists opt in and pass the provider's identity checks, donations attach to a track and version, no self-donations, webhooks verified and handled idempotently, and no public totals. Card fees (roughly 30¢ + ~3%) take about a third of a $1 donation, so who covers them is the first question.
 
 **Desktop sync app (idea, 2026-10-20).** A small Mac and Windows app that watches the music folders you pick (a DAW's bounce or export folder, say) and uploads new bounces as new versions automatically, so shipping v4 is just exporting it. Not planned yet; things to settle before building it:
 
@@ -497,4 +480,3 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 - Max upload size and per-user storage quota
 - Email provider for notification digests (Resend or Postmark)
 - Moderation approach for public content
-- Donations: payment provider (Stripe Connect?), and how to handle fees. Card fees (roughly 30¢ + ~3%) take about a third of a $1 donation. Options include having the donor cover fees, batching, or accepting the loss at first.
