@@ -6,6 +6,7 @@ import { getMe, serverApi } from '../../lib/api';
 import { Avatar } from './avatar';
 import { BellIcon, PersonIcon } from './icons';
 import { NavLinks } from './nav-links';
+import { Wordmark } from './wordmark';
 
 /**
  * Whether to show the app's sections. Accounts waiting for approval (or not approved) can't use
@@ -48,12 +49,7 @@ export async function AppHeader() {
     <header className="border-b border-rule">
       {/* Wraps on phones, where the nav drops to a second row (see NavLinks). */}
       <div className="mx-auto flex max-w-3xl flex-wrap items-stretch gap-x-3 px-4 sm:flex-nowrap sm:gap-x-4">
-        <Link
-          href="/"
-          className="focus-glow flex h-14 items-center rounded-sm font-lcd text-lg text-lcd-ink"
-        >
-          Feedback
-        </Link>
+        <Wordmark />
         {showNav && <NavLinks />}
         <div className="ml-auto flex h-14 items-center gap-3 sm:gap-4">
           {showNav && (

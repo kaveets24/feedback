@@ -5,19 +5,14 @@ import { usePathname } from 'next/navigation';
 
 const LINKS = [
   {
-    href: '/',
+    href: '/tracks',
     label: 'Tracks',
-    matches: (path: string) => path === '/' || path.startsWith('/tracks/'),
+    matches: (path: string) => path === '/tracks' || path.startsWith('/tracks/'),
   },
   {
     href: '/projects',
     label: 'Projects',
     matches: (path: string) => path === '/projects' || path.startsWith('/projects/'),
-  },
-  {
-    href: '/feed',
-    label: 'Feed',
-    matches: (path: string) => path === '/feed',
   },
 ];
 
