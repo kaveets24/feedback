@@ -1,11 +1,38 @@
 import { z } from 'zod';
+import {
+  avatarResponseSchema,
+  createAvatarResponseSchema,
+  type CreateAvatarRequest,
+} from './schemas/avatars.ts';
 import { errorResponseSchema } from './schemas/common.ts';
+import {
+  feedbackListResponseSchema,
+  feedbackThreadSchema,
+  type CreateFeedbackRequest,
+  type CreateReplyRequest,
+  type UpdateFeedbackRequest,
+} from './schemas/feedback.ts';
 import {
   coverResponseSchema,
   createCoverResponseSchema,
   type CreateCoverRequest,
 } from './schemas/covers.ts';
+import {
+  feedResponseSchema,
+  followingResponseSchema,
+  type FollowListQuery,
+} from './schemas/follows.ts';
 import { meResponseSchema } from './schemas/me.ts';
+import {
+  notificationListResponseSchema,
+  unreadCountResponseSchema,
+  type NotificationListQuery,
+} from './schemas/notifications.ts';
+import {
+  profileResponseSchema,
+  publicProfileResponseSchema,
+  type UpdateProfileRequest,
+} from './schemas/profiles.ts';
 import {
   createShareLinkResponseSchema,
   SHARE_TOKEN_HEADER,
@@ -99,7 +126,7 @@ export function createApiClient({
   const post = <T>(path: string, schema: z.ZodType<T>, body?: unknown) =>
     send('POST', path, schema, body);
 
-  const pageQuery = ({ cursor, limit }: TrackListQuery | ProjectListQuery) => {
+  const pageQuery = ({ cursor, limit }: TrackListQuery | ProjectListQuery | FollowListQuery) => {
     const query = new URLSearchParams();
     if (cursor) query.set('cursor', cursor);
     if (limit !== undefined) query.set('limit', String(limit));
@@ -108,6 +135,48 @@ export function createApiClient({
 
   return {
     getMe: () => request('/v1/me', meResponseSchema),
+    /** The signed-in user's own profile; empty fields until they first save it. */
+    getProfile: () => request('/v1/me/profile', profileResponseSchema),
+    /** Changes the signed-in user's profile (null clears a field), creating it on first save. */
+    updateProfile: (changes: UpdateProfileRequest) =>
+      send('PATCH', '/v1/me/profile', profileResponseSchema, changes),
+    /** Someone's public page, by handle (any case); a 404 if there's none. */
+    getPublicProfile: (handle: string) =>
+      request(`/v1/profiles/${encodeURIComponent(handle)}`, publicProfileResponseSchema),
+    /** Someone's public tracks, newest first. Pass `nextCursor` back as `cursor` for more. */
+    listProfileTracks: (handle: string, query: TrackListQuery = {}) =>
+      request(
+        `/v1/profiles/${encodeURIComponent(handle)}/tracks${pageQuery(query)}`,
+        trackListResponseSchema,
+      ),
+    /** Someone's public projects, newest first. Pass `nextCursor` back as `cursor` for more. */
+    listProfileProjects: (handle: string, query: ProjectListQuery = {}) =>
+      request(
+        `/v1/profiles/${encodeURIComponent(handle)}/projects${pageQuery(query)}`,
+        projectListResponseSchema,
+      ),
+    /** Follows someone with a public page; following them again changes nothing. */
+    followProfile: (handle: string) =>
+      send('PUT', `/v1/profiles/${encodeURIComponent(handle)}/follow`, z.undefined()),
+    unfollowProfile: (handle: string) =>
+      send('DELETE', `/v1/profiles/${encodeURIComponent(handle)}/follow`, z.undefined()),
+    /** Who the signed-in user follows, most recent first. */
+    listFollowing: (query: FollowListQuery = {}) =>
+      request(`/v1/me/following${pageQuery(query)}`, followingResponseSchema),
+    /** New public work by the people the signed-in user follows, newest first. */
+    getFeed: (query: FollowListQuery = {}) =>
+      request(`/v1/feed${pageQuery(query)}`, feedResponseSchema),
+    /** Starts uploading a profile picture; PUT the image to `upload`, then `completeAvatarUpload`. */
+    startAvatarUpload: (input: CreateAvatarRequest) =>
+      post('/v1/me/avatars', createAvatarResponseSchema, input),
+    /** Call once the PUT succeeds. Safe to repeat; returns the picture upload's state. */
+    completeAvatarUpload: (avatarId: string) =>
+      post(`/v1/me/avatars/${encodeURIComponent(avatarId)}/complete`, avatarResponseSchema),
+    /** A picture upload's state, to poll while it processes. */
+    getAvatar: (avatarId: string) =>
+      request(`/v1/me/avatars/${encodeURIComponent(avatarId)}`, avatarResponseSchema),
+    /** Takes the signed-in user's profile picture off. */
+    removeAvatar: () => send('DELETE', '/v1/me/avatar', z.undefined()),
     /** Starts an upload: creates the track and its v1, and returns where to PUT the file. */
     createUpload: (input: CreateUploadRequest) =>
       post('/v1/uploads', createUploadResponseSchema, input),
@@ -191,6 +260,36 @@ export function createApiClient({
         `/v1/projects/${encodeURIComponent(projectId)}/covers/${encodeURIComponent(coverId)}`,
         coverResponseSchema,
       ),
+    /** Your notifications, newest first, a page at a time. */
+    listNotifications: ({ cursor, limit }: NotificationListQuery = {}) => {
+      const query = new URLSearchParams();
+      if (cursor) query.set('cursor', cursor);
+      if (limit !== undefined) query.set('limit', String(limit));
+      return request(
+        `/v1/notifications${query.size ? `?${query}` : ''}`,
+        notificationListResponseSchema,
+      );
+    },
+    /** How many of your notifications are unread. */
+    getUnreadCount: () => request('/v1/notifications/unread-count', unreadCountResponseSchema),
+    /** Marks these of your notifications read. */
+    markNotificationsRead: (ids: string[]) =>
+      send('POST', '/v1/notifications/read', z.undefined(), { ids }),
+    /** Every comment on a version, in threads, with what the asker may do with each. */
+    listFeedback: (versionId: string) =>
+      request(`/v1/versions/${encodeURIComponent(versionId)}/feedback`, feedbackListResponseSchema),
+    /** Comments on a version (signed in); returns the new thread. */
+    createFeedback: (versionId: string, input: CreateFeedbackRequest) =>
+      post(`/v1/versions/${encodeURIComponent(versionId)}/feedback`, feedbackThreadSchema, input),
+    /** Replies to a top-level comment; returns its thread. */
+    replyToFeedback: (feedbackId: string, input: CreateReplyRequest) =>
+      post(`/v1/feedback/${encodeURIComponent(feedbackId)}/replies`, feedbackThreadSchema, input),
+    /** Edits a comment's body, or resolves or reopens it; returns its thread. */
+    updateFeedback: (feedbackId: string, input: UpdateFeedbackRequest) =>
+      send('PATCH', `/v1/feedback/${encodeURIComponent(feedbackId)}`, feedbackThreadSchema, input),
+    /** Deletes a comment. */
+    deleteFeedback: (feedbackId: string) =>
+      send('DELETE', `/v1/feedback/${encodeURIComponent(feedbackId)}`, z.undefined()),
     /** Takes the project's cover off. */
     removeCover: (projectId: string) =>
       send('DELETE', `/v1/projects/${encodeURIComponent(projectId)}/cover`, z.undefined()),

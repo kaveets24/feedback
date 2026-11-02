@@ -1,5 +1,5 @@
-// Re-encodes an uploaded cover image with ffprobe and ffmpeg. Like audio originals, cover images
-// are untrusted input: ffmpeg may only read local files, with only the demuxers for the image
+// Re-encodes an uploaded image (cover art or a profile picture) with ffprobe and ffmpeg. Like
+// audio originals, uploaded images are untrusted input: ffmpeg may only read local files, with only the demuxers for the image
 // types we accept (CLAUDE.md section 7), and every bit of metadata is dropped, since a photo's
 // EXIF can carry GPS location and the camera's details.
 import { z } from 'zod';
@@ -10,7 +10,7 @@ import { run } from '../process.ts';
 const DEMUXERS = ['jpeg_pipe', 'png_pipe', 'webp_pipe'] as const;
 const INPUT_GUARDS = ['-protocol_whitelist', 'file,pipe', '-format_whitelist', DEMUXERS.join(',')];
 
-/** Content type of the cover the worker writes. */
+/** Content type of the image the worker writes. */
 export const COVER_CONTENT_TYPE = 'image/jpeg';
 
 /**
@@ -20,16 +20,16 @@ export const COVER_CONTENT_TYPE = 'image/jpeg';
 const MAX_PIXELS = 50_000_000;
 const TIMEOUT_MS = 60_000;
 
-// Shown to the artist on a failed cover, so plain words and what to do next.
+// Shown to whoever uploaded a failed image, so plain words and what to do next.
 export const UNUSABLE_IMAGE_REASONS = {
   unreadable: "We couldn't read this image. Try saving it again as a JPEG, PNG, or WebP.",
   tooLarge: 'This image is too large (over 50 megapixels). Try a smaller copy.',
   tooSlow: 'This image took too long to process. Try saving it again as a JPEG.',
 } as const;
 
-/** The image itself can't be used. Retrying won't help; the artist needs another one. */
+/** The image itself can't be used. Retrying won't help; they need another one. */
 export class UnusableImageError extends Error {
-  /** Shown to the artist. */
+  /** Shown to whoever uploaded it. */
   readonly reason: string;
 
   constructor(reason: string) {
@@ -40,19 +40,23 @@ export class UnusableImageError extends Error {
 }
 
 /**
- * Turns the image at `input` into the cover at `output`: rotated upright (ffmpeg applies EXIF
- * orientation itself), centre-cropped to a square, scaled down to at most `COVER_MAX_SIZE` a side
- * (never up, apart from rounding to an even size of at least 2), and written as a JPEG with no
- * metadata. Throws `UnusableImageError` if the image is
- * the problem, and a plain Error for anything else (worth retrying).
+ * Turns the image at `input` into the square JPEG at `output`: rotated upright (ffmpeg applies
+ * EXIF orientation itself), centre-cropped to a square, scaled down to at most `maxSize` a side
+ * (never up, apart from rounding to an even size of at least 2), and written with no metadata.
+ * Throws `UnusableImageError` if the image is the problem, and a plain Error for anything else
+ * (worth retrying).
  */
-export async function encodeCover(input: string, output: string): Promise<void> {
+export async function encodeCover(
+  input: string,
+  output: string,
+  maxSize: number = COVER_MAX_SIZE,
+): Promise<void> {
   const demuxer = await probe(input);
   const square = `crop='min(iw,ih)':'min(iw,ih)'`;
   // After the crop width and height are equal; both get the same even size (rounded down, at
   // least 2). Even, because ffmpeg versions disagree on odd sizes for 4:2:0 JPEG (some round
   // them, some keep them), and the output should be the same wherever the worker runs.
-  const side = `max(2,trunc(min(${COVER_MAX_SIZE},iw)/2)*2)`;
+  const side = `max(2,trunc(min(${maxSize},iw)/2)*2)`;
   const scale = `scale='${side}':'${side}':flags=lanczos`;
   const result = await run(
     'ffmpeg',

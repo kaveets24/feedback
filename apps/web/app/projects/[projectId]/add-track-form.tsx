@@ -35,7 +35,7 @@ export function AddTrackForm({
         ) : (
           <>
             You don’t have any tracks yet.{' '}
-            <Link href="/" className="link">
+            <Link href="/tracks" className="link">
               Upload one
             </Link>{' '}
             to add it here.

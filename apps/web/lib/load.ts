@@ -1,4 +1,5 @@
 import 'server-only';
+import { auth } from '@clerk/nextjs/server';
 import { notFound, redirect } from 'next/navigation';
 import { ApiError } from '@feedback/shared';
 
@@ -15,4 +16,21 @@ export async function loadOrNotFound<T>(call: () => Promise<T>): Promise<T> {
     if (err instanceof ApiError && err.status === 403) redirect('/');
     throw err;
   }
+}
+
+/**
+ * `loadOrNotFound` for a page anyone may open when what it shows is public (a track or project
+ * page). A signed-out visitor who can't see it is sent to sign in instead, since it may be theirs.
+ */
+export async function loadOrSignIn<T>(call: () => Promise<T>): Promise<T> {
+  const { isAuthenticated, redirectToSignIn } = await auth();
+  return loadOrNotFound(async () => {
+    try {
+      return await call();
+    } catch (err) {
+      if (!isAuthenticated && err instanceof ApiError && (err.status === 404 || err.status === 400))
+        return redirectToSignIn();
+      throw err;
+    }
+  });
 }

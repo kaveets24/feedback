@@ -5,9 +5,9 @@ import { usePathname } from 'next/navigation';
 
 const LINKS = [
   {
-    href: '/',
+    href: '/tracks',
     label: 'Tracks',
-    matches: (path: string) => path === '/' || path.startsWith('/tracks/'),
+    matches: (path: string) => path === '/tracks' || path.startsWith('/tracks/'),
   },
   {
     href: '/projects',
@@ -16,11 +16,17 @@ const LINKS = [
   },
 ];
 
-/** The main sections, with the current one underlined in the accent. */
+/**
+ * The main sections, with the current one underlined in the accent. On phones they take a row of
+ * their own under the wordmark, lined up with it; from `sm` they sit beside it.
+ */
 export function NavLinks() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Main" className="flex h-full items-stretch gap-1">
+    <nav
+      aria-label="Main"
+      className="order-last -ml-2 flex h-11 w-full items-stretch gap-1 sm:order-none sm:ml-0 sm:h-14 sm:w-auto"
+    >
       {LINKS.map(({ href, label, matches }) => {
         const current = matches(pathname);
         return (
@@ -28,7 +34,7 @@ export function NavLinks() {
             key={href}
             href={href}
             aria-current={current ? 'page' : undefined}
-            className={`focus-glow flex items-center rounded-sm px-3 text-sm font-medium hover:text-accent ${
+            className={`focus-glow flex items-center rounded-sm px-2 text-sm font-medium hover:text-accent sm:px-3 ${
               current ? 'text-ink shadow-[inset_0_-2px_0_var(--color-accent)]' : 'text-muted'
             }`}
           >

@@ -4,16 +4,14 @@ import {
   ApiError,
   shareTokenSchema,
   type ProjectDetailResponse,
-  type SharedResourceResponse,
   type TrackResponse,
 } from '@feedback/shared';
 import { sharedApi } from '../../lib/api';
 
 /** What a share link opens, as the listen page shows it. */
-type Role = SharedResourceResponse['role'];
 export type Shared =
-  | { kind: 'track'; role: Role; track: TrackResponse }
-  | { kind: 'project'; role: Role; project: ProjectDetailResponse; tracks: TrackResponse[] };
+  | { kind: 'track'; track: TrackResponse }
+  | { kind: 'project'; project: ProjectDetailResponse; tracks: TrackResponse[] };
 
 /**
  * Opens a share link: what it's for, loaded through the API with only the link's token (never the
@@ -25,9 +23,9 @@ export async function openShareAction(token: unknown): Promise<Shared | null> {
   if (!parsed.success) return null;
   const api = sharedApi(parsed.data);
   try {
-    const { resourceType, resourceId, role } = await api.getSharedResource();
+    const { resourceType, resourceId } = await api.getSharedResource();
     if (resourceType === 'track') {
-      return { kind: 'track', role, track: await api.getTrack(resourceId) };
+      return { kind: 'track', track: await api.getTrack(resourceId) };
     }
     const [project, { tracks }] = await Promise.all([
       api.getProject(resourceId),
@@ -35,7 +33,7 @@ export async function openShareAction(token: unknown): Promise<Shared | null> {
     ]);
     // The list has no waveforms; each track's own response does. Projects hold tens of tracks.
     const full = await Promise.all(tracks.map((t) => api.getTrack(t.id)));
-    return { kind: 'project', role, project, tracks: full };
+    return { kind: 'project', project, tracks: full };
   } catch (err) {
     // A link that stops working partway (revoked between calls) reads the same as a dead one.
     if (err instanceof ApiError && err.status === 404) return null;

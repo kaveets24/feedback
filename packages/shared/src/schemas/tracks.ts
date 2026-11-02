@@ -35,6 +35,7 @@ export function statusesBefore(to: VersionStatus): VersionStatus[] {
 export const WAVEFORM_PEAK_COUNT = 1000;
 
 export const visibilitySchema = z.enum(VISIBILITIES);
+export type Visibility = z.infer<typeof visibilitySchema>;
 
 /** A version's state, for the artist to watch while it processes and for the player once ready. */
 export const versionResponseSchema = z.object({
@@ -43,6 +44,11 @@ export const versionResponseSchema = z.object({
   versionNumber: z.number().int().positive(),
   /** What changed in this version, in the artist's words. */
   changeNotes: z.string().nullable(),
+  /**
+   * What the artist wants feedback on in this version, shown above its comments. Defaults to null
+   * so a web build ahead of the API (a preview deploy) still reads older responses.
+   */
+  feedbackPrompt: z.string().nullable().default(null),
   /**
    * The name of the file the artist uploaded. Null for anyone but the owner: file names can say
    * more than the artist means to share.
@@ -63,8 +69,19 @@ export const versionParamsSchema = z.object({ versionId: z.uuid() });
 /** Change notes: up to 2000 characters. Blank (after trimming) is saved as none. */
 export const changeNotesSchema = z.string().trim().max(2000).nullable();
 
-/** `PATCH /v1/versions/:versionId`: the owner fixes a version's notes; null clears them. */
-export const updateVersionRequestSchema = z.object({ changeNotes: changeNotesSchema });
+/**
+ * `PATCH /v1/versions/:versionId`: the owner fixes a version's notes or what they want feedback
+ * on; null or blank clears one, and a field left out stays as it is.
+ */
+export const updateVersionRequestSchema = z
+  .object({
+    changeNotes: changeNotesSchema.optional(),
+    /** Same limits as notes: up to 2000 characters. */
+    feedbackPrompt: changeNotesSchema.optional(),
+  })
+  .refine((input) => input.changeNotes !== undefined || input.feedbackPrompt !== undefined, {
+    message: 'Nothing to change',
+  });
 export type UpdateVersionRequest = z.infer<typeof updateVersionRequestSchema>;
 
 /** `GET /v1/versions/:versionId/stream`: where the player loads a ready version's audio. */
@@ -142,6 +159,11 @@ export const trackResponseSchema = z.object({
   createdAt: z.iso.datetime(),
   currentVersionId: z.uuid().nullable(),
   versions: z.array(versionResponseSchema),
+  /**
+   * Whether the asker owns the track, so a page shows the owner's controls rather than a
+   * listener's view. Defaults to false so a web build ahead of the API still reads older responses.
+   */
+  canManage: z.boolean().default(false),
 });
 export type TrackResponse = z.infer<typeof trackResponseSchema>;
 

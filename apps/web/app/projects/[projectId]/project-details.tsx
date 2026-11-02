@@ -3,6 +3,7 @@
 import { useState, useTransition, type FormEvent, type ReactNode } from 'react';
 import type { CoverImage, ProjectDetailResponse } from '@feedback/shared';
 import { deleteProjectAction, removeCoverAction, updateProjectAction } from '../actions';
+import { visibilitySentence } from '../../../lib/share';
 import { ProjectCover } from '../project-cover';
 import { CoverControl } from './cover-control';
 
@@ -25,7 +26,12 @@ export function ProjectDetails({
   const typeRow = (
     <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
       {releaseType}
-      <p className="text-sm text-muted">Private: only you can see this project.</p>
+      <p className="text-sm text-muted">
+        {visibilitySentence(project.visibility, 'project')}{' '}
+        <a href="#sharing" className="link">
+          Sharing
+        </a>
+      </p>
       {!editing && (
         <button type="button" className="btn ml-auto" onClick={() => setEditing(true)}>
           Edit

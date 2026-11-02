@@ -28,6 +28,8 @@ export interface FakeQueue extends JobQueue {
   transcodes: string[];
   /** Cover ids queued for re-encoding, in order. */
   covers: string[];
+  /** Avatar ids queued for re-encoding, in order. */
+  avatars: string[];
   /** When set, enqueueing rejects with this error. */
   failWith: Error | null;
   /** What `health()` reports. */
@@ -39,6 +41,7 @@ export function fakeQueue(): FakeQueue {
   const queue: FakeQueue = {
     transcodes: [],
     covers: [],
+    avatars: [],
     failWith: null,
     status: { redis: true, workers: 1 },
     async enqueueTranscode(versionId) {
@@ -48,6 +51,10 @@ export function fakeQueue(): FakeQueue {
     async enqueueCover(coverId) {
       if (queue.failWith) throw queue.failWith;
       queue.covers.push(coverId);
+    },
+    async enqueueAvatar(avatarId) {
+      if (queue.failWith) throw queue.failWith;
+      queue.avatars.push(avatarId);
     },
     async health() {
       return queue.status;

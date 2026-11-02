@@ -191,6 +191,7 @@ describe('uploads', () => {
         versionNumber: 2,
         status: 'processing',
         changeNotes: null,
+        feedbackPrompt: null,
       });
       expect(queue.transcodes).toEqual([v2.versionId]);
     });
@@ -206,6 +207,7 @@ describe('uploads', () => {
       expect((await findVersion(db, v3.versionId))?.version).toMatchObject({
         versionNumber: 3,
         changeNotes: null,
+        feedbackPrompt: null,
       });
     });
 
@@ -243,6 +245,7 @@ describe('uploads', () => {
         trackId: started.trackId,
         versionNumber: 1,
         changeNotes: null,
+        feedbackPrompt: null,
         originalFilename: 'idea.wav',
         status: 'processing',
         failureReason: null,

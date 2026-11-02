@@ -27,7 +27,7 @@ Feedback is a social app for sharing unfinished music. Artists upload rough song
 SoundCloud meets Google Docs comments, for work-in-progress music. What sets it apart:
 
 - **Versions are first-class.** Every comment belongs to a specific version, so the artist can see what changed and whether a note still applies.
-- **Comments are timestamped on the waveform** and work like a to-do list (open or resolved), with an option for artist-only comments.
+- **Comments are timestamped on the waveform** and work like a to-do list (open or resolved). Everyone who can hear a track can read its comments.
 - **Private is the default everywhere.** Sharing works by unguessable links that can expire and be revoked, which is what makes people comfortable uploading unfinished work.
 
 ## Operating Context
@@ -39,17 +39,17 @@ SoundCloud meets Google Docs comments, for work-in-progress music. What sets it 
 
 ## Capabilities and Constraints
 
-- Domain terms (use them consistently): track, version, project, playlist, share link, feedback (comment), resolved/open, artist-only.
-- Visibility levels: private, unlisted (link holders), public. Link roles: listen or comment. Downloads are off by default.
+- Domain terms (use them consistently): track, version, project, share link, feedback (comment), resolved/open.
+- Visibility levels: private, unlisted (link holders), public. Anyone who can see a track can comment on it, if signed in; links carry no roles. Downloads are off by default.
 - Audio plays from short-lived signed URLs. Only one track plays at a time, through a single global mini-player that keeps playing across page changes.
 - The waveform player is the centerpiece: it draws peaks, supports click-to-seek, and shows comment markers that jump to their comments.
-- Out of scope: maps and location features, audio ML, reputation or leaderboards, payments (except planned $1 donations), direct messages, live streaming.
+- Out of scope: maps and location features (a profile may name a city, as a label only), audio ML, reputation or leaderboards, payments, direct messages, live streaming.
 - Open product questions are tracked in CLAUDE.md section 13.
 
 ## Brand Commitments
 
 - Name: **Feedback**.
-- The visual direction is pinned in CLAUDE.md section 9 ("Visual style: Y2K / Winamp / LimeWire"), including its guardrails. **Styling is deferred** except the player (waveform player and mini-player), the app header, home, the track page, and the project pages: no CSS, Tailwind classes, or tokens elsewhere until the owner asks.
+- The visual direction is pinned in CLAUDE.md section 9 ("Visual style: Y2K / Winamp / LimeWire"), including its guardrails. **Styling is deferred** except the player (waveform player and mini-player), the app header, home, the track page, the project pages, and the profile page: no CSS, Tailwind classes, or tokens elsewhere until the owner asks.
 - Privacy, sharing, and destructive actions always use plain, serious language. No ironic copy there.
 - Evoke the era without copying it: no Winamp, LimeWire, Microsoft, or Apple names, logos, skins, or assets.
 

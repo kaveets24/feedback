@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
   // The dev server logs each server action call with its arguments, which can include share-link
   // tokens (CLAUDE.md section 10: never log them).
   logging: { serverFunctions: false },
+  // Public pages live at /@handle. App Router folders can't start with @ (that's a parallel
+  // route slot), so the page sits at /profiles/[handle] and this shows it at the shorter address.
+  async rewrites() {
+    return [{ source: '/@:handle', destination: '/profiles/:handle' }];
+  },
   async headers() {
     if (allowIndexing) return [];
     return [{ source: '/:path*', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] }];

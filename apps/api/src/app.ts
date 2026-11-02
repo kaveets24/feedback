@@ -17,8 +17,13 @@ import { registerErrorHandlers } from './errors.ts';
 import { loggerOptions } from './logger.ts';
 import { debugRoutes } from './modules/debug/routes.ts';
 import { healthRoutes } from './modules/health/routes.ts';
+import { avatarRoutes } from './modules/avatars/routes.ts';
 import { meRoutes } from './modules/me/routes.ts';
 import { coverRoutes } from './modules/covers/routes.ts';
+import { feedbackRoutes } from './modules/feedback/routes.ts';
+import { followRoutes } from './modules/follows/routes.ts';
+import { notificationRoutes } from './modules/notifications/routes.ts';
+import { profileRoutes } from './modules/profiles/routes.ts';
 import { projectRoutes } from './modules/projects/routes.ts';
 import { shareLinkRoutes } from './modules/share-links/routes.ts';
 import { uploadRoutes } from './modules/uploads/routes.ts';
@@ -61,12 +66,17 @@ export async function buildApp(env: Env, deps: AppDeps) {
   await app.register(
     async (v1) => {
       await v1.register(healthRoutes(deps.queue));
-      await v1.register(meRoutes(deps.db));
+      await v1.register(meRoutes(deps));
+      await v1.register(avatarRoutes(deps));
+      await v1.register(profileRoutes(deps));
+      await v1.register(followRoutes(deps));
       await v1.register(uploadRoutes(deps));
       await v1.register(versionRoutes(deps));
       await v1.register(trackRoutes(deps.db));
       await v1.register(projectRoutes(deps));
       await v1.register(coverRoutes(deps));
+      await v1.register(feedbackRoutes(deps));
+      await v1.register(notificationRoutes(deps));
       await v1.register(shareLinkRoutes(deps.db));
       if (env.MONITORING_TEST_ERRORS) await v1.register(debugRoutes);
       v1.get('/openapi.json', { schema: { hide: true }, config: { allowUnapproved: true } }, () =>

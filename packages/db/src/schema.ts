@@ -16,17 +16,34 @@ import {
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { v7 as uuidv7 } from 'uuid';
-import { LINK_ROLES, RESOURCE_KINDS, VISIBILITIES } from '@feedback/authz';
-import { ACCESS_STATUSES, RELEASE_TYPES, VERSION_STATUSES } from '@feedback/shared';
+import { RESOURCE_KINDS, VISIBILITIES } from '@feedback/authz';
+import {
+  ACCESS_STATUSES,
+  CITIES,
+  FEEDBACK_STATUSES,
+  MAX_FEEDBACK_LENGTH,
+  NOTIFICATION_TYPES,
+  RELEASE_TYPES,
+  VERSION_STATUSES,
+} from '@feedback/shared';
 
 export const accessStatus = pgEnum('access_status', ACCESS_STATUSES);
 export const visibility = pgEnum('visibility', VISIBILITIES);
 export const releaseType = pgEnum('release_type', RELEASE_TYPES);
+export const city = pgEnum('city', CITIES);
 export const trackVersionStatus = pgEnum('track_version_status', VERSION_STATUSES);
 /** A cover upload goes through the same lifecycle as a version: uploading, processing, ready or failed. */
 export const coverStatus = pgEnum('cover_status', VERSION_STATUSES);
+/** A profile picture upload goes through the same lifecycle too. */
+export const avatarStatus = pgEnum('avatar_status', VERSION_STATUSES);
 export const shareResourceType = pgEnum('share_resource_type', RESOURCE_KINDS);
-export const linkRole = pgEnum('link_role', LINK_ROLES);
+export const feedbackStatus = pgEnum('feedback_status', FEEDBACK_STATUSES);
+export const notificationType = pgEnum('notification_type', NOTIFICATION_TYPES);
+/**
+ * No longer read: every link lets signed-in holders comment (decided 2026-10-20). New links take
+ * the column's default; a later migration drops it and this enum.
+ */
+export const linkRole = pgEnum('link_role', ['comment', 'listen']);
 
 const timestamps = {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -63,10 +80,18 @@ export const profiles = pgTable(
     userId: uuid('user_id')
       .primaryKey()
       .references(() => users.id, { onDelete: 'cascade' }),
-    handle: text('handle').notNull().unique(),
+    /** Null until handles get format rules (CLAUDE.md section 13); unique once set. */
+    handle: text('handle').unique(),
     displayName: text('display_name'),
     bio: text('bio'),
+    /** A label the user picks, never used to filter, sort, or rank. */
+    city: city('city'),
+    /** Never set or read; superseded by `current_avatar_id`, and a later migration drops it. */
     avatarUrl: text('avatar_url'),
+    /** The newest `ready` picture; one still processing or failed never replaces it. */
+    currentAvatarId: uuid('current_avatar_id').references((): AnyPgColumn => avatars.id, {
+      onDelete: 'set null',
+    }),
     links: jsonb('links').$type<ProfileLink[]>().notNull().default([]),
     ...timestamps,
   },
@@ -74,6 +99,43 @@ export const profiles = pgTable(
 );
 
 export type Profile = typeof profiles.$inferSelect;
+
+/**
+ * A profile picture upload. Like a project cover, the original is never shown: the worker
+ * re-encodes it into a square JPEG with all metadata dropped (photo EXIF can hold GPS location),
+ * stores that at `image_key`, and deletes the original. It belongs to the user, not the profile
+ * row, since a user may upload one before ever saving their profile.
+ */
+export const avatars = pgTable(
+  'avatars',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    status: avatarStatus('status').notNull().default('uploading'),
+    /** Shown to the user when status is `failed`. */
+    failureReason: text('failure_reason'),
+    originalKey: text('original_key').notNull(),
+    originalContentType: text('original_content_type').notNull(),
+    originalSizeBytes: bigint('original_size_bytes', { mode: 'number' }).notNull(),
+    /** The re-encoded JPEG, once `ready`. */
+    imageKey: text('image_key'),
+    ...timestamps,
+  },
+  (t) => [
+    index('avatars_user_id_id_idx').on(t.userId, t.id),
+    check('avatars_ready_has_image', sql`${t.status} <> 'ready' or ${t.imageKey} is not null`),
+    check(
+      'avatars_failed_has_reason',
+      sql`${t.status} <> 'failed' or ${t.failureReason} is not null`,
+    ),
+  ],
+);
+
+export type Avatar = typeof avatars.$inferSelect;
 
 /**
  * An artist's own body of work (album, EP, idea folder). Projects are only soft-deleted; deleting
@@ -90,8 +152,6 @@ export const projects = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     description: text('description'),
-    // The old `status` column (and its `project_status` enum) is still in the database but no
-    // longer read or written; the next migration drops it.
     releaseType: releaseType('release_type').notNull().default('single'),
     visibility: visibility('visibility').notNull().default('private'),
     /** The newest `ready` cover; one still processing or failed never replaces it. */
@@ -247,8 +307,7 @@ export type ProjectCover = typeof projectCovers.$inferSelect;
 /**
  * A secret link to a track or a project (CLAUDE.md section 6, rule 6). Only a hash of the token is
  * stored; the raw token is shown to the owner once, when the link is made. A link is never
- * deleted: revoking it sets `revoked_at`, so it keeps a record of what was shared and with which
- * role. `resource_id` points at a track or a project by `resource_type`, so it has no foreign key;
+ * deleted: revoking it sets `revoked_at`, so it keeps a record of what was shared. `resource_id` points at a track or a project by `resource_type`, so it has no foreign key;
  * both are only ever soft-deleted, and deleting one revokes its links.
  */
 export const shareLinks = pgTable(
@@ -261,7 +320,7 @@ export const shareLinks = pgTable(
     resourceId: uuid('resource_id').notNull(),
     /** SHA-256 of the token, hex. The token itself is never stored or logged. */
     tokenHash: text('token_hash').notNull(),
-    role: linkRole('role').notNull(),
+    role: linkRole('role').notNull().default('comment'),
     /** Null for a link that never expires. It stops working at this instant. */
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
@@ -278,3 +337,119 @@ export const shareLinks = pgTable(
 );
 
 export type ShareLink = typeof shareLinks.$inferSelect;
+
+/**
+ * A comment on one version of a track (CLAUDE.md section 5), at a moment in it or about the whole
+ * thing. Replies go one level deep: a reply's parent is a top-level comment on the same version
+ * (the foreign key enforces the version; the API, the depth). Replies have no timestamp of their
+ * own and are never resolved. Everyone who can see the track can read every comment. Comments are only
+ * soft-deleted, so a thread keeps its shape; deleting a version or an account removes them.
+ */
+export const feedback = pgTable(
+  'feedback',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    trackVersionId: uuid('track_version_id')
+      .notNull()
+      .references(() => trackVersions.id, { onDelete: 'cascade' }),
+    authorId: uuid('author_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** The top-level comment this replies to, or null for a top-level comment. */
+    parentId: uuid('parent_id'),
+    /** Where in the version it's pinned, or null for a general comment. */
+    timestampMs: integer('timestamp_ms'),
+    body: text('body').notNull(),
+    status: feedbackStatus('status').notNull().default('open'),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    index('feedback_track_version_id_timestamp_ms_idx').on(t.trackVersionId, t.timestampMs),
+    index('feedback_parent_id_idx').on(t.parentId),
+    index('feedback_author_id_idx').on(t.authorId),
+    // Target of the parent foreign key below, which keeps a reply on its parent's version.
+    unique('feedback_id_track_version_id_unique').on(t.id, t.trackVersionId),
+    foreignKey({
+      name: 'feedback_parent_fk',
+      columns: [t.parentId, t.trackVersionId],
+      foreignColumns: [t.id, t.trackVersionId],
+    }).onDelete('cascade'),
+    check('feedback_body_not_blank', sql`char_length(trim(${t.body})) > 0`),
+    check(
+      'feedback_body_max_length',
+      sql`char_length(${t.body}) <= ${sql.raw(String(MAX_FEEDBACK_LENGTH))}`,
+    ),
+    check('feedback_timestamp_non_negative', sql`${t.timestampMs} >= 0`),
+    check(
+      'feedback_reply_shape',
+      sql`${t.parentId} is null or (${t.timestampMs} is null and ${t.status} = 'open')`,
+    ),
+    check(
+      'feedback_resolved_iff_resolved_at',
+      sql`(${t.status} = 'resolved') = (${t.resolvedAt} is not null)`,
+    ),
+  ],
+);
+
+export type Feedback = typeof feedback.$inferSelect;
+
+/**
+ * Something for a user to know about: for now, someone else commenting or replying on one of
+ * their tracks. It points at the comment rather than copying it, so an edit shows and a deleted
+ * comment (or version) takes its notification with it.
+ */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    /** Who it's for. */
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: notificationType('type').notNull(),
+    feedbackId: uuid('feedback_id')
+      .notNull()
+      .references(() => feedback.id, { onDelete: 'cascade' }),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    index('notifications_user_id_id_idx').on(t.userId, t.id),
+    index('notifications_feedback_id_idx').on(t.feedbackId),
+  ],
+);
+
+export type Notification = typeof notifications.$inferSelect;
+
+/**
+ * One user following another, to see their new public work in the feed. Only people with a public
+ * page can be followed (the API finds them by handle); nobody follows themselves.
+ */
+export const follows = pgTable(
+  'follows',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    followerId: uuid('follower_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    followeeId: uuid('followee_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('follows_follower_id_followee_id_idx').on(t.followerId, t.followeeId),
+    index('follows_followee_id_idx').on(t.followeeId),
+    check('follows_not_self', sql`${t.followerId} <> ${t.followeeId}`),
+  ],
+);
+
+export type Follow = typeof follows.$inferSelect;

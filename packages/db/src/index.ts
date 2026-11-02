@@ -5,3 +5,4 @@ export * from './users.ts';
 export * from './tracks.ts';
 export * from './projects.ts';
 export * from './covers.ts';
+export * from './avatars.ts';

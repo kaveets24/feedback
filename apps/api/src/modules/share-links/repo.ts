@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { and, desc, eq, isNull } from 'drizzle-orm';
-import type { LinkRole, ResourceKind } from '@feedback/authz';
+import type { ResourceKind } from '@feedback/authz';
 import { shareLinks, type Db, type ShareLink } from '@feedback/db';
 
 /**
@@ -22,7 +22,6 @@ export async function insertShareLink(
     resourceType: ResourceKind;
     resourceId: string;
     tokenHash: string;
-    role: LinkRole;
     expiresAt: Date | null;
     createdBy: string;
   },

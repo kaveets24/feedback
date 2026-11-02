@@ -2,8 +2,9 @@ import type { Action } from '@feedback/authz';
 import {
   findProject,
   findVersion,
-  updateVersionNotes,
+  updateVersionText,
   type Db,
+  type Project,
   type Track,
   type TrackVersion,
 } from '@feedback/db';
@@ -20,6 +21,7 @@ export function toVersionResponse(version: TrackVersion, owner: boolean): Versio
     trackId: version.trackId,
     versionNumber: version.versionNumber,
     changeNotes: version.changeNotes,
+    feedbackPrompt: version.feedbackPrompt,
     originalFilename: owner ? version.originalFilename : null,
     status: version.status,
     failureReason: version.failureReason,
@@ -36,7 +38,7 @@ export function toVersionResponse(version: TrackVersion, owner: boolean): Versio
 export const PLAYBACK_URL_SECONDS = 10 * 60;
 
 /**
- * A version and its track, if the actor may perform `action` on the track (judged by its
+ * A version, its track and the track's live project, if the actor may perform `action` on the track (judged by its
  * effective visibility), and whether they own it. Listeners only ever see ready versions; one
  * that's uploading, processing or failed is the owner's alone. Anything else, including a version
  * that exists but isn't theirs, is a 404, so existence never leaks (CLAUDE.md section 6, rule 9).
@@ -46,7 +48,7 @@ export async function loadVersionFor(
   actor: Actor,
   versionId: string,
   action: Action,
-): Promise<{ track: Track; version: TrackVersion; owner: boolean }> {
+): Promise<{ track: Track; project: Project | null; version: TrackVersion; owner: boolean }> {
   const found = await findVersion(db, versionId);
   if (!found) throw httpError(404, 'NOT_FOUND', 'Not found');
   const project = found.track.projectId ? await findProject(db, found.track.projectId) : null;
@@ -57,10 +59,13 @@ export async function loadVersionFor(
   ) {
     throw httpError(404, 'NOT_FOUND', 'Not found');
   }
-  return { ...found, owner };
+  return { ...found, project, owner };
 }
 
-/** Replaces a version's change notes. The owner only; anyone else gets the usual 404. */
+/**
+ * Replaces a version's change notes or what the artist wants feedback on. The owner only; anyone
+ * else gets the usual 404.
+ */
 export async function updateVersion(
   db: Db,
   actor: Actor,
@@ -68,8 +73,12 @@ export async function updateVersion(
   input: UpdateVersionRequest,
 ): Promise<VersionResponse> {
   await loadVersionFor(db, actor, versionId, 'manage');
-  // Blank notes are stored as none. Null only if it went away since the check above.
-  const version = await updateVersionNotes(db, versionId, input.changeNotes || null);
+  // Blank text is stored as none.
+  const changes: { changeNotes?: string | null; feedbackPrompt?: string | null } = {};
+  if (input.changeNotes !== undefined) changes.changeNotes = input.changeNotes || null;
+  if (input.feedbackPrompt !== undefined) changes.feedbackPrompt = input.feedbackPrompt || null;
+  // Null only if it went away since the check above.
+  const version = await updateVersionText(db, versionId, changes);
   if (!version) throw httpError(404, 'NOT_FOUND', 'Not found');
   return toVersionResponse(version, true);
 }

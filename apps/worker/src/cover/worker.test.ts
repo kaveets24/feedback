@@ -101,7 +101,7 @@ describe('cover worker', () => {
         status: 'failed',
         failureReason: COVER_FAILURE_REASONS.gaveUp,
       });
-      expect(reports).toEqual([{ coverId: cover.id, attempt: 2 }]);
+      expect(reports).toEqual([{ image: 'cover', imageId: cover.id, attempt: 2 }]);
     } finally {
       broken.close();
     }

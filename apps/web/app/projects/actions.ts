@@ -81,7 +81,7 @@ export async function deleteProjectAction(projectId: unknown): Promise<ActionRes
     return { ok: false, message: "Couldn't delete the project. Reload the page and try again." };
   }
   revalidateProject(parsed.data);
-  revalidatePath('/');
+  revalidatePath('/tracks');
   redirect('/projects');
 }
 

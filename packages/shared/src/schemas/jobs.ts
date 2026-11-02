@@ -14,3 +14,9 @@ export const COVER_QUEUE = 'cover';
 
 export const coverJobSchema = z.object({ coverId: z.uuid() });
 export type CoverJob = z.infer<typeof coverJobSchema>;
+
+/** Queue for re-encoding an uploaded profile picture, the same way as a cover. */
+export const AVATAR_QUEUE = 'avatar';
+
+export const avatarJobSchema = z.object({ avatarId: z.uuid() });
+export type AvatarJob = z.infer<typeof avatarJobSchema>;

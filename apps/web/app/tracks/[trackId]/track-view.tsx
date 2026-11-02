@@ -1,21 +1,39 @@
 import Link from 'next/link';
-import type { ProjectResponse, TrackResponse, VersionResponse } from '@feedback/shared';
+import type {
+  FeedbackThread,
+  ProjectResponse,
+  ShareLinkResponse,
+  TrackResponse,
+  VersionResponse,
+} from '@feedback/shared';
 import type { PlayerItem } from '../../../lib/audio-store';
 import { formatDate, formatDuration, STATUS_LABELS } from '../../../lib/format';
-import { TrackPlayer } from '../../_player/track-player';
+import { PlayerWithFeedback } from '../../_feedback/player-with-feedback';
+import { SharingSection } from '../../_sharing/sharing-section';
 import { UploadForm } from '../../upload-form';
 import { ProcessingStatus } from './processing-status';
 import { ProjectSelect } from './project-select';
 import { VersionItem } from './version-item';
 import { VersionRow } from './version-notes';
 
-/** The track page's body: its place, the player, the version history, and a new version's upload. */
+/**
+ * The track page's body: its place, the player and its comments, the version history, sharing,
+ * and a new version's upload.
+ */
 export function TrackView({
   track,
   projects,
+  links,
+  feedback,
+  openAt,
 }: {
   track: TrackResponse;
   projects: ProjectResponse[];
+  links: ShareLinkResponse[];
+  /** Comments by version id, for every ready version. */
+  feedback: Readonly<Record<string, readonly FeedbackThread[]>>;
+  /** A thread to open at (from a notification), and its version. */
+  openAt?: { versionId: string; threadId: string };
 }) {
   const project = projects.find((p) => p.id === track.projectId);
   const [latest] = track.versions;
@@ -30,36 +48,29 @@ export function TrackView({
   return (
     <main className="mx-auto max-w-3xl px-4 pt-6 pb-16">
       <p className="mb-3 text-sm">
-        <Link href="/" className="link text-muted">
+        <Link href="/tracks" className="link text-muted">
           Your tracks
         </Link>
       </p>
       <h1 className="text-3xl font-semibold break-words text-balance">{track.title}</h1>
-      <p className="mt-2 text-sm text-muted">
-        {project && (
-          <>
-            In{' '}
-            <Link href={`/projects/${project.id}`} className="link">
-              {project.title}
-            </Link>
-            {' · '}
-          </>
-        )}
-        Private: only you can see and hear this track.
-      </p>
       <div className="mt-4 max-w-md">
         <ProjectSelect trackId={track.id} projectId={track.projectId} projects={projects} />
       </div>
 
-      {currentItem && (
-        <div className="mt-8">
-          <TrackPlayer current={currentItem} older={older} />
-        </div>
-      )}
-      {latest && (
-        <div className="mt-3">
-          <LatestVersion version={latest} />
-        </div>
+      {currentItem ? (
+        <PlayerWithFeedback
+          current={currentItem}
+          older={older}
+          feedback={feedback}
+          prompts={Object.fromEntries(track.versions.map((v) => [v.id, v.feedbackPrompt]))}
+          canComment
+          canEditPrompt
+          status={latest && <LatestStatus version={latest} />}
+          initialVersionId={openAt?.versionId}
+          initialHighlightId={openAt?.threadId}
+        />
+      ) : (
+        latest && <LatestStatus version={latest} />
       )}
 
       <section aria-labelledby="versions-heading" className="mt-12">
@@ -89,6 +100,14 @@ export function TrackView({
           ))}
         </ul>
       </section>
+
+      <SharingSection
+        target={{ kind: 'track', id: track.id }}
+        visibility={track.visibility}
+        projectVisibility={project?.visibility}
+        inherits={track.inheritsVisibility}
+        links={links}
+      />
 
       <section className="mt-12">
         <UploadForm trackId={track.id} />
@@ -153,6 +172,14 @@ function VersionMeta({ version }: { version: VersionResponse }) {
         <p className="mt-1 text-sm text-pretty text-danger">{version.failureReason}</p>
       )}
     </>
+  );
+}
+
+function LatestStatus({ version }: { version: VersionResponse }) {
+  return (
+    <div className="mt-3 empty:hidden">
+      <LatestVersion version={version} />
+    </div>
   );
 }
 

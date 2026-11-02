@@ -4,6 +4,9 @@ import { resetDb } from '@feedback/db/testing';
 import type { App } from '../../app.ts';
 import { buildTestApp, tokenFor } from '../../testing/app.ts';
 
+/** What a profile response carries with no handle, no picture, and no upload. */
+const noHandleOrPicture = { handle: null, avatar: null, avatarUpload: null };
+
 describe('GET /v1/me', () => {
   let app: App;
   let db: Db;
@@ -67,5 +70,162 @@ describe('GET /v1/me', () => {
       accessStatus: 'approved',
       profile: { handle: 'artist', displayName: 'Artist', avatarUrl: null },
     });
+  });
+});
+
+describe('/v1/me/profile', () => {
+  let app: App;
+  let db: Db;
+
+  beforeAll(async () => {
+    ({ app, db } = await buildTestApp());
+  });
+  beforeEach(() => resetDb(db));
+  afterAll(() => app.close());
+
+  const call = (method: 'GET' | 'PATCH', providerId?: string, payload?: object) =>
+    app.inject({
+      method,
+      url: '/v1/me/profile',
+      headers: providerId ? { authorization: `Bearer ${tokenFor(providerId)}` } : {},
+      ...(payload && { payload }),
+    });
+
+  async function approvedUser(providerId: string) {
+    const user = await upsertUserFromAuth(db, {
+      authProviderId: providerId,
+      email: `${providerId}@x.test`,
+    });
+    await setAccessStatus(db, { email: user.email, status: 'approved' });
+    return user;
+  }
+
+  it('is empty before the first save', async () => {
+    await approvedUser('u1');
+    const res = await call('GET', 'u1');
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ displayName: null, bio: null, city: null, ...noHandleOrPicture });
+  });
+
+  it('creates the profile on first save, without a handle', async () => {
+    const user = await approvedUser('u1');
+    const res = await call('PATCH', 'u1', {
+      displayName: '  Night Owl ',
+      bio: 'Bedroom pop.',
+      city: 'portland-or',
+      ...noHandleOrPicture,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      displayName: 'Night Owl',
+      bio: 'Bedroom pop.',
+      city: 'portland-or',
+      ...noHandleOrPicture,
+    });
+
+    expect((await call('GET', 'u1')).json()).toEqual(res.json());
+    const me = await app.inject({
+      method: 'GET',
+      url: '/v1/me',
+      headers: { authorization: `Bearer ${tokenFor('u1')}` },
+    });
+    expect(me.json().profile).toEqual({ handle: null, displayName: 'Night Owl', avatarUrl: null });
+    expect(me.json().id).toBe(user.id);
+  });
+
+  it('changes only the fields sent, and null or a blank bio clears one', async () => {
+    await approvedUser('u1');
+    await call('PATCH', 'u1', { displayName: 'Night Owl', bio: 'Bedroom pop.', city: 'miami' });
+
+    expect((await call('PATCH', 'u1', { city: null })).json()).toEqual({
+      displayName: 'Night Owl',
+      bio: 'Bedroom pop.',
+      city: null,
+      ...noHandleOrPicture,
+    });
+    expect((await call('PATCH', 'u1', { bio: '   ' })).json()).toMatchObject({ bio: null });
+    expect((await call('PATCH', 'u1', { displayName: null })).json()).toMatchObject({
+      displayName: null,
+    });
+    expect((await call('PATCH', 'u1', {})).json()).toEqual({
+      displayName: null,
+      bio: null,
+      city: null,
+      ...noHandleOrPicture,
+    });
+  });
+
+  it("keeps each user's profile to themselves", async () => {
+    await approvedUser('u1');
+    await approvedUser('u2');
+    await call('PATCH', 'u1', { displayName: 'One', city: 'new-orleans' });
+    await call('PATCH', 'u2', { displayName: 'Two' });
+
+    expect((await call('GET', 'u1')).json()).toEqual({
+      displayName: 'One',
+      bio: null,
+      city: 'new-orleans',
+      ...noHandleOrPicture,
+    });
+    expect((await call('GET', 'u2')).json()).toEqual({
+      displayName: 'Two',
+      bio: null,
+      city: null,
+      ...noHandleOrPicture,
+    });
+  });
+
+  it('sets a handle in lowercase, and null takes it away', async () => {
+    await approvedUser('u1');
+    const res = await call('PATCH', 'u1', { handle: ' Night_Owl ' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ handle: 'night_owl' });
+    expect((await call('GET', 'u1')).json()).toMatchObject({ handle: 'night_owl' });
+
+    expect((await call('PATCH', 'u1', { displayName: 'Owl' })).json()).toMatchObject({
+      handle: 'night_owl',
+    });
+    expect((await call('PATCH', 'u1', { handle: null })).json()).toMatchObject({ handle: null });
+  });
+
+  it('refuses a handle someone else has, in any case, and keeps the rest unsaved', async () => {
+    await approvedUser('u1');
+    await approvedUser('u2');
+    await call('PATCH', 'u1', { handle: 'night_owl' });
+
+    const res = await call('PATCH', 'u2', { handle: 'NIGHT_OWL', displayName: 'Two' });
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toMatchObject({ error: { code: 'HANDLE_TAKEN' } });
+    expect((await call('GET', 'u2')).json()).toMatchObject({ handle: null, displayName: null });
+
+    // Saving your own handle again is fine.
+    expect((await call('PATCH', 'u1', { handle: 'night_owl' })).statusCode).toBe(200);
+  });
+
+  it('rejects invalid input', async () => {
+    await approvedUser('u1');
+    for (const payload of [
+      { displayName: '   ' },
+      { displayName: 'x'.repeat(51) },
+      { bio: 'x'.repeat(501) },
+      { city: 'boston' },
+      { city: 'Portland, OR' },
+      { handle: 'ab' },
+      { handle: 'night-owl' },
+      { handle: 'settings' },
+    ]) {
+      expect((await call('PATCH', 'u1', payload)).statusCode).toBe(400);
+    }
+  });
+
+  it('requires signing in and approval', async () => {
+    expect((await call('GET')).statusCode).toBe(401);
+    expect((await call('PATCH', undefined, { displayName: 'X' })).statusCode).toBe(401);
+
+    await upsertUserFromAuth(db, { authProviderId: 'p1', email: 'p1@x.test' });
+    for (const res of [await call('GET', 'p1'), await call('PATCH', 'p1', { displayName: 'X' })]) {
+      expect(res.statusCode).toBe(403);
+      expect(res.json()).toMatchObject({ error: { code: 'ACCOUNT_PENDING' } });
+    }
   });
 });

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import type { PlaybackStatus, PlayerItem } from '../../lib/audio-store';
+import { MarkerRail, type FeedbackMarker } from '../_feedback/markers';
 import { AbSwitch, type Side } from './ab-switch';
 import { LcdTime } from './lcd-time';
 import { audioStore, useAudio } from './store';
@@ -24,19 +25,34 @@ const STATE_LABELS: Record<PlaybackStatus, string> = {
 export function TrackPlayer({
   current,
   older,
+  markers,
+  onMarker,
+  onShow,
+  initialVersionId,
 }: {
   current: PlayerItem;
   /** The track's other ready versions, newest first: what the current one can be compared with. */
   older: readonly PlayerItem[];
+  /** Pinned comments by version id, drawn under the waveform of the version shown. */
+  markers?: Readonly<Record<string, readonly FeedbackMarker[]>>;
+  onMarker?: (feedbackId: string) => void;
+  /** Called with the version shown (A or B) whenever it changes, and once at first. */
+  onShow?: (versionId: string) => void;
+  /** An older version to start on, as B (say, to open at a comment on it). */
+  initialVersionId?: string;
 }) {
   const loadedId = useAudio((s) => s.item?.versionId);
   // B starts as an older version that's already playing (back on the page after switching to it),
   // otherwise the previous one.
   const [compareId, setCompareId] = useState(
-    () => older.find((v) => v.versionId === audioStore.getState().item?.versionId)?.versionId,
+    () =>
+      older.find((v) => v.versionId === initialVersionId)?.versionId ??
+      older.find((v) => v.versionId === audioStore.getState().item?.versionId)?.versionId,
   );
   const b = older.find((v) => v.versionId === compareId) ?? older[0];
-  const [chosen, setChosen] = useState<Side>('a');
+  const [chosen, setChosen] = useState<Side>(() =>
+    older.some((v) => v.versionId === initialVersionId) ? 'b' : 'a',
+  );
   // Whichever side is loaded wins, so the switch never disagrees with what's playing.
   const side: Side =
     loadedId === current.versionId ? 'a' : b && loadedId === b.versionId ? 'b' : chosen;
@@ -66,6 +82,10 @@ export function TrackPlayer({
     if (side === 'b') show(next);
     setCompareId(versionId);
   };
+
+  useEffect(() => {
+    onShow?.(item.versionId);
+  }, [item.versionId, onShow]);
 
   // Once this player has the audio, get the other side's stream URL ready so a switch is quick.
   const other = b && (side === 'a' ? b : current);
@@ -109,6 +129,13 @@ export function TrackPlayer({
         onSeek={seek}
         onToggle={toggle}
       />
+      {markers && onMarker && (
+        <MarkerRail
+          markers={markers[item.versionId] ?? []}
+          durationMs={item.durationMs}
+          onSelect={onMarker}
+        />
+      )}
       {b && (
         <div className="mt-3">
           <AbSwitch

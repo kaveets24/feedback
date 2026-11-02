@@ -30,3 +30,13 @@ export const EditIcon = () => (
 export const NoteIcon = ({ size }: { size?: number }) => (
   <Icon size={size} d="M14 4h6v4h-4v11H8v-5h6z" />
 );
+
+/** A square head over shoulders: someone with no profile picture yet. */
+export const PersonIcon = ({ size }: { size?: number }) => (
+  <Icon size={size} d="M8 3h8v8H8zM4 14h16v7H4z" />
+);
+
+/** A square-shouldered bell: notifications, in the header. */
+export const BellIcon = ({ size }: { size?: number }) => (
+  <Icon size={size} d="M11 2h2v2h-2zM7 5h10v9l2 2v2H5v-2l2-2zM10 19h4v3h-4z" />
+);

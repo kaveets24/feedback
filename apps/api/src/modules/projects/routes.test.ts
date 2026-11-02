@@ -181,6 +181,7 @@ describe('project routes', () => {
         visibility: 'private',
         cover: null,
         coverUpload: null,
+        canManage: true,
         createdAt: project.createdAt.toISOString(),
       });
     });
