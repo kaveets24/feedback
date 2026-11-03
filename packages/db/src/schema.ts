@@ -208,6 +208,8 @@ export const tracks = pgTable(
   (t) => [
     index('tracks_owner_id_created_at_idx').on(t.ownerId, t.createdAt),
     index('tracks_project_id_position_idx').on(t.projectId, t.position),
+    // Discovery lists tracks newest current version first; also serves the version foreign key.
+    index('tracks_current_version_id_idx').on(t.currentVersionId),
     // Includes owner_id so a track can only join a project with the same owner. Not unique on
     // position: a reorder rewrites positions row by row, which a plain unique index would trip
     // over mid-statement; the query helpers keep positions distinct under a project row lock.

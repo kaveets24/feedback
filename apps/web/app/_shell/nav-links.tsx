@@ -14,6 +14,11 @@ const LINKS = [
     label: 'Projects',
     matches: (path: string) => path === '/projects' || path.startsWith('/projects/'),
   },
+  {
+    href: '/discover',
+    label: 'Discover',
+    matches: (path: string) => path === '/discover',
+  },
 ];
 
 /**
