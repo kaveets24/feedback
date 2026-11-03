@@ -37,6 +37,8 @@ export const GENRES = [
   'afrobeats',
   'experimental',
   'other',
+  'juke-footwork',
+  'dubstep',
 ] as const;
 export const genreSchema = z.enum(GENRES);
 export type Genre = z.infer<typeof genreSchema>;
@@ -72,6 +74,8 @@ export const GENRE_LABELS: Record<Genre, string> = {
   afrobeats: 'Afrobeats',
   experimental: 'Experimental',
   other: 'Other',
+  'juke-footwork': 'Juke & footwork',
+  dubstep: 'Dubstep',
 };
 
 /** Every genre in the order pickers and filters show them: alphabetical, with Other last. */

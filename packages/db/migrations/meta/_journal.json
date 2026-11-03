@@ -127,6 +127,13 @@
       "when": 1793727994721,
       "tag": "0017_search_trgm",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793732677240,
+      "tag": "0018_more_genres",
+      "breakpoints": true
     }
   ]
 }
