@@ -97,7 +97,12 @@ export const profiles = pgTable(
     links: jsonb('links').$type<ProfileLink[]>().notNull().default([]),
     ...timestamps,
   },
-  (t) => [check('profiles_handle_lowercase', sql`${t.handle} = lower(${t.handle})`)],
+  (t) => [
+    check('profiles_handle_lowercase', sql`${t.handle} = lower(${t.handle})`),
+    // Search matches names anywhere in them (`ilike '%q%'`), which trigram indexes serve.
+    index('profiles_handle_trgm_idx').using('gin', t.handle.op('gin_trgm_ops')),
+    index('profiles_display_name_trgm_idx').using('gin', t.displayName.op('gin_trgm_ops')),
+  ],
 );
 
 export type Profile = typeof profiles.$inferSelect;
@@ -210,6 +215,8 @@ export const tracks = pgTable(
     index('tracks_project_id_position_idx').on(t.projectId, t.position),
     // Discovery lists tracks newest current version first; also serves the version foreign key.
     index('tracks_current_version_id_idx').on(t.currentVersionId),
+    // Search matches titles anywhere in them (`ilike '%q%'`), which a trigram index serves.
+    index('tracks_title_trgm_idx').using('gin', t.title.op('gin_trgm_ops')),
     // Includes owner_id so a track can only join a project with the same owner. Not unique on
     // position: a reorder rewrites positions row by row, which a plain unique index would trip
     // over mid-statement; the query helpers keep positions distinct under a project row lock.

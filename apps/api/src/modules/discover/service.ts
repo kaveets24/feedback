@@ -11,10 +11,10 @@ const everyone: Actor = { kind: 'anonymous' };
 
 export async function discover(
   deps: FollowDeps,
-  { genre, cursor, limit }: { genre?: Genre; cursor?: string; limit: number },
+  { genre, q, cursor, limit }: { genre?: Genre; q?: string; cursor?: string; limit: number },
 ): Promise<DiscoverResponse> {
   // One extra row says whether there's another page.
-  const rows = await listDiscover(deps.db, { genre, limit: limit + 1, before: cursor });
+  const rows = await listDiscover(deps.db, { genre, q, limit: limit + 1, before: cursor });
   const page = rows.slice(0, limit);
   const visible = page.filter(({ track, project }) =>
     canAccessTrack(everyone, track, project, 'listen'),

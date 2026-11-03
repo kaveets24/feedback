@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, isNull, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
 import {
   profiles,
   projects,
@@ -74,4 +74,41 @@ export async function listPublicProjects(
     )
     .orderBy(desc(projects.id))
     .limit(limit);
+}
+
+/**
+ * A search term as a pattern that matches it anywhere, case-insensitively. `%`, `_`, and
+ * backslashes are escaped, so they match themselves rather than acting as wildcards. A leading `@`
+ * is dropped, so `@sam` finds the handle `sam`.
+ */
+export function containsPattern(term: string): string {
+  const plain = term.replace(/^@/, '');
+  return `%${plain.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+}
+
+/**
+ * Approved accounts with a handle (a public page) whose handle or display name contains the
+ * term: an exact handle first, then by handle.
+ */
+export async function searchPublicProfiles(
+  db: Db,
+  term: string,
+  limit: number,
+): Promise<Profile[]> {
+  const pattern = containsPattern(term);
+  const handle = term.replace(/^@/, '').toLowerCase();
+  const rows = await db
+    .select({ profile: profiles })
+    .from(profiles)
+    .innerJoin(users, eq(users.id, profiles.userId))
+    .where(
+      and(
+        isNotNull(profiles.handle),
+        eq(users.accessStatus, 'approved'),
+        or(ilike(profiles.handle, pattern), ilike(profiles.displayName, pattern)),
+      ),
+    )
+    .orderBy(desc(sql`${profiles.handle} = ${handle}`), asc(profiles.handle))
+    .limit(limit);
+  return rows.map((row) => row.profile);
 }

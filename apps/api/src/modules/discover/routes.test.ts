@@ -173,4 +173,43 @@ describe('GET /v1/discover', () => {
     expect(second.nextCursor).toBeNull();
     expect((await get('/v1/discover?cursor=nope')).statusCode).toBe(400);
   });
+
+  describe('with q', () => {
+    it('matches titles and artist names anywhere, ignoring case, with other filters', async () => {
+      const sam = await person('s', 'sam_beats');
+      await db
+        .update(profiles)
+        .set({ displayName: 'Sam Rivera' })
+        .where(eq(profiles.userId, sam.id));
+      const other = await person('o', 'other');
+      await track(sam.id, 'Night Bus', 'public', 'uk-garage');
+      await track(other.id, 'Late NIGHT drive', 'public', 'electro');
+      await track(other.id, 'Morning', 'public');
+      await track(other.id, 'Night private', 'private');
+
+      expect(await titles('/v1/discover?q=night')).toEqual(['Late NIGHT drive', 'Night Bus']);
+      // By the artist's display name or handle, with or without the @.
+      expect(await titles('/v1/discover?q=rivera')).toEqual(['Night Bus']);
+      expect(await titles('/v1/discover?q=%40sam_')).toEqual(['Night Bus']);
+      expect(await titles('/v1/discover?q=night&genre=electro')).toEqual(['Late NIGHT drive']);
+    });
+
+    it('treats % and _ as plain characters', async () => {
+      const artist = await person('a', 'artist');
+      await track(artist.id, '100% done', 'public');
+      await track(artist.id, '1000 days', 'public');
+      await track(artist.id, 'a_b', 'public');
+      await track(artist.id, 'axb', 'public');
+
+      expect(await titles(`/v1/discover?q=${encodeURIComponent('0%')}`)).toEqual(['100% done']);
+      expect(await titles('/v1/discover?q=a_b')).toEqual(['a_b']);
+    });
+
+    it('needs 2 to 100 characters, after trimming', async () => {
+      expect((await get('/v1/discover?q=a')).statusCode).toBe(400);
+      expect((await get('/v1/discover?q=%20a%20')).statusCode).toBe(400);
+      expect((await get(`/v1/discover?q=${'a'.repeat(101)}`)).statusCode).toBe(400);
+      expect((await get(`/v1/discover?q=${'a'.repeat(100)}`)).statusCode).toBe(200);
+    });
+  });
 });

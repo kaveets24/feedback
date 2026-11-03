@@ -5,6 +5,7 @@ import {
   GENRE_LABELS,
   GENRE_OPTIONS,
   genreSchema,
+  searchTermSchema,
   type DiscoverItem,
   type Genre,
 } from '@feedback/shared';
@@ -18,9 +19,10 @@ function Artist({ artist }: { artist: DiscoverItem['artist'] }) {
   return artist.handle ? <Link href={`/@${artist.handle}`}>{name}</Link> : <>{name}</>;
 }
 
-/** This page with a genre and cursor, leaving out whichever is unset. */
-function href(genre: Genre | undefined, cursor?: string) {
+/** This page with a search, genre, and cursor, leaving out whichever is unset. */
+function href({ q, genre, cursor }: { q?: string; genre?: Genre; cursor?: string }) {
   const query = new URLSearchParams();
+  if (q) query.set('q', q);
   if (genre) query.set('genre', genre);
   if (cursor) query.set('cursor', cursor);
   return query.size ? `/discover?${query}` : '/discover';
@@ -28,25 +30,44 @@ function href(genre: Genre | undefined, cursor?: string) {
 
 /**
  * Public tracks for anyone, signed in or not: the most recently updated first, optionally one
- * genre. The same list for everyone. Plain HTML until it's styled (CLAUDE.md section 9).
+ * genre, or those matching a search, which also finds people. The same for everyone. Plain HTML
+ * until it's styled (CLAUDE.md section 9).
  */
 export default async function DiscoverPage({
   searchParams,
 }: {
-  searchParams: Promise<{ genre?: string; cursor?: string }>;
+  searchParams: Promise<{ q?: string; genre?: string; cursor?: string }>;
 }) {
   const params = await searchParams;
   // A hand-edited URL shows everything, or the first page, rather than an error.
   const genre = genreSchema.safeParse(params.genre).data;
   const cursor = z.uuid().safeParse(params.cursor).data;
-  const page = await (await viewerApi()).discover({ genre, cursor });
+  const typed = typeof params.q === 'string' ? params.q.trim() : '';
+  // Too short (or long) to search: say so, and show everything meanwhile.
+  const q = searchTermSchema.safeParse(typed).data;
+
+  const api = await viewerApi();
+  const [page, people] = await Promise.all([
+    api.discover({ q, genre, cursor }),
+    // People sit above the first page of tracks only.
+    q && !cursor ? api.searchProfiles({ q }).then((found) => found.artists) : [],
+  ]);
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-6">
       <h1>Discover</h1>
       <p>Public tracks from everyone, the most recently updated first.</p>
 
-      <form action="/discover">
+      <form action="/discover" role="search">
+        <label htmlFor="discover-q">Search</label>{' '}
+        <input
+          id="discover-q"
+          name="q"
+          type="search"
+          defaultValue={typed}
+          maxLength={100}
+          placeholder="Track, artist, or @handle"
+        />{' '}
         <label htmlFor="discover-genre">Genre</label>{' '}
         <select id="discover-genre" name="genre" defaultValue={genre ?? ''}>
           <option value="">All genres</option>
@@ -56,16 +77,40 @@ export default async function DiscoverPage({
             </option>
           ))}
         </select>{' '}
-        <button type="submit">Show</button>
+        <button type="submit">Search</button>
       </form>
+      {typed && !q && <p role="status">Type at least 2 characters to search.</p>}
+
+      {q && !cursor && (
+        <>
+          <h2>People</h2>
+          {people.length === 0 ? (
+            <p>No one matches “{q}”.</p>
+          ) : (
+            <ul>
+              {people.map((artist) => (
+                <li key={artist.handle}>
+                  <Link href={`/@${artist.handle}`}>
+                    {artist.displayName ?? `@${artist.handle}`}
+                  </Link>{' '}
+                  @{artist.handle}
+                </li>
+              ))}
+            </ul>
+          )}
+          <h2>Tracks</h2>
+        </>
+      )}
 
       {page.items.length === 0 ? (
         <p>
           {cursor
             ? 'Nothing older.'
-            : genre
-              ? `No public ${GENRE_LABELS[genre]} tracks yet.`
-              : 'No public tracks yet.'}
+            : q
+              ? `No public${genre ? ` ${GENRE_LABELS[genre]}` : ''} tracks match “${q}”.`
+              : genre
+                ? `No public ${GENRE_LABELS[genre]} tracks yet.`
+                : 'No public tracks yet.'}
         </p>
       ) : (
         <ul>
@@ -81,9 +126,9 @@ export default async function DiscoverPage({
         </ul>
       )}
       <p>
-        {cursor && <Link href={href(genre)}>Newest</Link>}
+        {cursor && <Link href={href({ q, genre })}>Newest</Link>}
         {cursor && page.nextCursor && ' · '}
-        {page.nextCursor && <Link href={href(genre, page.nextCursor)}>Older</Link>}
+        {page.nextCursor && <Link href={href({ q, genre, cursor: page.nextCursor })}>Older</Link>}
       </p>
     </main>
   );

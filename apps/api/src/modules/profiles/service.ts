@@ -1,8 +1,10 @@
 import { currentAvatar, findProjectsByIds, withCurrentVersions, type Profile } from '@feedback/db';
-import type {
-  ProjectListResponse,
-  PublicProfileResponse,
-  TrackListResponse,
+import {
+  PROFILE_SEARCH_LIMIT,
+  type ProfileSearchResponse,
+  type ProjectListResponse,
+  type PublicProfileResponse,
+  type TrackListResponse,
 } from '@feedback/shared';
 import { canAccessProject } from '../../auth/authz.ts';
 import type { Actor } from '../../auth/plugin.ts';
@@ -11,7 +13,13 @@ import { COVER_URL_SECONDS, coverImages, type CoverDeps } from '../covers/images
 import { toProjectResponse } from '../projects/service.ts';
 import { toTrackSummaries } from '../tracks/service.ts';
 import { isFollowing } from '../follows/repo.ts';
-import { findPublicProfile, listPublicProjects, listPublicTracks } from './repo.ts';
+import { authorsFor } from '../feedback/service.ts';
+import {
+  findPublicProfile,
+  listPublicProjects,
+  listPublicTracks,
+  searchPublicProfiles,
+} from './repo.ts';
 
 // Someone's public page. It shows what everyone may see, decided as nobody in particular: the
 // owner, or someone holding a link to one of their tracks, sees the same page as a stranger.
@@ -86,5 +94,25 @@ export async function listProfileProjects(
   return {
     projects: visible.map((project) => toProjectResponse(project, covers.get(project.id) ?? null)),
     nextCursor: rows.length > limit ? (page.at(-1)?.id ?? null) : null,
+  };
+}
+
+/** People with a public page whose handle or display name contains `q`; see the repo. */
+export async function searchProfiles(
+  { db, storage }: CoverDeps,
+  q: string,
+): Promise<ProfileSearchResponse> {
+  const found = await searchPublicProfiles(db, q, PROFILE_SEARCH_LIMIT);
+  const authors = await authorsFor(
+    db,
+    storage,
+    found.map((profile) => profile.userId),
+  );
+  return {
+    artists: found.flatMap((profile) => {
+      const author = authors.get(profile.userId);
+      // Every match has a handle; the check is for the type.
+      return author?.handle ? [{ ...author, handle: author.handle }] : [];
+    }),
   };
 }
