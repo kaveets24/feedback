@@ -20,3 +20,18 @@ export const AVATAR_QUEUE = 'avatar';
 
 export const avatarJobSchema = z.object({ avatarId: z.uuid() });
 export type AvatarJob = z.infer<typeof avatarJobSchema>;
+
+/**
+ * How every processing job runs: three attempts with backoff, then kept for a while to look into
+ * and dropped so Redis doesn't fill up (it never evicts). The API uses these when it queues a job
+ * and the worker's cleanup when it queues one again, so a requeued job behaves the same.
+ */
+export const JOB_OPTIONS = {
+  attempts: 3,
+  backoff: { type: 'exponential' as const, delay: 10_000 },
+  removeOnComplete: { age: 24 * 60 * 60 },
+  removeOnFail: { age: 7 * 24 * 60 * 60 },
+};
+
+/** Queue for the worker's scheduled housekeeping, such as cleaning up stuck uploads. */
+export const MAINTENANCE_QUEUE = 'maintenance';

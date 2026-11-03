@@ -2,6 +2,7 @@ import { Queue } from 'bullmq';
 import {
   AVATAR_QUEUE,
   COVER_QUEUE,
+  JOB_OPTIONS,
   TRANSCODE_QUEUE,
   type AvatarJob,
   type CoverJob,
@@ -76,13 +77,7 @@ export function bullmqJobQueue(
     connection: { url: redisUrl, maxRetriesPerRequest: null },
     ...(prefix && { prefix }),
     skipWaitingForReady: true,
-    defaultJobOptions: {
-      attempts: 3,
-      backoff: { type: 'exponential' as const, delay: 10_000 },
-      // Kept for a while to look into, then dropped so Redis doesn't fill up (it never evicts).
-      removeOnComplete: { age: 24 * 60 * 60 },
-      removeOnFail: { age: 7 * 24 * 60 * 60 },
-    },
+    defaultJobOptions: JOB_OPTIONS,
   };
   const transcode = new Queue<TranscodeJob>(TRANSCODE_QUEUE, queueOptions);
   const cover = new Queue<CoverJob>(COVER_QUEUE, queueOptions);
