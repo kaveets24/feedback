@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { updateVersionRequestSchema, type VersionResponse } from '@feedback/shared';
 import { toResult, type ActionResult } from '../../../lib/action-result';
@@ -29,4 +30,19 @@ export async function updateVersionNotesAction(
   }
   revalidatePath(`/tracks/${result.data.trackId}`);
   return result;
+}
+
+/** Deletes the track and goes back to your tracks. */
+export async function deleteTrackAction(trackId: unknown): Promise<ActionResult<null>> {
+  const parsed = z.uuid().safeParse(trackId);
+  if (!parsed.success) return { ok: false, message: 'Unknown track.' };
+  const result = await toResult(() => serverApi().deleteTrack(parsed.data));
+  if (!result.ok) {
+    return { ok: false, message: "Couldn't delete the track. Reload the page and try again." };
+  }
+  revalidatePath('/tracks');
+  revalidatePath(`/tracks/${parsed.data}`);
+  // It may have been in a project, whose page and list count it.
+  revalidatePath('/projects', 'layout');
+  redirect('/tracks');
 }

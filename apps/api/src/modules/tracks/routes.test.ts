@@ -11,7 +11,7 @@ import {
   type Db,
 } from '@feedback/db';
 import { resetDb } from '@feedback/db/testing';
-import type { TrackListResponse, TrackResponse } from '@feedback/shared';
+import type { CreateShareLinkResponse, TrackListResponse, TrackResponse } from '@feedback/shared';
 import type { App } from '../../app.ts';
 import { buildTestApp, tokenFor } from '../../testing/app.ts';
 
@@ -159,6 +159,81 @@ describe('track routes', () => {
 
       await db.update(tracks).set({ deletedAt: new Date() }).where(eq(tracks.id, track.id));
       expect((await get(`/v1/tracks/${track.id}`, 'u1')).statusCode).toBe(404);
+    });
+  });
+
+  describe('DELETE /v1/tracks/:trackId', () => {
+    const send = (
+      method: 'DELETE' | 'PATCH' | 'POST',
+      url: string,
+      { providerId, token, payload }: { providerId?: string; token?: string; payload?: object },
+    ) =>
+      app.inject({
+        method,
+        url,
+        headers: {
+          ...(providerId ? { authorization: `Bearer ${tokenFor(providerId)}` } : {}),
+          ...(token ? { 'x-share-token': token } : {}),
+        },
+        ...(payload ? { payload } : {}),
+      });
+
+    /** A track anyone with a link can hear, and a live link to it. */
+    async function sharedTrack(ownerProviderId: string, ownerId: string) {
+      const { track } = await newTrack(ownerId, 'Idea');
+      const visibility = { visibility: 'unlisted' };
+      await send('PATCH', `/v1/tracks/${track.id}`, {
+        providerId: ownerProviderId,
+        payload: visibility,
+      });
+      const res = await send('POST', `/v1/tracks/${track.id}/share-links`, {
+        providerId: ownerProviderId,
+        payload: {},
+      });
+      expect(res.statusCode).toBe(201);
+      return { track, token: res.json<CreateShareLinkResponse>().token };
+    }
+
+    it('lets the owner delete it, which turns its links off', async () => {
+      const me = await approvedUser('u1');
+      const { track, token } = await sharedTrack('u1', me.id);
+      const current = () =>
+        app.inject({
+          method: 'GET',
+          url: '/v1/share-links/current',
+          headers: { 'x-share-token': token },
+        });
+      expect((await current()).statusCode).toBe(200);
+
+      const res = await send('DELETE', `/v1/tracks/${track.id}`, { providerId: 'u1' });
+      expect(res.statusCode).toBe(204);
+      expect((await get(`/v1/tracks/${track.id}`, 'u1')).statusCode).toBe(404);
+      expect((await get('/v1/tracks', 'u1')).json<TrackListResponse>().tracks).toEqual([]);
+      expect((await current()).statusCode).toBe(404);
+      // Deleting again finds nothing.
+      expect(
+        (await send('DELETE', `/v1/tracks/${track.id}`, { providerId: 'u1' })).statusCode,
+      ).toBe(404);
+    });
+
+    it('is a 404 for anyone but the owner, link or not, and deletes nothing', async () => {
+      const me = await approvedUser('u1');
+      await approvedUser('u2');
+      const { track, token } = await sharedTrack('u1', me.id);
+      const url = `/v1/tracks/${track.id}`;
+
+      expect((await send('DELETE', url, { providerId: 'u2' })).statusCode).toBe(404);
+      expect((await send('DELETE', url, { providerId: 'u2', token })).statusCode).toBe(404);
+      expect((await send('DELETE', url, {})).statusCode).toBe(404);
+      expect((await send('DELETE', url, { token })).statusCode).toBe(404);
+      expect((await get(url, 'u1')).statusCode).toBe(200);
+    });
+
+    it('is a 404 for a missing track, and rejects a bad id', async () => {
+      await approvedUser('u1');
+      const missing = `/v1/tracks/${crypto.randomUUID()}`;
+      expect((await send('DELETE', missing, { providerId: 'u1' })).statusCode).toBe(404);
+      expect((await send('DELETE', '/v1/tracks/nope', { providerId: 'u1' })).statusCode).toBe(400);
     });
   });
 });

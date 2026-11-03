@@ -1,4 +1,5 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import { z } from 'zod';
 import type { Db } from '@feedback/db';
 import {
   errorResponseSchema,
@@ -8,7 +9,7 @@ import {
   trackResponseSchema,
   updateTrackRequestSchema,
 } from '@feedback/shared';
-import { getTrack, listMyTracks, updateTrack } from './service.ts';
+import { deleteTrack, getTrack, listMyTracks, updateTrack } from './service.ts';
 
 export function trackRoutes(db: Db): FastifyPluginAsyncZod {
   return async (app) => {
@@ -48,6 +49,20 @@ export function trackRoutes(db: Db): FastifyPluginAsyncZod {
         },
       },
       (request) => updateTrack(db, request.actor, request.params.trackId, request.body),
+    );
+
+    app.delete(
+      '/tracks/:trackId',
+      {
+        schema: {
+          params: trackParamsSchema,
+          response: { 204: z.null().describe('Deleted'), 404: errorResponseSchema },
+        },
+      },
+      async (request, reply) => {
+        await deleteTrack(db, request.actor, request.params.trackId);
+        return reply.status(204).send(null);
+      },
     );
   };
 }

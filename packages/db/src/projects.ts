@@ -275,3 +275,38 @@ export async function setTrackVisibility(
     return updated ? { ok: true, track: updated } : { ok: false, reason: 'not-found' };
   });
 }
+
+/**
+ * Soft-deletes a track and revokes its share links (CLAUDE.md section 6, rule 10). Its versions,
+ * comments, and files stay, like every soft delete, but every read leaves them out with the
+ * track. Runs under the owner's project lock, since it takes the track out of its project's
+ * list; the gap it leaves in positions is fine. Null if it doesn't exist or was already deleted.
+ */
+export async function deleteTrack(db: Db, trackId: string): Promise<Track | null> {
+  return db.transaction(async (tx) => {
+    const [found] = await tx
+      .select({ ownerId: tracks.ownerId })
+      .from(tracks)
+      .where(and(eq(tracks.id, trackId), isNull(tracks.deletedAt)));
+    if (!found) return null;
+    await lockOwnerProjects(tx, found.ownerId);
+
+    const [deleted] = await tx
+      .update(tracks)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(tracks.id, trackId), isNull(tracks.deletedAt)))
+      .returning();
+    if (!deleted) return null;
+    await tx
+      .update(shareLinks)
+      .set({ revokedAt: deleted.deletedAt })
+      .where(
+        and(
+          eq(shareLinks.resourceType, 'track'),
+          eq(shareLinks.resourceId, trackId),
+          isNull(shareLinks.revokedAt),
+        ),
+      );
+    return deleted;
+  });
+}
