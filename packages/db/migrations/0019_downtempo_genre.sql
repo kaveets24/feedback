@@ -1,0 +1,1 @@
+ALTER TYPE "public"."genre" ADD VALUE 'downtempo';
