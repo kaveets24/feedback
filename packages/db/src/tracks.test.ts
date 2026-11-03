@@ -203,6 +203,7 @@ describe('listTracksForOwner', () => {
       versionNumber: 1,
       status: 'processing',
       durationMs: null,
+      createdAt: b.version.createdAt,
     });
     expect(listed[1]?.latestVersion).toMatchObject({
       id: v2.id,

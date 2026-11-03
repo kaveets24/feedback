@@ -127,7 +127,10 @@ export async function setTrackGenre(
 }
 
 /** The newest version of a track, in any status, without its peaks (for lists). */
-export type VersionSummary = Pick<TrackVersion, 'id' | 'versionNumber' | 'status' | 'durationMs'>;
+export type VersionSummary = Pick<
+  TrackVersion,
+  'id' | 'versionNumber' | 'status' | 'durationMs' | 'createdAt'
+>;
 
 /**
  * An owner's tracks, newest first, each with its newest version. Pages by id: ids are UUIDv7, so
@@ -183,6 +186,7 @@ export async function withLatestVersions(
       versionNumber: trackVersions.versionNumber,
       status: trackVersions.status,
       durationMs: trackVersions.durationMs,
+      createdAt: trackVersions.createdAt,
     })
     .from(trackVersions)
     .where(
@@ -223,6 +227,7 @@ export async function withCurrentVersions(
       versionNumber: trackVersions.versionNumber,
       status: trackVersions.status,
       durationMs: trackVersions.durationMs,
+      createdAt: trackVersions.createdAt,
     })
     .from(trackVersions)
     .where(and(inArray(trackVersions.id, ids), eq(trackVersions.status, 'ready')));

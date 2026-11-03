@@ -49,3 +49,14 @@ export function totalDurationMs(tracks: readonly TrackSummary[]): number {
     0,
   );
 }
+
+/** "Nov 3" this year, "Nov 3, 2025" before it: the date column stays narrow. */
+export function formatShortDate(iso: string) {
+  const date = new Date(iso);
+  const thisYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(thisYear ? {} : { year: 'numeric' }),
+  });
+}

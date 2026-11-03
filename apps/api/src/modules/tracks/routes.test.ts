@@ -77,6 +77,7 @@ describe('track routes', () => {
           versionNumber: 1,
           status: 'failed',
           durationMs: null,
+          createdAt: first.version.createdAt.toISOString(),
         },
       });
     });
