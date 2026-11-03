@@ -246,7 +246,7 @@ How staging was provisioned, for reference and for the production setup in Phase
 
      ```bash
      b2 account authorize
-     b2 bucket update --cors-rules '[{"corsRuleName":"web","allowedOrigins":["https://feedback.community"],"allowedOperations":["s3_get","s3_head","s3_put"],"allowedHeaders":["content-type","range"],"exposeHeaders":["content-length","content-range","etag"],"maxAgeSeconds":3600}]' feedback-audio-production allPrivate
+     b2 bucket update --cors-rules '[{"corsRuleName":"feedback-web","allowedOrigins":["https://feedback.community"],"allowedOperations":["s3_get","s3_head","s3_put"],"allowedHeaders":["content-type","range"],"exposeHeaders":["content-length","content-range","etag"],"maxAgeSeconds":3600}]' feedback-audio-production allPrivate
      b2 account clear
      ```
 
