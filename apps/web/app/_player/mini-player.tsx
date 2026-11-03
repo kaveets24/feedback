@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { LcdTime } from './lcd-time';
 import { audioStore, useAudio } from './store';
 import { TransportButton } from './transport-button';
+import { VolumeControl } from './volume-control';
 import { Waveform } from './waveform';
 
 /**
@@ -57,6 +58,7 @@ export function MiniPlayer() {
           onSeek={audioStore.seek}
           onToggle={toggle}
         />
+        <VolumeControl size="mini" />
       </div>
     </aside>
   );

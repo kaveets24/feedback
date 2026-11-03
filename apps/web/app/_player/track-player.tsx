@@ -2,11 +2,13 @@
 
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import type { PlaybackStatus, PlayerItem } from '../../lib/audio-store';
-import { MarkerRail, type FeedbackMarker } from '../_feedback/markers';
+import { commentAt, type FeedbackMarker } from '../../lib/comment-at';
+import { CommentLine, MarkerRail } from '../_feedback/markers';
 import { AbSwitch, type Side } from './ab-switch';
 import { LcdTime } from './lcd-time';
 import { audioStore, useAudio } from './store';
 import { TransportButton } from './transport-button';
+import { VolumeControl } from './volume-control';
 import { Waveform } from './waveform';
 
 const STATE_LABELS: Record<PlaybackStatus, string> = {
@@ -63,6 +65,9 @@ export function TrackPlayer({
   const positionMs = useAudio((s) => (isLoaded(s.item?.versionId) ? s.positionMs : 0));
   const error = useAudio((s) => (isLoaded(s.item?.versionId) ? s.error : null));
   const loaded = status !== 'idle';
+  /** The marker being pointed at, previewed in the comment line. */
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const shownMarkers = markers?.[item.versionId] ?? [];
 
   const toggle = () => void (loaded ? audioStore.toggle() : audioStore.play(item));
   const seek = (ms: number) => (loaded ? audioStore.seek(ms) : void audioStore.play(item, ms));
@@ -129,15 +134,26 @@ export function TrackPlayer({
         onSeek={seek}
         onToggle={toggle}
       />
-      {markers && onMarker && (
-        <MarkerRail
-          markers={markers[item.versionId] ?? []}
-          durationMs={item.durationMs}
-          onSelect={onMarker}
-        />
+      {onMarker && shownMarkers.length > 0 && (
+        <>
+          <MarkerRail
+            markers={shownMarkers}
+            durationMs={item.durationMs}
+            activeId={commentAtId(shownMarkers, positionMs, hoveredId)}
+            onSelect={onMarker}
+            onHover={setHoveredId}
+          />
+          <CommentLine
+            markers={shownMarkers}
+            positionMs={positionMs}
+            hoveredId={hoveredId}
+            onSelect={onMarker}
+          />
+        </>
       )}
-      {b && (
-        <div className="mt-3">
+      {/* A/B (when there's more than one version) and volume share a row; volume goes right. */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        {b && (
           <AbSwitch
             a={current}
             b={b}
@@ -146,8 +162,9 @@ export function TrackPlayer({
             onChoose={choose}
             onCompare={compare}
           />
-        </div>
-      )}
+        )}
+        <VolumeControl size="panel" />
+      </div>
       {error && (
         <p role="alert" className="mt-3 rounded-sm bg-chrome-lo px-2 py-1 text-sm text-danger">
           {error}
@@ -155,4 +172,13 @@ export function TrackPlayer({
       )}
     </section>
   );
+}
+
+/** The id of the comment the comment line shows, for its tick to glow. */
+function commentAtId(
+  markers: readonly FeedbackMarker[],
+  positionMs: number,
+  hoveredId: string | null,
+) {
+  return commentAt(markers, positionMs, hoveredId)?.marker.id ?? null;
 }

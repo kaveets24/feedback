@@ -10,10 +10,20 @@ import {
 import { getStreamAction } from './actions';
 
 /** The one player for the whole app. Its audio element is created on first play. */
+/** Where the volume is remembered: this browser only, and never relied on (it may be blocked). */
+const VOLUME_KEY = 'feedback:volume';
+
 export const audioStore: AudioStore = createAudioStore({
   createAudio: () => new Audio(),
   fetchStream: getStreamAction,
   now: Date.now,
+  memory:
+    typeof window === 'undefined'
+      ? undefined
+      : {
+          load: () => window.localStorage.getItem(VOLUME_KEY),
+          save: (value) => window.localStorage.setItem(VOLUME_KEY, value),
+        },
 });
 
 /**

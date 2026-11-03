@@ -11,6 +11,8 @@ import {
 /** Stands in for an HTMLAudioElement: tests fire its media events by hand. */
 class FakeAudio extends EventTarget {
   src = '';
+  volume = 1;
+  muted = false;
   currentTime = 0;
   paused = true;
   playCalls = 0;
@@ -39,8 +41,13 @@ const item = (n: number): PlayerItem => ({
 const T0 = Date.parse('2026-10-19T12:00:00Z');
 const MINUTES_10 = 10 * 60_000;
 
-function setup() {
+function setup({ saved }: { saved?: string | null } = {}) {
   const audio = new FakeAudio();
+  const memory = {
+    value: saved ?? null,
+    load: () => memory.value,
+    save: (v: string) => (memory.value = v),
+  };
   let clock = T0;
   let urls = 0;
   const fetchStream = vi.fn(async (versionId: string): Promise<ActionResult<StreamUrl>> => ({
@@ -54,9 +61,11 @@ function setup() {
     createAudio: () => audio as unknown as AudioLike,
     fetchStream,
     now: () => clock,
+    memory,
   });
   return {
     audio,
+    memory,
     store,
     fetchStream,
     advance: (ms: number) => (clock += ms),
@@ -71,7 +80,14 @@ function setup() {
 describe('audio store', () => {
   it('starts idle with nothing loaded', () => {
     const { store } = setup();
-    expect(store.getState()).toEqual({ item: null, status: 'idle', positionMs: 0, error: null });
+    expect(store.getState()).toEqual({
+      item: null,
+      status: 'idle',
+      positionMs: 0,
+      error: null,
+      volume: 1,
+      muted: false,
+    });
   });
 
   it('fetches a stream URL and plays it', async () => {
@@ -387,5 +403,58 @@ describe('audio store', () => {
     started();
     audio.fire('ended');
     expect(store.getState()).toMatchObject({ status: 'paused', positionMs: 180_000 });
+  });
+});
+
+describe('volume', () => {
+  it('starts at full volume, unmuted, and applies the level to the element once it exists', async () => {
+    const { store, audio, started } = setup();
+    expect(store.getState()).toMatchObject({ volume: 1, muted: false });
+    store.setVolume(0.4);
+    await store.play(item(1));
+    started();
+    expect(audio.volume).toBe(0.4);
+    expect(audio.muted).toBe(false);
+  });
+
+  it('remembers the level and mute between visits, and ignores anything unreadable', () => {
+    const first = setup();
+    first.store.setVolume(0.25);
+    first.store.toggleMute();
+    expect(JSON.parse(first.memory.value!)).toEqual({ volume: 0.25, muted: true });
+
+    expect(setup({ saved: first.memory.value }).store.getState()).toMatchObject({
+      volume: 0.25,
+      muted: true,
+    });
+    for (const saved of ['not json', '{"volume":3,"muted":false}', '{"volume":0.5}']) {
+      expect(setup({ saved }).store.getState()).toMatchObject({ volume: 1, muted: false });
+    }
+  });
+
+  it('clamps the level, and turning it up unmutes', async () => {
+    const { store, audio, started } = setup();
+    await store.play(item(1));
+    started();
+    store.setVolume(2);
+    expect(audio.volume).toBe(1);
+    store.toggleMute();
+    expect(audio.muted).toBe(true);
+    store.setVolume(0.6);
+    expect(store.getState()).toMatchObject({ volume: 0.6, muted: false });
+    expect(audio.muted).toBe(false);
+    store.setVolume(-1);
+    expect(store.getState().volume).toBe(0);
+  });
+
+  it('unmutes back to the level it had, or to half from zero', () => {
+    const { store } = setup();
+    store.setVolume(0.3);
+    store.toggleMute();
+    store.toggleMute();
+    expect(store.getState()).toMatchObject({ volume: 0.3, muted: false });
+    store.setVolume(0);
+    store.toggleMute();
+    expect(store.getState()).toMatchObject({ volume: 0.5, muted: false });
   });
 });

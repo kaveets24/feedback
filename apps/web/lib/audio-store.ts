@@ -20,13 +20,19 @@ export type PlayerState = {
   positionMs: number;
   /** Shown to the listener when `status` is `error`. */
   error: string | null;
+  /** 0 to 1, shared by every player; kept while muted, so unmuting goes back to it. */
+  volume: number;
+  muted: boolean;
 };
 
 /** The parts of `HTMLAudioElement` the store uses, so tests can pass a fake. */
 export type AudioLike = Pick<
   HTMLAudioElement,
-  'src' | 'currentTime' | 'paused' | 'play' | 'pause' | 'addEventListener'
+  'src' | 'currentTime' | 'paused' | 'play' | 'pause' | 'addEventListener' | 'volume' | 'muted'
 >;
+
+/** Where the volume is remembered between visits (the browser's storage; tests pass a fake). */
+export type VolumeMemory = { load: () => string | null; save: (value: string) => void };
 
 export type StreamUrl = { url: string; expiresAt: string };
 
@@ -34,6 +40,7 @@ export type AudioStoreDeps = {
   createAudio: () => AudioLike;
   fetchStream: (versionId: string, shareToken?: string) => Promise<ActionResult<StreamUrl>>;
   now: () => number;
+  memory?: VolumeMemory;
 };
 
 /** Treat a stream URL as expired this long before it really does, so a resume never races it. */
@@ -44,7 +51,24 @@ export const initialPlayerState: PlayerState = {
   status: 'idle',
   positionMs: 0,
   error: null,
+  volume: 1,
+  muted: false,
 };
+
+/** The remembered volume, or the defaults if there's none (or it's unreadable). */
+function recall(memory: VolumeMemory | undefined): Pick<PlayerState, 'volume' | 'muted'> {
+  try {
+    const saved: unknown = JSON.parse(memory?.load() ?? 'null');
+    if (saved && typeof saved === 'object' && 'volume' in saved && 'muted' in saved) {
+      const { volume, muted } = saved;
+      if (typeof volume === 'number' && volume >= 0 && volume <= 1 && typeof muted === 'boolean')
+        return { volume, muted };
+    }
+  } catch {
+    // Unreadable: start from the defaults.
+  }
+  return { volume: initialPlayerState.volume, muted: initialPlayerState.muted };
+}
 
 /**
  * The app's one audio player (CLAUDE.md section 9): owns a single audio element, so only one
@@ -53,8 +77,8 @@ export const initialPlayerState: PlayerState = {
  * URL), and carries on from the same position. Fresh URLs are kept per version, so switching
  * between versions (A/B) or prefetching the next one skips a round trip.
  */
-export function createAudioStore({ createAudio, fetchStream, now }: AudioStoreDeps) {
-  let state = initialPlayerState;
+export function createAudioStore({ createAudio, fetchStream, now, memory }: AudioStoreDeps) {
+  let state: PlayerState = { ...initialPlayerState, ...recall(memory) };
   const listeners = new Set<() => void>();
   let audio: AudioLike | null = null;
   let expiresAt = 0;
@@ -81,6 +105,8 @@ export function createAudioStore({ createAudio, fetchStream, now }: AudioStoreDe
   function element(): AudioLike {
     if (audio) return audio;
     const el = createAudio();
+    el.volume = state.volume;
+    el.muted = state.muted;
     el.addEventListener('loadedmetadata', () => {
       if (pendingSeekMs !== null) el.currentTime = pendingSeekMs / 1000;
       pendingSeekMs = null;
@@ -225,6 +251,35 @@ export function createAudioStore({ createAudio, fetchStream, now }: AudioStoreDe
     await streamUrl(item, false);
   }
 
+  /** Applies and remembers a volume change. */
+  function setSound(patch: Pick<PlayerState, 'volume' | 'muted'>) {
+    if (audio) {
+      audio.volume = patch.volume;
+      audio.muted = patch.muted;
+    }
+    set(patch);
+    try {
+      memory?.save(JSON.stringify(patch));
+    } catch {
+      // Storage full or blocked: the level still applies, it just isn't remembered.
+    }
+  }
+
+  /** Sets the volume (0 to 1). Turning it up unmutes, like a hardware fader. */
+  function setVolume(volume: number) {
+    const clamped = Math.min(1, Math.max(0, volume));
+    setSound({ volume: clamped, muted: state.muted && clamped === 0 });
+  }
+
+  /** Mutes or unmutes. Unmuting at zero volume goes to half, so it's never silent unmuted. */
+  function toggleMute() {
+    if (state.muted || state.volume === 0) {
+      setSound({ volume: state.volume === 0 ? 0.5 : state.volume, muted: false });
+    } else {
+      setSound({ volume: state.volume, muted: true });
+    }
+  }
+
   async function toggle() {
     if (state.status === 'playing' || state.status === 'loading') pause();
     else await resume();
@@ -245,6 +300,8 @@ export function createAudioStore({ createAudio, fetchStream, now }: AudioStoreDe
     pause,
     toggle,
     seek,
+    setVolume,
+    toggleMute,
   };
 }
 
