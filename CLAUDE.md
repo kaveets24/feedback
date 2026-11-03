@@ -32,7 +32,7 @@ Read this file fully before making changes. If something here conflicts with a r
 - Audio feature extraction / ML / embeddings
 - Reputation scores, leaderboards, give-to-get credits
 - Payments and monetization (the app starts free; $1 artist donations are parked, section 11), plus direct messaging and live streaming
-- Mobile apps (planned for Phase 8; keep the API client-agnostic so it's easy later) and desktop apps (a folder-sync app is an idea in the parking lot, section 11)
+- Mobile apps (planned for Phase 9; keep the API client-agnostic so it's easy later) and desktop apps (a folder-sync app is an idea in the parking lot, section 11)
 
 ---
 
@@ -81,7 +81,7 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 │   ├── web/            # Next.js app
 │   ├── api/            # Fastify HTTP API
 │   ├── worker/         # BullMQ consumers (ffmpeg pipeline)
-│   └── mobile/         # Expo app (Phase 8, not yet created)
+│   └── mobile/         # Expo app (Phase 9, not yet created)
 ├── packages/
 │   ├── db/             # Drizzle schema, migrations, seed, query helpers
 │   ├── shared/         # zod schemas, shared types, constants, API client
@@ -443,7 +443,20 @@ Order agreed 2026-11-03, one PR each: stuck-upload cleanup, rate limits, upload 
 - [ ] Production environment, deployed by promoting the same images that passed staging. Its B2 bucket needs the CORS rule set with the CLI, allowing only the production web origin (see "Backblaze B2" in docs/staging.md)
 - [x] SSO sign-in on Clerk: Google, plus any other providers we pick. Set up on each Clerk instance (staging and production) with our own OAuth credentials, and confirm the `email` session claim is still populated _(Google and Discord, set up by the owner on the one Clerk instance; confirming Discord sign-ins carry the `email` claim is on the launch checklist)_
 
-### Phase 8: Mobile (Expo)
+### Phase 8: Crews
+
+Planned 2026-11-03: groups of artists you can follow as one. The design below is the starting point for this phase's task breakdown; schema and permission changes are shown before any UI, as always.
+
+- [ ] Crews, members, and crew follows. Tables: `crews` (id, slug, unique, for a page at `/crews/<slug>`; name; description; cities, from `CITIES`; a picture, processed like avatars; status `pending | approved | rejected`; created_by; approved_at and approved_by; deleted_at), `crew_members` (crew_id, user_id, role `owner | manager | member`, status `invited | active`, invited_by; unique per crew and user), and `crew_follows` (follower_id, crew_id; unique). The first crew is **Meer Music** (Chicago and Amsterdam)
+- [ ] Who may start a crew: a per-account permission an admin grants by hand (`pnpm admin:allow-crews <email>`, recorded in our `users` table like the approval gate, not in the auth provider). Only those accounts see the intake form
+- [ ] Crew intake form (`/crews/new`): name, handle, cities, description. It creates a `pending` crew that an admin approves or rejects by hand (`pnpm admin:approve-crew <slug>` / `admin:reject-crew`), like accounts. Nobody else sees a crew until it's approved
+- [ ] Managing members (`/crews/<slug>/manage`): the owner and managers invite people by handle and remove them; only the owner edits the crew, transfers it, or deletes it. Joining takes the invitee's acceptance (nobody is added to a crew without agreeing), and members can leave any time. Inviting, joining, and following notify no one, like follows
+- [ ] Permissions in `packages/authz` (a crew counterpart to `canAccess`, no I/O), with a hand-written table of every role (owner, manager, member, invited, stranger, anonymous) x action (view a pending crew, invite, remove, edit, delete, leave)
+- [ ] A crew grants no access to anything: what it gathers is its active members' **public** tracks only (by effective visibility, checked with `canAccess` as nobody in particular), so private and link-only work never shows. A crew-only visibility level would be its own decision (parking lot)
+- [ ] Following a crew: a crew page (`/crews/<slug>`: name, cities, description, members, their public tracks, Follow; no follower counts), and home's Following view (and `GET /v1/discover?view=following`) includes the active members (with public pages) of approved crews you follow
+- **Done when:** a permitted user submits Meer Music, an admin approves it, members accept their invitations, and someone who follows the crew sees its members' public tracks on home.
+
+### Phase 9: Mobile (Expo)
 
 - [ ] Reuse `packages/shared` client and zod schemas
 - [ ] Background playback + lock-screen controls (`react-native-track-player`)
@@ -453,7 +466,7 @@ Order agreed 2026-11-03, one PR each: stuck-upload cleanup, rate limits, upload 
 
 ### Later / parking lot
 
-Reputation and give-to-get credits, local/geo features and place-based listening, audio analysis and auto-tagging, collaboration (stems, co-owners), embeds, invites to specific users or emails (a `shares` table plus a visibility level between `private` and `unlisted`; dropped from Phase 4 on 2026-10-15), playlists (curated collections that can include other people's tracks) and likes (a private list of tracks you liked), both dropped from Phase 6 on 2026-10-22. Free-form tags on tracks (genre is a fixed list for now; decided 2026-11-03). Reporting and blocking (moved from Phase 6 on 2026-11-03): blocking would touch `canAccess` and `canAccessFeedback`, and reporting waits on the moderation question in section 13.
+Reputation and give-to-get credits, local/geo features and place-based listening, audio analysis and auto-tagging, collaboration (stems, co-owners), embeds, invites to specific users or emails (a `shares` table plus a visibility level between `private` and `unlisted`; dropped from Phase 4 on 2026-10-15), a crew-only visibility level (sharing with a crew's members; Phase 8 crews gather public tracks only), playlists (curated collections that can include other people's tracks) and likes (a private list of tracks you liked), both dropped from Phase 6 on 2026-10-22. Free-form tags on tracks (genre is a fixed list for now; decided 2026-11-03). Reporting and blocking (moved from Phase 6 on 2026-11-03): blocking would touch `canAccess` and `canAccessFeedback`, and reporting waits on the moderation question in section 13.
 
 **$1 artist donations (parked 2026-10-22: the app starts free).** If they come back, the earlier plan still holds: a $1 cap enforced server-side, a provider that handles cards and payouts (Stripe Connect was the proposal), artists opt in and pass the provider's identity checks, donations attach to a track and version, no self-donations, webhooks verified and handled idempotently, and no public totals. Card fees (roughly 30¢ + ~3%) take about a third of a $1 donation, so who covers them is the first question.
 

@@ -9,7 +9,7 @@
 
 web
 
-A native mobile app (Expo) is planned for Phase 8. Until then, the web app has to work well on phones, because many listeners open share links there.
+A native mobile app (Expo) is planned for Phase 9. Until then, the web app has to work well on phones, because many listeners open share links there.
 
 ## Users
 
