@@ -62,7 +62,17 @@ export function PlayerWithFeedback({
           (threads ?? []).flatMap((t: FeedbackThread): FeedbackMarker[] =>
             t.timestampMs === null || t.deleted
               ? []
-              : [{ id: t.id, timestampMs: t.timestampMs, resolved: t.status === 'resolved' }],
+              : [
+                  {
+                    id: t.id,
+                    timestampMs: t.timestampMs,
+                    resolved: t.status === 'resolved',
+                    author:
+                      t.author?.displayName ??
+                      (t.author?.handle ? `@${t.author.handle}` : 'Someone'),
+                    body: t.body ?? '',
+                  },
+                ],
           ),
         ]),
       ),

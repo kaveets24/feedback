@@ -40,3 +40,16 @@ export const PersonIcon = ({ size }: { size?: number }) => (
 export const BellIcon = ({ size }: { size?: number }) => (
   <Icon size={size} d="M11 2h2v2h-2zM7 5h10v9l2 2v2H5v-2l2-2zM10 19h4v3h-4z" />
 );
+
+/** A square speaker with two level bars: sound on. */
+export const SpeakerIcon = ({ size }: { size?: number }) => (
+  <Icon size={size} d="M3 9h4l5-5v16l-5-5H3zM15 9h2v6h-2zM19 6h2v12h-2z" />
+);
+
+/** The speaker with a square-cornered cross: muted. */
+export const SpeakerMutedIcon = ({ size }: { size?: number }) => (
+  <Icon
+    size={size}
+    d="M3 9h4l5-5v16l-5-5H3zM14 9.5L15.5 8l2.5 2.5L20.5 8l1.5 1.5-2.5 2.5 2.5 2.5-1.5 1.5-2.5-2.5-2.5 2.5-1.5-1.5 2.5-2.5z"
+  />
+);
