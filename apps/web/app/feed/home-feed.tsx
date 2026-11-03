@@ -1,15 +1,15 @@
 import Link from 'next/link';
 import { z } from 'zod';
 import type { FollowedArtist } from '@feedback/shared';
-import { serverApi } from '../lib/api';
-import { formatDate, formatDuration } from '../lib/format';
-import { loadOrNotFound } from '../lib/load';
-import { collectPages } from '../lib/pages';
+import { serverApi } from '../../lib/api';
+import { formatDate, formatDuration } from '../../lib/format';
+import { loadOrNotFound } from '../../lib/load';
+import { collectPages } from '../../lib/pages';
 
 const name = (artist: FollowedArtist) => artist.displayName ?? `@${artist.handle}`;
 
 /**
- * Home for an approved account: new public work by the people they follow, newest first (each
+ * The feed for an approved account: new public work by the people they follow, newest first (each
  * new track, and each new version of one), and under it who they follow. Plain HTML until it's
  * styled (CLAUDE.md section 9).
  */
@@ -62,9 +62,9 @@ export async function HomeFeed({ cursor }: { cursor: string | undefined }) {
         </ul>
       )}
       <p>
-        {!first && <Link href="/">Newest</Link>}
+        {!first && <Link href="/feed">Newest</Link>}
         {!first && page.nextCursor && ' · '}
-        {page.nextCursor && <Link href={`/?cursor=${page.nextCursor}`}>Older</Link>}
+        {page.nextCursor && <Link href={`/feed?cursor=${page.nextCursor}`}>Older</Link>}
       </p>
 
       {first && following.length > 0 && (
