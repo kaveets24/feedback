@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
   logging: { serverFunctions: false },
   // Public pages live at /@handle. App Router folders can't start with @ (that's a parallel
   // route slot), so the page sits at /profiles/[handle] and this shows it at the shorter address.
+  // Discovery was /discover until it became home (2026-11-03); old links keep their query.
+  async redirects() {
+    return [{ source: '/discover', destination: '/', permanent: true }];
+  },
   async rewrites() {
     return [{ source: '/@:handle', destination: '/profiles/:handle' }];
   },

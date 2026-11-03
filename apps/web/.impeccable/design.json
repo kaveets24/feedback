@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-20T04:47:02Z",
+  "generatedAt": "2026-11-03T00:00:00Z",
   "title": "Design System: Feedback",
   "extensions": {
     "colorMeta": {
@@ -408,6 +408,11 @@
         "name": "nav-underline",
         "value": "inset 0 -2px 0 var(--color-accent)",
         "purpose": "The current nav item's 2px accent underline (a line, not depth)."
+      },
+      {
+        "name": "lit-bar",
+        "value": "inset 2px 0 0 var(--color-accent)",
+        "purpose": "The 2px accent bar on the left of a lit row (version or home result in the player, current genre, picked thread), over a chrome-lo fill. A line, not depth."
       }
     ],
     "motion": [
@@ -421,6 +426,10 @@
       {
         "name": "sm",
         "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
       }
     ],
     "waveformGeometry": {
@@ -573,7 +582,7 @@
       "name": "List Row",
       "kind": "custom",
       "refersTo": "list-row",
-      "description": "A home or projects-list row on rules; the title link covers the whole row and keyboard focus outlines it.",
+      "description": "A your-tracks or projects-list row on rules; the title link covers the whole row and keyboard focus outlines it.",
       "html": "<ul class=\"ds-list\"><li class=\"ds-lrow\"><div class=\"ds-lmain\"><a class=\"ds-row-link\" href=\"#\">Night drive</a><p>v2 · Processing</p></div><span class=\"ds-llen\">3:30</span></li></ul>",
       "css": ".ds-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-rule); font-family: ui-sans-serif, system-ui, sans-serif; } .ds-lrow { position: relative; display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--color-rule); } .ds-lrow:hover { background: color-mix(in oklab, var(--color-chrome-lo) 60%, transparent); } .ds-lmain { flex: 1; min-width: 0; } .ds-lmain p { margin: 0; font-size: 0.875rem; color: var(--color-muted); } .ds-row-link { font-weight: 500; color: var(--color-ink); text-decoration: none; } .ds-row-link:hover { color: var(--color-accent); } .ds-row-link::after { content: \"\"; position: absolute; inset: 0; } .ds-row-link:focus-visible { outline: none; } .ds-row-link:focus-visible::after { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 0.25rem; box-shadow: var(--shadow-focus-glow); } .ds-llen { text-align: right; font-family: var(--font-lcd); font-size: 1rem; font-variant-numeric: tabular-nums; color: var(--color-ink); }"
     },
@@ -584,11 +593,35 @@
       "description": "A version history row on rules: LCD V-number, the artist's notes, the meta line with Current in ink 500 and the length in Silkscreen, and a ghost Edit notes button.",
       "html": "<ol class=\"ds-vlist\"><li class=\"ds-vrow\"><span class=\"ds-vnum\">V3</span><div class=\"ds-vbody\"><div class=\"ds-vmain\"><p class=\"ds-vnotes\">Louder vocals, new bridge</p><p class=\"ds-vmeta\"><span class=\"ds-vcur\">Current · </span>Ready · <span class=\"ds-vlen\">3:41</span> · <time>2026-10-13</time></p></div><button class=\"ds-vedit\" aria-label=\"Edit notes for v3\">Edit notes</button></div></li><li class=\"ds-vrow\"><span class=\"ds-vnum\">V2</span><div class=\"ds-vbody\"><div class=\"ds-vmain\"><p class=\"ds-vnotes ds-vnone\">No change notes.</p><p class=\"ds-vmeta\"><span class=\"ds-vfail\">Failed</span> · <time>2026-10-12</time></p><p class=\"ds-vreason\">The file isn't audio we can read.</p></div><button class=\"ds-vedit\" aria-label=\"Edit notes for v2\">Edit notes</button></div></li></ol>",
       "css": ".ds-vlist { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-rule); font-family: ui-sans-serif, system-ui, sans-serif; color: var(--color-ink); } .ds-vrow { display: grid; grid-template-columns: 3rem 1fr; column-gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--color-rule); } .ds-vnum { padding-top: 2px; font-family: var(--font-lcd); font-size: 1rem; font-variant-numeric: tabular-nums; color: var(--color-ink); } .ds-vbody { display: flex; align-items: flex-start; gap: 12px; } .ds-vmain { flex: 1; min-width: 0; } .ds-vnotes { margin: 0; white-space: pre-line; overflow-wrap: break-word; } .ds-vnone { color: var(--color-muted); } .ds-vmeta, .ds-vreason { margin: 4px 0 0; font-size: 0.875rem; color: var(--color-muted); } .ds-vcur { font-weight: 500; color: var(--color-ink); } .ds-vlen { font-family: var(--font-lcd); font-variant-numeric: tabular-nums; color: var(--color-ink); } .ds-vfail, .ds-vreason { color: var(--color-danger); } .ds-vedit { flex-shrink: 0; display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 1rem; font-family: inherit; font-size: 0.875rem; font-weight: 500; white-space: nowrap; color: var(--color-muted); background: transparent; border: 1px solid transparent; border-radius: 0.375rem; cursor: pointer; } .ds-vedit:hover { background: var(--color-chrome-lo); border-color: var(--color-field-edge); } .ds-vedit:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); }"
+    },
+    {
+      "name": "Result Row",
+      "kind": "custom",
+      "refersTo": "result-row",
+      "description": "A home result, playable in place: the 44px bevel transport button, title over the meta line, LCD length and short date from sm; lit while its version is in the player.",
+      "html": "<ul class=\"ds-results\"><li class=\"ds-rrow\"><button class=\"ds-rplay\" aria-label=\"Play Night drive\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M7 4h3v2h2v2h2v2h2v4h-2v2h-2v2h-2v2H7z\"/></svg></button><div class=\"ds-rmain\"><a href=\"#\">Night drive</a><p><span class=\"ds-ink\">Maya</span> · Lo-fi · v3</p></div><span class=\"ds-rlen\">3:30</span><time class=\"ds-rdate\">Nov 3</time></li><li class=\"ds-rrow is-on\" aria-current=\"true\"><button class=\"ds-rplay ds-on\" aria-label=\"Pause Static bloom\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M6 4h4v16H6zM14 4h4v16h-4z\"/></svg></button><div class=\"ds-rmain\"><a href=\"#\">Static bloom</a><p><span class=\"ds-ink\">@kiko</span> · Ambient · v1</p></div><span class=\"ds-rlen\">2:05</span><time class=\"ds-rdate\">Oct 28</time></li></ul>",
+      "css": ".ds-results { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-rule); font-family: ui-sans-serif, system-ui, sans-serif; color: var(--color-ink); } .ds-rrow { position: relative; isolation: isolate; display: grid; grid-template-columns: 2.75rem minmax(0,1fr) 4rem 4.5rem; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--color-rule); } .ds-rrow.is-on::before { content: \"\"; position: absolute; inset: 0 -12px; z-index: -1; background: var(--color-chrome-lo); box-shadow: inset 2px 0 0 var(--color-accent); } .ds-rplay { width: 44px; height: 44px; display: grid; place-items: center; color: var(--color-ink); background: linear-gradient(var(--color-button-hi), var(--color-button-lo)); border: 1px solid var(--color-chrome-edge); border-radius: 0.375rem; box-shadow: var(--shadow-bevel); cursor: pointer; } .ds-rplay:hover, .ds-rplay.ds-on { color: var(--color-accent); } .ds-rplay:active { background: linear-gradient(var(--color-button-lo), var(--color-button-hi)); box-shadow: var(--shadow-bevel-pressed); } .ds-rplay:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-bevel), var(--shadow-focus-glow); } .ds-rmain { min-width: 0; } .ds-rmain a { font-weight: 500; color: var(--color-ink); text-decoration: none; border-radius: 0.25rem; } .ds-rmain a:hover, .is-on .ds-rmain a { color: var(--color-accent); } .ds-rmain a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); } .ds-rmain p { margin: 0; font-size: 0.875rem; color: var(--color-muted); } .ds-ink { color: var(--color-ink); } .ds-rlen { text-align: right; font-family: var(--font-lcd); font-size: 1rem; font-variant-numeric: tabular-nums; } .ds-rdate { text-align: right; font-size: 0.875rem; color: var(--color-muted); white-space: nowrap; }"
+    },
+    {
+      "name": "Genre Rail",
+      "kind": "nav",
+      "refersTo": "genre-rail",
+      "description": "Home's 11rem rail from md: compact genre links, the current one lit with a chrome-lo fill and the 2px accent bar.",
+      "html": "<nav class=\"ds-rail\" aria-label=\"Genres\"><p class=\"ds-rail-h\">Genres</p><ul><li><a href=\"#\">All genres</a></li><li><a href=\"#\" class=\"ds-cur\" aria-current=\"page\">Lo-fi</a></li><li><a href=\"#\">Ambient</a></li><li><a href=\"#\">Hip-hop</a></li></ul></nav>",
+      "css": ".ds-rail { width: 11rem; font-family: ui-sans-serif, system-ui, sans-serif; } .ds-rail-h { margin: 0 0 8px; font-size: 0.875rem; font-weight: 600; color: var(--color-muted); } .ds-rail ul { list-style: none; margin: 0 -12px; padding: 0; } .ds-rail a { display: block; padding: 4px 12px; border-radius: 0.25rem; font-size: 0.875rem; color: var(--color-muted); text-decoration: none; } .ds-rail a:hover { color: var(--color-accent); } .ds-rail a.ds-cur { background: var(--color-chrome-lo); color: var(--color-ink); font-weight: 500; box-shadow: inset 2px 0 0 var(--color-accent); } .ds-rail a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); }"
+    },
+    {
+      "name": "Notice",
+      "kind": "card",
+      "refersTo": "notice",
+      "description": "A pending or rejected account's status above home's list: a flat chrome-lo box on a rule edge.",
+      "html": "<div class=\"ds-notice\" role=\"status\"><p class=\"ds-notice-t\">You’re on the list</p><p class=\"ds-notice-b\">Feedback is invite-only for now. Your account (<span>maya@example.com</span>) is waiting for approval. Until then you can listen to public tracks here.</p></div>",
+      "css": ".ds-notice { max-width: 60ch; background: var(--color-chrome-lo); border: 1px solid var(--color-rule); border-radius: 0.375rem; padding: 12px 16px; font-family: ui-sans-serif, system-ui, sans-serif; color: var(--color-ink); } .ds-notice-t { margin: 0; font-weight: 500; } .ds-notice-b { margin: 4px 0 0; font-size: 0.875rem; color: var(--color-muted); } .ds-notice-b span { color: var(--color-ink); font-weight: 500; }"
     }
   ],
   "narrative": {
     "northStar": "The Hardware Player",
-    "overview": "Feedback borrows the late-90s desktop music player: a graphite hardware housing, a recessed LCD window with lime phosphor ink, and chunky bevel buttons that sink when pressed. The waveform sits inside the LCD as segmented bars. The part you've already heard is lit, the rest shows as dim lime, and the empty cells stay faintly visible behind both, like the unlit segments on a real LCD.\n\n**Scope so far: the player, the app header, home, the project pages, and the track page.** The player means the track page's waveform player and the global mini-player. The app header sits on every page. Home (`/`, in all four states: signed out, pending, rejected, and signed in with the upload form and your tracks), the projects list (`/projects`), the project page (`/projects/[projectId]`, with its cover art), and the track page around its player (`/tracks/[trackId]`: the header block, the Project selector, the version history with its notes editor, and the new-version upload) are the working screens: the player's world extended to forms and lists, with flat graphite controls, 1px rules between rows, and the LCD well kept for things that read out (the status meter, the status badge, and the upload progress bar). A project's cover art is the one image in the system, and it sits bare, without chrome or an LCD well. Every page uses the same 48rem column under the header, but the bodies of sign-in and sign-up are still deliberately plain semantic HTML. The direction for everything not built yet (glossy LimeWire toolbars, results tables, window panels, Aqua surfaces, light mode, skins) is in CLAUDE.md section 9, \"Visual style: Y2K / Winamp / LimeWire\". It is not recorded here because none of it exists in code. When one of those surfaces gets built, add it to this file from the shipped code.\n\nThe system is quiet and practical: dark only, no decorative motion, and one bright signature per screen (the lit LCD of the player, the status meter on a project, or the upload bar on home while a file goes up). All tokens live in `app/globals.css` under `@theme`, and components use them, never one-off hex values.",
+    "overview": "Feedback borrows the late-90s desktop music player: a graphite hardware housing, a recessed LCD window with lime phosphor ink, and chunky bevel buttons that sink when pressed. The waveform sits inside the LCD as segmented bars. The part you've already heard is lit, the rest shows as dim lime, and the empty cells stay faintly visible behind both, like the unlit segments on a real LCD.\n\n**Scope so far: the player, the app header, home, your tracks, the project pages, the track page, and the profile page.** The player means the track page's waveform player and the global mini-player. The app header sits on every page. Home (`/`) is discovery, the same page for everyone (signed out, signed in, pending, and rejected): a rail of genres beside a list of public tracks that play in place, with a search that also finds people. The feed moved to `/feed` and is still plain HTML. Home, your tracks (`/tracks`, with the upload form), the projects list (`/projects`), the project page (`/projects/[projectId]`, with its cover art), the track page around its player (`/tracks/[trackId]`: the header block, the Project selector, the version history with its notes editor, and the new-version upload), and the profile page (`/settings/profile`) are the working screens: the player's world extended to forms and lists, with flat graphite controls, 1px rules between rows, and the LCD well kept for things that read out (the release type picker, the release type badge, and the upload progress bar). A project's cover art is the one image in the system, and it sits bare, without chrome or an LCD well. Every page uses the same 48rem column under the header, but the bodies of sign-in and sign-up are still deliberately plain semantic HTML. The direction for everything not built yet (glossy LimeWire toolbars, results tables, window panels, Aqua surfaces, light mode, skins) is in CLAUDE.md section 9, \"Visual style: Y2K / Winamp / LimeWire\". It is not recorded here because none of it exists in code. When one of those surfaces gets built, add it to this file from the shipped code.\n\nThe system is quiet and practical: dark only, no decorative motion, and one bright signature per screen (the lit LCD of the player, the release type picker on a project, the upload bar on your tracks while a file goes up, or on home the row that's in the player). All tokens live in `app/globals.css` under `@theme`, and components use them, never one-off hex values.",
     "keyCharacteristics": [
       "Graphite chrome housing on the player, raised by a 1px top highlight and a soft drop.",
       "Recessed deep green-black LCD windows set into their surroundings with a dark lip and a faint outer highlight.",
@@ -602,7 +635,7 @@
     "rules": [
       {
         "name": "The Lit and Unlit Rule",
-        "body": "The LCD always shows its unlit state: played audio is `lcd-ink`, audio still to play is `lcd-dim`, empty cells are `lcd-cell`, and every digit sits over a ghost \"8\" in `lcd-ghost`. Status stages work the same way: passed stages lit in `lcd-ink`, the current one solid `lcd-ink`, later ones in `lcd-unlit` (words must stay readable, so they don't drop to `lcd-cell`); the badge's pips are lit or `lcd-cell`. The upload bar too: its done part is lit stripes (`lcd-ink` and `lcd-dim`), and the rest of the track shows the same stripes held still in `lcd-ghost` and `lcd-cell`. Never draw LCD content on a blank window.",
+        "body": "The LCD always shows its unlit state: played audio is `lcd-ink`, audio still to play is `lcd-dim`, empty cells are `lcd-cell`, and every digit sits over a ghost \"8\" in `lcd-ghost`. Segment pickers work the same way: the chosen segment solid `lcd-ink`, the rest in `lcd-unlit` (words must stay readable, so they don't drop to `lcd-cell`). The upload bar too: its done part is lit stripes (`lcd-ink` and `lcd-dim`), and the rest of the track shows the same stripes held still in `lcd-ghost` and `lcd-cell`. Never draw LCD content on a blank window.",
         "section": "colors"
       },
       {
@@ -617,12 +650,17 @@
       },
       {
         "name": "The Bitmap for Readouts Rule",
-        "body": "Silkscreen is for readouts and figures: times, lengths, totals, track numbers, percents, version numbers, state and stage words, and the wordmark. Titles, labels, buttons, errors, forms, comments, and body text use the sans. In sentence-like lines (subtitles, the version meta line, status lines) only the length switches to Silkscreen; \"Current\", status words, dates, and an inline \"v4\" stay sans.",
+        "body": "Silkscreen is for readouts and figures: times (including the \"1:23\" in the profile's name preview), lengths, totals, track numbers, percents, version numbers, state words, release types, and the wordmark. Titles, labels, buttons, errors, forms, comments, and body text use the sans. In sentence-like lines (subtitles, the version meta line, status lines) only the length switches to Silkscreen; file names, status words, dates, and an inline \"v4\" stay sans.",
         "section": "typography"
       },
       {
         "name": "The Housed Hardware Rule",
-        "body": "Shadows describe hardware: raised housing, recessed LCD windows, buttons that sink. Beyond those, only the focus glow and the nav underline use a shadow. Working-screen controls, rows, and sections get none.",
+        "body": "Shadows describe hardware: raised housing, recessed LCD windows, buttons that sink. Beyond those, only the focus glow, the nav underline, and the lit bar use a shadow. Working-screen controls, rows, and sections get none.",
+        "section": "elevation"
+      },
+      {
+        "name": "The One Light Rule",
+        "body": "\"What's on\" is lit the same way everywhere: a `chrome-lo` fill bleeding 12px into the gutter, the 2px accent lit bar on its left edge, and `aria-current`. The version in the player, the home result in the player (its title in `accent`), the current genre in the rail (its word in `ink` at 500), and a thread picked from the waveform all use it. Don't invent a second highlight for current or playing.",
         "section": "elevation"
       },
       {

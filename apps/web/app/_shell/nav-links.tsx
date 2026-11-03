@@ -5,6 +5,11 @@ import { usePathname } from 'next/navigation';
 
 const LINKS = [
   {
+    href: '/feed',
+    label: 'Feed',
+    matches: (path: string) => path === '/feed',
+  },
+  {
     href: '/tracks',
     label: 'Tracks',
     matches: (path: string) => path === '/tracks' || path.startsWith('/tracks/'),
@@ -13,11 +18,6 @@ const LINKS = [
     href: '/projects',
     label: 'Projects',
     matches: (path: string) => path === '/projects' || path.startsWith('/projects/'),
-  },
-  {
-    href: '/discover',
-    label: 'Discover',
-    matches: (path: string) => path === '/discover',
   },
 ];
 

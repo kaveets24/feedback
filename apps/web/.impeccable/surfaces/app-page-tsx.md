@@ -2,33 +2,33 @@
 version: 1
 slug: 'app-page-tsx'
 primary_target: 'app/page.tsx'
-related_targets: ['app/upload-form.tsx']
+related_targets: ['app/_discover/result-row.tsx']
 ---
 
-# Home: welcome, waiting list, and your tracks
+# Home: discovery for everyone
 
-Scope: `/` in all four states: signed out (welcome), pending ("you're on the list"), rejected, and signed in (upload a track, then your tracks). That includes the upload form (`app/upload-form.tsx`). Visitor mode: Operate for the signed-in state. The other three are short single-message screens in the same world, not marketing pages. Build path: code-led (narrow request inside the established world, no image generation).
+Scope: `/`, the discovery page, in every state: signed out, signed in, pending, and rejected. Search (`q`), a genre filter, the public track list with play from the row, people matching a search, and paging. The feed moved to `/feed` and your tracks are at `/tracks` (2026-11-03). Visitor mode: Operate. Build path: code-led (no image generation; the owner locked the "Filter rail" sketch, `.impeccable/mocks/decision/filter-rail.html`).
 
-Audience and job: a solo producer drops in a rough bounce and finds it again. Invitees first meet the pending screen, so it has to read calm and trustworthy. Signed-out visitors need one line on what this is and the way in.
+Audience and job: anyone, often a phone visitor or a producer between sessions, finds public works in progress and listens without leaving the list. Signed-out visitors also need one line on what this is and the way in; pending and rejected accounts see their status above the same list.
 
 ## Direction contract
 
-THESIS: Home is the inbox for rough ideas: an upload form you can use without thinking, over a plain list of your tracks. The one moment of hardware is the upload itself, a LimeWire-style striped bar filling an LCD window. It refuses the category default: a big drag-and-drop hero and a grid of track cards.
+THESIS: Home is a music library's browser: a rail of genres beside a results list you can play from in place. It refuses the category default of a hero over a grid of cover cards, and the big search-engine box.
 
-OWN-WORLD: The project pages' world, unchanged. Green-black canvas, system sans for all text, flat graphite fields and buttons with 1px field-edge, rows on 1px rules, figures (lengths, percent) in Silkscreen. The LCD well appears only while uploading, as the progress readout: diagonal lit lime stripes over unlit cells, with the percent in Silkscreen.
+OWN-WORLD: The working-screen world, unchanged. Green-black canvas, system sans, flat graphite fields, rows on 1px rules, lengths in Silkscreen. The rail is flat sans links; the current genre is lit like the version in the player (a chrome-lo fill and a 2px accent bar). Each row carries a 44px bevel transport button, the one piece of hardware on the page.
 
-STORY: Signed in, the artist picks a file (the title fills itself), presses Upload, watches the striped bar fill, and lands on the track page. Below, every track sits newest first with its version, state and length. Signed out, a visitor reads one line and signs in. Pending and rejected users read a plain, kind status and can sign out.
+STORY: A visitor scans the newest public tracks, narrows by genre in the rail or searches a title, artist, or @handle, presses play on a row, and keeps browsing while the mini-player plays. The row that's playing stays lit.
 
-FIRST VIEWPORT: Header, then a 48rem column: "Your tracks" as H1 (1.875rem, 600). An "Upload a track" section: a muted line on privacy and formats, an Audio file picker whose button matches btn, then Title and the primary Upload button on one row. While uploading, the striped LCD bar and percent appear under that row and the fields are disabled. "Tracks" H2, then rows of title link over "v2 · Processing" (danger when failed), with the LCD length at the right from sm and in the subtitle on phones. Older/Newest links at the foot.
+FIRST VIEWPORT: Header, then the 48rem column split into an 11rem rail and the results (32px apart) from md. The rail: a small "Genres" label, then All and every genre as compact links. Results: the H1 "Discover", the muted line, the search field and primary Search button on one row, then "Latest" (or "Results") with the rows: transport button, title over artist · genre · v3, the LCD length, and the date. On phones the rail becomes a Genre select in the search form.
 
-FORM: Established-world extension of the projects list; the striped upload bar is the signature. seed: none (narrow request inside the established world; no concept roll ran)
+FORM: Filter rail, my list's position 5 of 7, dealt by the roll and chosen by the owner. seed: 893f2477e257f3a4
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
 ## Signature interaction
 
-The upload bar: an LCD window whose lit portion is diagonal lime stripes that drift slowly while bytes move (the era's "busy" cue), with unlit cells showing behind the rest. The percent reads out beside it in Silkscreen. Under prefers-reduced-motion the stripes hold still. It's a real progressbar with a label and a value.
+Play from the row: the transport button loads that version into the global mini-player without leaving the list, and the row that's in the player lights (chrome-lo fill bleeding into the gutter, a 2px accent bar, the title in accent) with `aria-current`. Pressing it again pauses. The rail's current genre uses the same light, so "what's on" reads the same in both places.
 
 ## Unresolved
 
-- Rows don't name their project (the owner's call, 2026-10-19). Projects stay reachable from the Projects tab.
+- The sketch was 1120px wide; the build keeps the app's 48rem column, with the rail inside it, so the header and every other page stay aligned.

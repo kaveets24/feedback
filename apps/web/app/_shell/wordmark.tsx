@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-/** The name, linking home (the feed, once signed in), and marked as the current page there. */
+/** The name, linking home (discovery), and marked as the current page there. */
 export function Wordmark() {
   const home = usePathname() === '/';
   return (
