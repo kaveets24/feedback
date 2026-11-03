@@ -65,7 +65,7 @@ export function DiscoverView({
           <h1 className="text-3xl font-semibold">Discover</h1>
           {me === null ? (
             <p className="mt-2 max-w-[60ch] text-muted">
-              Public works in progress from people sharing rough ideas.{' '}
+              Share your song ideas, give feedback to others, and build community.{' '}
               <Link href="/sign-in" className="link">
                 Sign in
               </Link>{' '}
@@ -73,11 +73,11 @@ export function DiscoverView({
               <Link href="/sign-up" className="link">
                 create an account
               </Link>{' '}
-              to upload your own and leave feedback.
+              to join in.
             </p>
           ) : (
             <p className="mt-2 text-muted">
-              Public works in progress, the most recently updated first.
+              Share your song ideas, give feedback to others, and build community.
             </p>
           )}
           {me?.accessStatus === 'pending' && (
