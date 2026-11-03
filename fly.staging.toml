@@ -18,7 +18,7 @@ kill_timeout = "30s"
   LOG_LEVEL = "info"
   API_HOST = "0.0.0.0"
   API_PORT = "4000"
-  WEB_ORIGIN = "https://feedback-six-kappa.vercel.app"
+  WEB_ORIGIN = "https://feedback.community"
   SENTRY_ENVIRONMENT = "staging"
   # Backblaze B2 (ADR 0008). The keys are Fly secrets.
   STORAGE_ENDPOINT = "https://s3.us-east-005.backblazeb2.com"

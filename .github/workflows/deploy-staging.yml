@@ -63,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: staging
-      url: https://feedback-six-kappa.vercel.app
+      url: https://feedback.community
     permissions:
       contents: read
     env:
@@ -79,5 +79,5 @@ jobs:
       - run: npx --yes vercel@63.1.2 deploy --prod --yes --token "$VERCEL_TOKEN"
       - name: Smoke test
         run: |
-          curl -fsS --retry 10 --retry-all-errors --retry-delay 3 -o /dev/null https://feedback-six-kappa.vercel.app/
-          curl -fsSI https://feedback-six-kappa.vercel.app/ | grep -qi '^x-robots-tag: noindex'
+          curl -fsS --retry 10 --retry-all-errors --retry-delay 3 -o /dev/null https://feedback.community/
+          curl -fsSI https://feedback.community/ | grep -qi '^x-robots-tag: noindex'
