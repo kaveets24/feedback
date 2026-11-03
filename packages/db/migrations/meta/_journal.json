@@ -120,6 +120,13 @@
       "when": 1793726046683,
       "tag": "0016_tracks_current_version_index",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793727994721,
+      "tag": "0017_search_trgm",
+      "breakpoints": true
     }
   ]
 }

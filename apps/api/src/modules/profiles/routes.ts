@@ -2,6 +2,8 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import {
   errorResponseSchema,
   profileParamsSchema,
+  profileSearchQuerySchema,
+  profileSearchResponseSchema,
   projectListQuerySchema,
   projectListResponseSchema,
   publicProfileResponseSchema,
@@ -9,11 +11,32 @@ import {
   trackListResponseSchema,
 } from '@feedback/shared';
 import type { CoverDeps } from '../covers/images.ts';
-import { getPublicProfile, listProfileProjects, listProfileTracks } from './service.ts';
+import {
+  getPublicProfile,
+  listProfileProjects,
+  listProfileTracks,
+  searchProfiles,
+} from './service.ts';
 
 // Public pages: open to anyone, signed in or not. What they list is decided in the service.
 export function profileRoutes(deps: CoverDeps): FastifyPluginAsyncZod {
   return async (app) => {
+    app.get(
+      '/profiles',
+      {
+        schema: {
+          querystring: profileSearchQuerySchema,
+          response: { 200: profileSearchResponseSchema },
+        },
+      },
+      async (request, reply) => {
+        const found = await searchProfiles(deps, request.query.q);
+        // Pictures are signed URLs: no cache should keep them.
+        void reply.header('cache-control', 'no-store');
+        return found;
+      },
+    );
+
     app.get(
       '/profiles/:handle',
       {

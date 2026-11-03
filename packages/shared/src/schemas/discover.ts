@@ -1,10 +1,19 @@
 import { z } from 'zod';
 import { feedbackAuthorSchema } from './feedback.ts';
+import { followedArtistSchema } from './follows.ts';
 import { genreSchema } from './genres.ts';
 
-/** `GET /v1/discover`: a page of public tracks, optionally only one genre. */
+/**
+ * What a search looks for: 2 to 100 characters, matched case-insensitively anywhere in a name. A
+ * leading `@` is ignored, so `@sam` finds the handle `sam`.
+ */
+export const searchTermSchema = z.string().trim().min(2).max(100);
+
+/** `GET /v1/discover`: a page of public tracks, optionally only one genre, or matching `q`. */
 export const discoverQuerySchema = z.object({
   genre: genreSchema.optional(),
+  /** Keeps tracks whose title, or artist's display name or handle, contains this. */
+  q: searchTermSchema.optional(),
   /** `nextCursor` from the previous page; omit for the first. Treat it as opaque. */
   cursor: z.uuid().optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
@@ -37,3 +46,13 @@ export const discoverResponseSchema = z.object({
   nextCursor: z.uuid().nullable(),
 });
 export type DiscoverResponse = z.infer<typeof discoverResponseSchema>;
+
+/** `GET /v1/profiles?q=`: people with a public page whose handle or display name contains `q`. */
+export const profileSearchQuerySchema = z.object({ q: searchTermSchema });
+export type ProfileSearchQuery = z.input<typeof profileSearchQuerySchema>;
+
+/** The best matches: an exact handle first, then by handle. At most `PROFILE_SEARCH_LIMIT`. */
+export const profileSearchResponseSchema = z.object({ artists: z.array(followedArtistSchema) });
+export type ProfileSearchResponse = z.infer<typeof profileSearchResponseSchema>;
+
+export const PROFILE_SEARCH_LIMIT = 10;
