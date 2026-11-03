@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { VISIBILITIES } from '@feedback/authz';
+import { genreSchema } from './genres.ts';
 
 /**
  * Lifecycle of a track version (CLAUDE.md section 7). A version is created `uploading` when the
@@ -102,6 +103,12 @@ const trackVisibilityFields = {
   inheritsVisibility: z.boolean(),
 };
 
+/**
+ * The track's genre, if the artist picked one; shown to everyone who can see the track. Defaults
+ * to null so a web build ahead of the API (a preview deploy) still reads older responses.
+ */
+const trackGenreField = { genre: genreSchema.nullable().default(null) };
+
 /** A track in a list: enough to show it and its newest version's state. */
 export const trackSummarySchema = z.object({
   id: z.uuid(),
@@ -109,6 +116,7 @@ export const trackSummarySchema = z.object({
   /** The project it's in, or null for a loose track (or one in a project you can't see). */
   projectId: z.uuid().nullable(),
   ...trackVisibilityFields,
+  ...trackGenreField,
   createdAt: z.iso.datetime(),
   /** The newest `ready` version, the one that plays. Null until one is ready. */
   currentVersionId: z.uuid().nullable(),
@@ -156,6 +164,7 @@ export const trackResponseSchema = z.object({
   /** The artist's own notes on the track. Null for anyone but the owner. */
   notes: z.string().nullable(),
   ...trackVisibilityFields,
+  ...trackGenreField,
   createdAt: z.iso.datetime(),
   currentVersionId: z.uuid().nullable(),
   versions: z.array(versionResponseSchema),
@@ -168,10 +177,20 @@ export const trackResponseSchema = z.object({
 export type TrackResponse = z.infer<typeof trackResponseSchema>;
 
 /**
- * `PATCH /v1/tracks/:trackId`: who can hear the track (owner only). For a loose track, its own
- * visibility. For a track in a project, an override of the project's, which may be wider (the
- * owner's explicit choice, rule 7); null goes back to following the project, and is a 409 for a
- * loose track.
+ * `PATCH /v1/tracks/:trackId` (owner only); a field left out stays as it is.
+ *
+ * `visibility`: who can hear the track. For a loose track, its own visibility. For a track in a
+ * project, an override of the project's, which may be wider (the owner's explicit choice, rule 7);
+ * null goes back to following the project, and is a 409 for a loose track.
+ *
+ * `genre`: one of `GENRES`, or null for none.
  */
-export const updateTrackRequestSchema = z.object({ visibility: visibilitySchema.nullable() });
+export const updateTrackRequestSchema = z
+  .object({
+    visibility: visibilitySchema.nullable().optional(),
+    genre: genreSchema.nullable().optional(),
+  })
+  .refine((input) => input.visibility !== undefined || input.genre !== undefined, {
+    message: 'Nothing to change',
+  });
 export type UpdateTrackRequest = z.infer<typeof updateTrackRequestSchema>;

@@ -21,6 +21,7 @@ import {
   ACCESS_STATUSES,
   CITIES,
   FEEDBACK_STATUSES,
+  GENRES,
   MAX_FEEDBACK_LENGTH,
   NOTIFICATION_TYPES,
   RELEASE_TYPES,
@@ -31,6 +32,7 @@ export const accessStatus = pgEnum('access_status', ACCESS_STATUSES);
 export const visibility = pgEnum('visibility', VISIBILITIES);
 export const releaseType = pgEnum('release_type', RELEASE_TYPES);
 export const city = pgEnum('city', CITIES);
+export const genre = pgEnum('genre', GENRES);
 export const trackVersionStatus = pgEnum('track_version_status', VERSION_STATUSES);
 /** A cover upload goes through the same lifecycle as a version: uploading, processing, ready or failed. */
 export const coverStatus = pgEnum('cover_status', VERSION_STATUSES);
@@ -194,6 +196,8 @@ export const tracks = pgTable(
      * settled in Phase 4 (CLAUDE.md section 6, rule 7); until then nothing reads it.
      */
     visibilityOverride: visibility('visibility_override'),
+    /** The artist's pick from `GENRES`, or null for none. Discovery filters by it. */
+    genre: genre('genre'),
     /** Newest `ready` version; one still processing or failed never replaces it. */
     currentVersionId: uuid('current_version_id').references((): AnyPgColumn => trackVersions.id, {
       onDelete: 'set null',

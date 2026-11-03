@@ -3,7 +3,12 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { updateVersionRequestSchema, type VersionResponse } from '@feedback/shared';
+import {
+  genreSchema,
+  updateVersionRequestSchema,
+  type TrackResponse,
+  type VersionResponse,
+} from '@feedback/shared';
 import { toResult, type ActionResult } from '../../../lib/action-result';
 import { serverApi } from '../../../lib/api';
 
@@ -29,6 +34,26 @@ export async function updateVersionNotesAction(
     return { ok: false, message: "Couldn't save the notes. Reload the page and try again." };
   }
   revalidatePath(`/tracks/${result.data.trackId}`);
+  return result;
+}
+
+/** Files the track under a genre; an empty value clears it. */
+export async function setTrackGenreAction(
+  trackId: unknown,
+  genre: unknown,
+): Promise<ActionResult<TrackResponse>> {
+  const parsedId = z.uuid().safeParse(trackId);
+  const parsed = genreSchema.nullable().safeParse(genre === '' ? null : genre);
+  if (!parsedId.success) return { ok: false, message: 'Unknown track.' };
+  if (!parsed.success) return { ok: false, message: 'Pick a genre from the list.' };
+
+  const result = await toResult(() =>
+    serverApi().updateTrack(parsedId.data, { genre: parsed.data }),
+  );
+  if (!result.ok) {
+    return { ok: false, message: "Couldn't save the genre. Reload the page and try again." };
+  }
+  revalidatePath(`/tracks/${parsedId.data}`);
   return result;
 }
 

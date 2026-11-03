@@ -4,6 +4,7 @@ import {
   createTrackWithFirstVersion,
   markVersionFailed,
   markVersionProcessing,
+  markVersionReady,
   setAccessStatus,
   tracks,
   trackVersions,
@@ -68,6 +69,7 @@ describe('track routes', () => {
         projectId: null,
         visibility: 'private',
         inheritsVisibility: false,
+        genre: null,
         createdAt: first.track.createdAt.toISOString(),
         currentVersionId: null,
         latestVersion: {
@@ -159,6 +161,72 @@ describe('track routes', () => {
 
       await db.update(tracks).set({ deletedAt: new Date() }).where(eq(tracks.id, track.id));
       expect((await get(`/v1/tracks/${track.id}`, 'u1')).statusCode).toBe(404);
+    });
+  });
+
+  describe('PATCH /v1/tracks/:trackId genre', () => {
+    const patch = (url: string, payload: object, providerId?: string) =>
+      app.inject({
+        method: 'PATCH',
+        url,
+        headers: providerId ? { authorization: `Bearer ${tokenFor(providerId)}` } : {},
+        payload,
+      });
+
+    it('lets the owner set and clear the genre, which every viewer sees', async () => {
+      const me = await approvedUser('u1');
+      const { track, version } = await newTrack(me.id, 'Idea');
+      await markVersionProcessing(db, version.id);
+      await markVersionReady(db, version.id, {
+        streamKey: `streams/${version.id}`,
+        durationMs: 3000,
+        peaks: [0, 0.5, 1],
+      });
+      const url = `/v1/tracks/${track.id}`;
+
+      const res = await patch(url, { genre: 'uk-garage' }, 'u1');
+      expect(res.statusCode).toBe(200);
+      expect(res.json<TrackResponse>()).toMatchObject({
+        genre: 'uk-garage',
+        visibility: 'private',
+      });
+      const [listed] = (await get('/v1/tracks', 'u1')).json<TrackListResponse>().tracks;
+      expect(listed?.genre).toBe('uk-garage');
+
+      // Listeners see it once the track is public.
+      await patch(url, { visibility: 'public' }, 'u1');
+      expect((await get(url)).json<TrackResponse>()).toMatchObject({ genre: 'uk-garage' });
+
+      const cleared = await patch(url, { genre: null }, 'u1');
+      expect(cleared.json<TrackResponse>()).toMatchObject({ genre: null, visibility: 'public' });
+    });
+
+    it('changes visibility and genre together, and saves neither when one is refused', async () => {
+      const me = await approvedUser('u1');
+      const { track } = await newTrack(me.id, 'Idea');
+      const url = `/v1/tracks/${track.id}`;
+
+      const both = await patch(url, { visibility: 'unlisted', genre: 'grime' }, 'u1');
+      expect(both.json<TrackResponse>()).toMatchObject({ visibility: 'unlisted', genre: 'grime' });
+
+      // A loose track has no project visibility to follow.
+      const refused = await patch(url, { visibility: null, genre: 'bass' }, 'u1');
+      expect(refused.statusCode).toBe(409);
+      expect((await get(url, 'u1')).json<TrackResponse>().genre).toBe('grime');
+    });
+
+    it('is a 404 for anyone but the owner, and rejects unknown genres and empty changes', async () => {
+      const me = await approvedUser('u1');
+      await approvedUser('u2');
+      const { track } = await newTrack(me.id, 'Idea');
+      const url = `/v1/tracks/${track.id}`;
+      await patch(url, { visibility: 'public' }, 'u1');
+
+      expect((await patch(url, { genre: 'electro' }, 'u2')).statusCode).toBe(404);
+      expect((await patch(url, { genre: 'electro' })).statusCode).toBe(404);
+      expect((await patch(url, { genre: 'polka' }, 'u1')).statusCode).toBe(400);
+      expect((await patch(url, {}, 'u1')).statusCode).toBe(400);
+      expect((await get(url, 'u1')).json<TrackResponse>().genre).toBeNull();
     });
   });
 

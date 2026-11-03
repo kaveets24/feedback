@@ -12,6 +12,7 @@ import { PlayerWithFeedback } from '../../_feedback/player-with-feedback';
 import { SharingSection } from '../../_sharing/sharing-section';
 import { UploadForm } from '../../upload-form';
 import { DeleteTrack } from './delete-track';
+import { GenreSelect } from './genre-select';
 import { ProcessingStatus } from './processing-status';
 import { ProjectSelect } from './project-select';
 import { VersionItem } from './version-item';
@@ -54,8 +55,9 @@ export function TrackView({
         </Link>
       </p>
       <h1 className="text-3xl font-semibold break-words text-balance">{track.title}</h1>
-      <div className="mt-4 max-w-md">
+      <div className="mt-4 flex max-w-md flex-col gap-2">
         <ProjectSelect trackId={track.id} projectId={track.projectId} projects={projects} />
+        <GenreSelect trackId={track.id} genre={track.genre} />
       </div>
 
       {currentItem ? (
