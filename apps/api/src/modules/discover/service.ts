@@ -1,20 +1,39 @@
-import type { DiscoverResponse, Genre } from '@feedback/shared';
+import type { DiscoverResponse, DiscoverView, Genre } from '@feedback/shared';
 import { canAccessTrack } from '../../auth/authz.ts';
 import type { Actor } from '../../auth/plugin.ts';
+import { httpError } from '../../errors.ts';
 import { authorsFor } from '../feedback/service.ts';
 import type { FollowDeps } from '../follows/service.ts';
 import { listDiscover } from './repo.ts';
 
 // Discovery shows what everyone may hear, decided as nobody in particular, like a public page:
-// the same list for everyone, signed in or not.
+// the same list for everyone, signed in or not. The `following` view only narrows whose tracks.
 const everyone: Actor = { kind: 'anonymous' };
 
 export async function discover(
   deps: FollowDeps,
-  { genre, q, cursor, limit }: { genre?: Genre; q?: string; cursor?: string; limit: number },
+  asker: Actor,
+  {
+    view,
+    genre,
+    q,
+    cursor,
+    limit,
+  }: { view: DiscoverView; genre?: Genre; q?: string; cursor?: string; limit: number },
 ): Promise<DiscoverResponse> {
+  let followerId: string | undefined;
+  if (view === 'following') {
+    if (asker.kind === 'anonymous') throw httpError(401, 'UNAUTHENTICATED', 'Sign in required');
+    followerId = asker.user.id;
+  }
   // One extra row says whether there's another page.
-  const rows = await listDiscover(deps.db, { genre, q, limit: limit + 1, before: cursor });
+  const rows = await listDiscover(deps.db, {
+    genre,
+    q,
+    followerId,
+    limit: limit + 1,
+    before: cursor,
+  });
   const page = rows.slice(0, limit);
   const visible = page.filter(({ track, project }) =>
     canAccessTrack(everyone, track, project, 'listen'),

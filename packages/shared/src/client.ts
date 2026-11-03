@@ -169,9 +169,13 @@ export function createApiClient({
     /** Who the signed-in user follows, most recent first. */
     listFollowing: (query: FollowListQuery = {}) =>
       request(`/v1/me/following${pageQuery(query)}`, followingResponseSchema),
-    /** Public tracks, the most recently updated first; `genre` and `q` narrow them. */
-    discover: ({ genre, q, cursor, limit }: DiscoverQuery = {}) => {
+    /**
+     * Public tracks, the most recently updated first; `genre` and `q` narrow them, and `view`
+     * `following` keeps only the people the signed-in user follows.
+     */
+    discover: ({ view, genre, q, cursor, limit }: DiscoverQuery = {}) => {
       const query = new URLSearchParams();
+      if (view && view !== 'everyone') query.set('view', view);
       if (genre) query.set('genre', genre);
       if (q) query.set('q', q);
       if (cursor) query.set('cursor', cursor);

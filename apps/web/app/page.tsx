@@ -1,17 +1,19 @@
 import { auth } from '@clerk/nextjs/server';
 import { z } from 'zod';
-import { genreSchema, searchTermSchema } from '@feedback/shared';
-import { getMe, viewerApi } from '../lib/api';
+import { discoverViewSchema, genreSchema, searchTermSchema } from '@feedback/shared';
+import { getMe, serverApi, viewerApi } from '../lib/api';
+import { collectPages } from '../lib/pages';
 import { DiscoverView } from './_discover/discover-view';
 
 /**
  * Home, for everyone: public tracks, the most recently updated first, narrowed by a genre or a
- * search, which also finds people (see `DiscoverView`).
+ * search, which also finds people, or for an approved account by who they follow (see
+ * `DiscoverView`).
  */
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; genre?: string; cursor?: string }>;
+  searchParams: Promise<{ view?: string; q?: string; genre?: string; cursor?: string }>;
 }) {
   const params = await searchParams;
   // A hand-edited URL shows everything, or the first page, rather than an error.
@@ -23,16 +25,30 @@ export default async function HomePage({
 
   const { isAuthenticated } = await auth();
   const me = isAuthenticated ? await getMe() : null;
-  const api = await viewerApi();
-  const [page, people] = await Promise.all([
-    api.discover({ q, genre, cursor }),
+  // Following needs an approved account; anyone else gets everyone's tracks.
+  const view =
+    me?.accessStatus === 'approved' &&
+    discoverViewSchema.safeParse(params.view).data === 'following'
+      ? 'following'
+      : 'everyone';
+  const api = view === 'following' ? serverApi() : await viewerApi();
+  const [page, people, following] = await Promise.all([
+    api.discover({ view, q, genre, cursor }),
     // People sit above the first page of tracks only.
     q && !cursor ? api.searchProfiles({ q }).then((found) => found.artists) : [],
+    view === 'following'
+      ? collectPages(async (next) => {
+          const result = await api.listFollowing({ cursor: next, limit: 50 });
+          return { items: result.artists, nextCursor: result.nextCursor };
+        })
+      : null,
   ]);
 
   return (
     <DiscoverView
       me={me}
+      view={view}
+      following={following}
       typed={typed}
       q={q}
       genre={genre}
