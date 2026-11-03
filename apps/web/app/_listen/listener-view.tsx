@@ -2,7 +2,12 @@
 
 import { SignInButton, useAuth } from '@clerk/nextjs';
 import { useEffect, useMemo, useState } from 'react';
-import type { ProjectDetailResponse, TrackResponse, VersionResponse } from '@feedback/shared';
+import {
+  GENRE_LABELS,
+  type ProjectDetailResponse,
+  type TrackResponse,
+  type VersionResponse,
+} from '@feedback/shared';
 import type { PlayerItem } from '../../lib/audio-store';
 import { formatDate, formatDuration } from '../../lib/format';
 import { listenerAction, listListenerFeedbackAction, type Listener } from '../_feedback/actions';
@@ -131,6 +136,7 @@ export function ListenerTrack({ track, token }: { track: TrackResponse; token: s
   return (
     <>
       <h1>{track.title}</h1>
+      {track.genre && <p>Genre: {GENRE_LABELS[track.genre]}</p>}
       {token && <p>{SHARED_BY_LINK}</p>}
       <Player track={track} token={token} />
       <h2>Versions</h2>

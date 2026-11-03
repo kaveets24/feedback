@@ -1,6 +1,6 @@
 import { and, desc, eq, exists, inArray, isNull, lt, max, ne, or, sql } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
-import { statusesBefore } from '@feedback/shared';
+import { statusesBefore, type Genre } from '@feedback/shared';
 import type { Db } from './client.ts';
 import { tracks, trackVersions, type Track, type TrackVersion } from './schema.ts';
 
@@ -109,6 +109,20 @@ export async function findTrack(db: Db, trackId: string): Promise<Track | null> 
     .select()
     .from(tracks)
     .where(and(eq(tracks.id, trackId), isNull(tracks.deletedAt)));
+  return track ?? null;
+}
+
+/** Files a track under a genre, or none; null if it doesn't exist or was deleted. */
+export async function setTrackGenre(
+  db: Db,
+  trackId: string,
+  value: Genre | null,
+): Promise<Track | null> {
+  const [track] = await db
+    .update(tracks)
+    .set({ genre: value })
+    .where(and(eq(tracks.id, trackId), isNull(tracks.deletedAt)))
+    .returning();
   return track ?? null;
 }
 

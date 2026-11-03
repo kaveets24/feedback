@@ -6,6 +6,7 @@ import {
   findTrack,
   listTracksForOwner,
   listVersions,
+  setTrackGenre,
   setTrackVisibility,
   type Db,
   type Project,
@@ -33,6 +34,7 @@ function trackFields(actor: Actor, track: Track, project: Project | null) {
     projectId: seesProject ? project.id : null,
     visibility: effectiveVisibility(track, project),
     inheritsVisibility: project !== null && track.visibilityOverride === null,
+    genre: track.genre,
     createdAt: track.createdAt.toISOString(),
     currentVersionId: track.currentVersionId,
   };
@@ -133,25 +135,35 @@ export async function getTrack(db: Db, actor: Actor, trackId: string): Promise<T
   return toTrackResponse(db, actor, track, project);
 }
 
-/** Sets who can hear a track (owner only); see `updateTrackRequestSchema`. */
+/**
+ * Changes who can hear a track or its genre (owner only); see `updateTrackRequestSchema`.
+ * Visibility goes first, since only it can be refused, so a refused change saves nothing.
+ */
 export async function updateTrack(
   db: Db,
   actor: Actor,
   trackId: string,
   input: UpdateTrackRequest,
 ): Promise<TrackResponse> {
-  await loadTrackAccess(db, actor, trackId, 'manage');
-  const result = await setTrackVisibility(db, trackId, input.visibility);
-  if (!result.ok && result.reason === 'not-in-project') {
-    throw httpError(
-      409,
-      'TRACK_NOT_IN_PROJECT',
-      'This track isn’t in a project, so it has no project visibility to follow',
-    );
+  let { track } = await loadTrackAccess(db, actor, trackId, 'manage');
+  if (input.visibility !== undefined) {
+    const result = await setTrackVisibility(db, trackId, input.visibility);
+    if (!result.ok && result.reason === 'not-in-project') {
+      throw httpError(
+        409,
+        'TRACK_NOT_IN_PROJECT',
+        'This track isn’t in a project, so it has no project visibility to follow',
+      );
+    }
+    // Not found only if it was deleted since the check above.
+    if (!result.ok) throw httpError(404, 'NOT_FOUND', 'Not found');
+    track = result.track;
   }
-  // Not found only if it was deleted since the check above.
-  if (!result.ok) throw httpError(404, 'NOT_FOUND', 'Not found');
-  const { track } = result;
+  if (input.genre !== undefined) {
+    const updated = await setTrackGenre(db, trackId, input.genre);
+    if (!updated) throw httpError(404, 'NOT_FOUND', 'Not found');
+    track = updated;
+  }
   const project = track.projectId ? await findProject(db, track.projectId) : null;
   return toTrackResponse(db, actor, track, project);
 }
