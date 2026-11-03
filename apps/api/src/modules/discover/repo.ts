@@ -1,5 +1,6 @@
-import { and, desc, eq, ilike, isNull, lt, or, type SQL } from 'drizzle-orm';
+import { and, desc, eq, exists, ilike, isNotNull, isNull, lt, or, type SQL } from 'drizzle-orm';
 import {
+  follows,
   profiles,
   projects,
   trackVersions,
@@ -22,6 +23,19 @@ function matchesTrack(term: string): SQL | undefined {
   );
 }
 
+/** Tracks by someone `followerId` follows who has a public page. Needs `profiles` joined. */
+function followedBy(db: Db, followerId: string): SQL | undefined {
+  return and(
+    isNotNull(profiles.handle),
+    exists(
+      db
+        .select({ id: follows.id })
+        .from(follows)
+        .where(and(eq(follows.followerId, followerId), eq(follows.followeeId, tracks.ownerId))),
+    ),
+  );
+}
+
 export interface DiscoverRow {
   track: Track;
   project: Project | null;
@@ -31,12 +45,19 @@ export interface DiscoverRow {
 /**
  * Live public tracks (by effective visibility) of approved accounts, each with its current
  * version, newest current version first and paged by its id: UUIDv7, so a new version brings a
- * track back to the top. `genre` and `q` narrow them. The service still checks each with
- * `canAccess`.
+ * track back to the top. `genre` and `q` narrow them, and `followerId` keeps only the people that
+ * user follows who still have a public page (a handle), like the feed. The service still checks
+ * each with `canAccess`.
  */
 export async function listDiscover(
   db: Db,
-  { genre, q, limit, before }: { genre?: Genre; q?: string; limit: number; before?: string },
+  {
+    genre,
+    q,
+    followerId,
+    limit,
+    before,
+  }: { genre?: Genre; q?: string; followerId?: string; limit: number; before?: string },
 ): Promise<DiscoverRow[]> {
   return (
     db
@@ -65,6 +86,7 @@ export async function listDiscover(
           isPublicTrack,
           genre ? eq(tracks.genre, genre) : undefined,
           q ? matchesTrack(q) : undefined,
+          followerId ? followedBy(db, followerId) : undefined,
           before ? lt(tracks.currentVersionId, before) : undefined,
         ),
       )

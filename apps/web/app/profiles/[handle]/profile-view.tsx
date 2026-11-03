@@ -10,6 +10,7 @@ import {
 import { formatDuration, formatShortDate } from '../../../lib/format';
 import { ResultRow } from '../../_discover/result-row';
 import { Avatar } from '../../_shell/avatar';
+import { UnderlineTabs } from '../../_shell/tabs';
 import { ProjectCover } from '../../projects/project-cover';
 import { ReleaseTypeBadge } from '../../projects/release-type-badge';
 import { FollowButton } from './follow-button';
@@ -111,32 +112,22 @@ function Identity({ profile, children }: { profile: PublicProfileResponse; child
   );
 }
 
-/** Tracks and Projects as links in the nav's grammar: the current one in ink, underlined. */
+/** Tracks and Projects, as tabs. */
 function Tabs({ handle, tab, counts }: { handle: string; tab: Tab; counts: Record<Tab, number> }) {
-  const items: { value: Tab; label: string; href: string }[] = [
-    { value: 'tracks', label: 'Tracks', href: `/@${handle}` },
-    { value: 'projects', label: 'Projects', href: `/@${handle}?tab=projects` },
-  ];
   return (
-    <nav aria-label="Their work" className="mt-8 flex h-11 gap-6 border-b border-rule">
-      {items.map(({ value, label, href }) => {
-        const current = value === tab;
-        return (
-          <Link
-            key={value}
-            href={href}
-            scroll={false}
-            aria-current={current ? 'page' : undefined}
-            className={`focus-glow flex items-center gap-2 rounded-sm text-sm font-medium hover:text-accent ${
-              current ? 'text-ink shadow-[inset_0_-2px_0_var(--color-accent)]' : 'text-muted'
-            }`}
-          >
-            {label}
-            <span className="font-normal text-muted tabular-nums">{counts[value]}</span>
-          </Link>
-        );
-      })}
-    </nav>
+    <UnderlineTabs
+      label="Their work"
+      className="mt-8"
+      items={[
+        { label: 'Tracks', href: `/@${handle}`, current: tab === 'tracks', count: counts.tracks },
+        {
+          label: 'Projects',
+          href: `/@${handle}?tab=projects`,
+          current: tab === 'projects',
+          count: counts.projects,
+        },
+      ]}
+    />
   );
 }
 

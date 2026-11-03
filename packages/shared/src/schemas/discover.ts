@@ -9,8 +9,15 @@ import { genreSchema } from './genres.ts';
  */
 export const searchTermSchema = z.string().trim().min(2).max(100);
 
+/** Whose tracks home lists: everyone's, or only the people the signed-in user follows. */
+export const DISCOVER_VIEWS = ['everyone', 'following'] as const;
+export const discoverViewSchema = z.enum(DISCOVER_VIEWS);
+export type DiscoverView = z.infer<typeof discoverViewSchema>;
+
 /** `GET /v1/discover`: a page of public tracks, optionally only one genre, or matching `q`. */
 export const discoverQuerySchema = z.object({
+  /** `following` needs a signed-in account (a 401 otherwise). */
+  view: discoverViewSchema.default('everyone'),
   genre: genreSchema.optional(),
   /** Keeps tracks whose title, or artist's display name or handle, contains this. */
   q: searchTermSchema.optional(),

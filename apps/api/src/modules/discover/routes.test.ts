@@ -212,4 +212,50 @@ describe('GET /v1/discover', () => {
       expect((await get(`/v1/discover?q=${'a'.repeat(100)}`)).statusCode).toBe(200);
     });
   });
+
+  describe('view=following', () => {
+    const follow = (handle: string, providerId: string) =>
+      app.inject({
+        method: 'PUT',
+        url: `/v1/profiles/${handle}/follow`,
+        headers: { authorization: `Bearer ${tokenFor(providerId)}` },
+      });
+
+    it('lists only the public tracks of people you follow, and works with the other filters', async () => {
+      await person('me', 'me');
+      const followed = await person('f', 'followed');
+      const other = await person('o', 'other');
+      await track(followed.id, 'Followed grime', 'public', 'grime');
+      await track(followed.id, 'Followed house', 'public', 'house');
+      await track(followed.id, 'Followed private', 'private');
+      await track(other.id, 'Not followed', 'public', 'grime');
+      expect((await follow('followed', 'me')).statusCode).toBe(204);
+
+      expect(await titles('/v1/discover?view=following', 'me')).toEqual([
+        'Followed house',
+        'Followed grime',
+      ]);
+      expect(await titles('/v1/discover?view=following&genre=grime', 'me')).toEqual([
+        'Followed grime',
+      ]);
+      expect(await titles('/v1/discover?view=following&q=house', 'me')).toEqual(['Followed house']);
+      // Everyone's view is unchanged.
+      expect(await titles('/v1/discover?view=everyone', 'me')).toHaveLength(3);
+    });
+
+    it('drops someone who loses their public page, like the feed', async () => {
+      await person('me', 'me');
+      const followed = await person('f', 'followed');
+      await track(followed.id, 'Theirs', 'public');
+      await follow('followed', 'me');
+      await db.update(profiles).set({ handle: null }).where(eq(profiles.userId, followed.id));
+
+      expect(await titles('/v1/discover?view=following', 'me')).toEqual([]);
+    });
+
+    it('needs a signed-in account, and rejects an unknown view', async () => {
+      expect((await get('/v1/discover?view=following')).statusCode).toBe(401);
+      expect((await get('/v1/discover?view=friends')).statusCode).toBe(400);
+    });
+  });
 });

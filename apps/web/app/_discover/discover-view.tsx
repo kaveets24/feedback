@@ -5,6 +5,7 @@ import {
   GENRE_OPTIONS,
   type DiscoverItem,
   type DiscoverResponse,
+  type DiscoverView as View,
   type FollowedArtist,
   type Genre,
   type MeResponse,
@@ -12,13 +13,15 @@ import {
 import { formatDuration, formatShortDate } from '../../lib/format';
 import { Avatar } from '../_shell/avatar';
 import { DownIcon } from '../_shell/icons';
+import { UnderlineTabs } from '../_shell/tabs';
 import { ResultRow } from './result-row';
 
-export type Filters = { q?: string; genre?: Genre; cursor?: string };
+export type Filters = { view?: View; q?: string; genre?: Genre; cursor?: string };
 
-/** Home with a search, genre, and cursor, leaving out whichever is unset. */
-function href({ q, genre, cursor }: Filters) {
+/** Home with a view, search, genre, and cursor, leaving out whichever is unset (or the default). */
+function href({ view, q, genre, cursor }: Filters) {
   const query = new URLSearchParams();
+  if (view === 'following') query.set('view', view);
   if (q) query.set('q', q);
   if (genre) query.set('genre', genre);
   if (cursor) query.set('cursor', cursor);
@@ -29,10 +32,14 @@ function href({ q, genre, cursor }: Filters) {
  * Discovery, for everyone: public tracks, the most recently updated first, narrowed by a genre
  * from the rail or a search, which also finds people. Every row plays in place in the
  * mini-player. The list is the same for everyone; signed out, a line says what this is, and
- * accounts waiting for approval (or not approved) see their status above it.
+ * accounts waiting for approval (or not approved) see their status above it. Approved accounts
+ * also get Everyone and Following tabs; Following keeps only the people they follow, who are
+ * listed in the rail.
  */
 export function DiscoverView({
   me,
+  view = 'everyone',
+  following,
   typed,
   q,
   genre,
@@ -42,6 +49,8 @@ export function DiscoverView({
 }: Filters & {
   /** The signed-in account, or null signed out. */
   me: Pick<MeResponse, 'email' | 'accessStatus'> | null;
+  /** Who they follow, on the Following view (null on Everyone). */
+  following: FollowedArtist[] | null;
   /** What was typed in the search box, trimmed, even when too short to search. */
   typed: string;
   page: DiscoverResponse;
@@ -56,7 +65,7 @@ export function DiscoverView({
           <h1 className="text-3xl font-semibold">Discover</h1>
           {me === null ? (
             <p className="mt-2 max-w-[60ch] text-muted">
-              Public works in progress from people sharing rough ideas.{' '}
+              Share your song ideas, give feedback to others, and build community.{' '}
               <Link href="/sign-in" className="link">
                 Sign in
               </Link>{' '}
@@ -64,11 +73,11 @@ export function DiscoverView({
               <Link href="/sign-up" className="link">
                 create an account
               </Link>{' '}
-              to upload your own and leave feedback.
+              to join in.
             </p>
           ) : (
             <p className="mt-2 text-muted">
-              Public works in progress, the most recently updated first.
+              Share your song ideas, give feedback to others, and build community.
             </p>
           )}
           {me?.accessStatus === 'pending' && (
@@ -85,7 +94,21 @@ export function DiscoverView({
             </Notice>
           )}
 
-          <SearchForm typed={typed} genre={genre} />
+          {me?.accessStatus === 'approved' && (
+            <UnderlineTabs
+              label="Whose tracks"
+              className="mt-5"
+              items={[
+                { label: 'Everyone', href: href({ q, genre }), current: view === 'everyone' },
+                {
+                  label: 'Following',
+                  href: href({ view: 'following', q, genre }),
+                  current: view === 'following',
+                },
+              ]}
+            />
+          )}
+          <SearchForm typed={typed} genre={genre} view={view} />
           {/* From md the genres are in the rail, after the results in the source. Absolute while
               focused (at its place in the flow), so showing it doesn't move the list. */}
           <a
@@ -111,15 +134,19 @@ export function DiscoverView({
               <p className="border-y border-rule py-6 text-muted">
                 {cursor
                   ? 'Nothing older.'
-                  : q
-                    ? `No public${genre ? ` ${GENRE_LABELS[genre]}` : ''} tracks match “${q}”.`
-                    : genre
-                      ? `No public ${GENRE_LABELS[genre]} tracks yet.`
-                      : 'No public tracks yet.'}
+                  : view === 'following' && following?.length === 0
+                    ? 'You don’t follow anyone yet. Follow artists from their pages to see their public tracks here.'
+                    : view === 'following' && !q && !genre
+                      ? 'Nothing public from the people you follow yet.'
+                      : q
+                        ? `No public${genre ? ` ${GENRE_LABELS[genre]}` : ''} tracks match “${q}”.`
+                        : genre
+                          ? `No public ${GENRE_LABELS[genre]} tracks yet.`
+                          : 'No public tracks yet.'}
                 {genre && !cursor && (
                   <>
                     {' '}
-                    <Link href={href({ q })} className="link">
+                    <Link href={href({ view, q })} className="link">
                       Show all genres
                     </Link>
                   </>
@@ -142,65 +169,115 @@ export function DiscoverView({
             )}
             <nav aria-label="More tracks" className="mt-4 flex gap-4 text-sm">
               {cursor && (
-                <Link href={href({ q, genre })} className="link">
+                <Link href={href({ view, q, genre })} className="link">
                   Newest
                 </Link>
               )}
               {page.nextCursor && (
-                <Link href={href({ q, genre, cursor: page.nextCursor })} className="link">
+                <Link href={href({ view, q, genre, cursor: page.nextCursor })} className="link">
                   Older
                 </Link>
               )}
             </nav>
           </section>
+          {following && following.length > 0 && (
+            <FollowingList artists={following} id="following-phone" className="mt-10 md:hidden" />
+          )}
         </div>
-        <GenreRail q={q} genre={genre} />
+        <GenreRail view={view} q={q} genre={genre} following={following} />
       </div>
     </main>
   );
 }
 
 /**
- * Every genre as a link, the current one lit like the version in the player. From `md` only; on
- * phones the search form's Genre select does the job. Links keep the search.
+ * Every genre as a link, the current one lit like the version in the player, and on the
+ * Following view who they follow. From `md` only; on phones the search form's Genre select does
+ * the genres' job, and the people they follow sit under the results. Links keep the view and
+ * search.
  */
-function GenreRail({ q, genre }: Pick<Filters, 'q' | 'genre'>) {
+function GenreRail({
+  view,
+  q,
+  genre,
+  following,
+}: Pick<Filters, 'view' | 'q' | 'genre'> & { following: FollowedArtist[] | null }) {
+  const showFollowing = following !== null && following.length > 0;
   const choices: { value: Genre | undefined; label: string }[] = [
     { value: undefined, label: 'All genres' },
     ...GENRE_OPTIONS.map((value) => ({ value, label: GENRE_LABELS[value] })),
   ];
   return (
-    <nav
-      id="genres"
-      aria-labelledby="genres-heading"
-      className="hidden md:col-start-1 md:row-start-1 md:block"
-    >
-      {/* Lines up with the H1's cap height, so the rail and the results start together. */}
-      <h2 id="genres-heading" className="mt-2.5 mb-2 text-sm font-semibold text-muted">
-        Genres
+    <div className="hidden md:col-start-1 md:row-start-1 md:block">
+      {/* Who they follow leads the rail on Following, above the long genre list. Either way the
+          first heading lines up with the H1's cap height, so the rail and the results start
+          together. */}
+      {showFollowing && (
+        <FollowingList artists={following} id="following-rail" className="mt-2.5 mb-8" />
+      )}
+      <nav id="genres" aria-labelledby="genres-heading">
+        <h2
+          id="genres-heading"
+          className={`mb-2 text-sm font-semibold text-muted ${showFollowing ? '' : 'mt-2.5'}`}
+        >
+          Genres
+        </h2>
+        {/* Items bleed 12px into the gutter, so their words line up with the column edge. */}
+        <ul className="-mx-3">
+          {choices.map(({ value, label }) => {
+            const current = value === genre;
+            return (
+              <li key={value ?? 'all'}>
+                <Link
+                  href={href({ view, q, genre: value })}
+                  aria-current={current ? 'page' : undefined}
+                  className={`focus-glow block rounded-sm px-3 py-1 text-sm ${
+                    current
+                      ? 'bg-chrome-lo font-medium text-ink shadow-[inset_2px_0_0_var(--color-accent)]'
+                      : 'text-muted hover:text-accent'
+                  }`}
+                >
+                  {label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </div>
+  );
+}
+
+/** Who they follow, each a link to their page. Shown in the rail, or on phones under the list. */
+function FollowingList({
+  artists,
+  id,
+  className,
+}: {
+  artists: FollowedArtist[];
+  /** The heading's id; the rail and phone copies need their own. */
+  id: string;
+  className: string;
+}) {
+  return (
+    <section aria-labelledby={id} className={className}>
+      <h2 id={id} className="mb-2 text-sm font-semibold text-muted">
+        You follow
       </h2>
-      {/* Items bleed 12px into the gutter, so their words line up with the column edge. */}
-      <ul className="-mx-3">
-        {choices.map(({ value, label }) => {
-          const current = value === genre;
-          return (
-            <li key={value ?? 'all'}>
-              <Link
-                href={href({ q, genre: value })}
-                aria-current={current ? 'page' : undefined}
-                className={`focus-glow block rounded-sm px-3 py-1 text-sm ${
-                  current
-                    ? 'bg-chrome-lo font-medium text-ink shadow-[inset_2px_0_0_var(--color-accent)]'
-                    : 'text-muted hover:text-accent'
-                }`}
-              >
-                {label}
-              </Link>
-            </li>
-          );
-        })}
+      <ul className="flex flex-col gap-1">
+        {artists.map((artist) => (
+          <li key={artist.handle} className="flex min-w-0 items-center gap-2">
+            <Avatar avatar={artist.avatar} size="inline" />
+            <Link
+              href={`/@${artist.handle}`}
+              className="min-w-0 truncate rounded-sm text-sm hover:text-accent focus-glow"
+            >
+              {artist.displayName ?? `@${artist.handle}`}
+            </Link>
+          </li>
+        ))}
       </ul>
-    </nav>
+    </section>
   );
 }
 
@@ -208,9 +285,18 @@ function GenreRail({ q, genre }: Pick<Filters, 'q' | 'genre'>) {
  * Search, and on phones the genre too (the rail does it from `md`). The select stays in the form
  * when hidden, so a search keeps the genre the rail picked.
  */
-function SearchForm({ typed, genre }: { typed: string; genre: Genre | undefined }) {
+function SearchForm({
+  typed,
+  genre,
+  view,
+}: {
+  typed: string;
+  genre: Genre | undefined;
+  view: View;
+}) {
   return (
     <form action="/" role="search" className="mt-5 flex flex-wrap gap-2">
+      {view === 'following' && <input type="hidden" name="view" value="following" />}
       <label htmlFor="search-q" className="sr-only">
         Search tracks and people
       </label>
