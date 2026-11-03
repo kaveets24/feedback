@@ -434,9 +434,11 @@ Get the app onto a staging environment as early as possible, so every later phas
 
 ### Phase 7: Hardening and launch prep
 
-Order agreed 2026-11-03, one PR each: stuck-upload cleanup, rate limits, upload quotas (2 GB per person proposed), account deletion and data export, privacy and terms pages, the e2e suite, monitoring and backups, a launch checklist (feedback.community is already the one deployed environment), then a performance pass.
+Order agreed 2026-11-03, one PR each: stuck-upload cleanup, rate limits, upload quotas (10 GB per account, decided 2026-11-03), lossless streaming, account deletion and data export, privacy and terms pages, the e2e suite, monitoring and backups, a launch checklist (feedback.community is already the one deployed environment), then a performance pass.
 
 - [ ] Rate limiting, abuse controls, upload quotas, and cleanup of uploads that were started but never completed (versions left `uploading`, and their partial originals), and of versions left `processing` because their job was lost (e.g. Redis lost it, or it stalled past BullMQ's limit) _(cleanup done, 2026-11-03: a worker sweep every 15 minutes, see section 7)_
+- [ ] Upload quotas: **10 GB per account** (decided 2026-11-03), counting originals and lossless streams (AAC streams, covers, and pictures don't count), checked when an upload starts so nobody uploads a file only to have it refused. The per-file limit rises from 200 MB to **500 MB (proposed, to confirm)** so lossless masters fit: 20 minutes of 24-bit/48 kHz stereo WAV is about 345 MB
+- [ ] Lossless streaming (planned 2026-11-03): for a lossless original (WAV or FLAC), the worker also writes a FLAC stream at the original's sample rate and bit depth (`track_versions` gains its key and size); lossy originals (MP3, AAC, M4A, Ogg) get none, since there's nothing to gain. The stream route takes a quality (standard or lossless) behind the same `canAccess(..., 'listen')` and short-lived signed URLs, and the player gets a Standard / Lossless switch, remembered in the browser like the volume and Standard by default to spare mobile data. Downloads stay owner-only (rule 4)
 - [ ] Observability beyond the Phase 1 baseline (dashboards, metrics, alert tuning), backups
 - [ ] Privacy policy/ToS pages, account deletion and data export
 - [ ] Performance pass, e2e suite for critical flows (Playwright, run with `pnpm test:e2e`; moved from Phase 0)
@@ -447,14 +449,15 @@ Order agreed 2026-11-03, one PR each: stuck-upload cleanup, rate limits, upload 
 
 Planned 2026-11-03: groups of artists you can follow as one. The design below is the starting point for this phase's task breakdown; schema and permission changes are shown before any UI, as always.
 
-- [ ] Crews, members, and crew follows. Tables: `crews` (id, slug, unique, for a page at `/crews/<slug>`; name; description; cities, from `CITIES`; a picture, processed like avatars; status `pending | approved | rejected`; created_by; approved_at and approved_by; deleted_at), `crew_members` (crew_id, user_id, role `owner | manager | member`, status `invited | active`, invited_by; unique per crew and user), and `crew_follows` (follower_id, crew_id; unique). The first crew is **Meer Music** (Chicago and Amsterdam)
+- [ ] Crews, members, and crew follows. Tables: `crews` (id, slug, unique, for a page at `/crews/<slug>`; name; description; cities, from `CITIES`; a picture, processed like avatars; status `pending | approved | rejected`; created_by; approved_at and approved_by; deleted_at), `crew_members` (crew_id, user_id, role `owner | manager | member`, status `invited | active`, invited_by; unique per crew and user), and `crew_follows` (follower_id, crew_id; unique). The first crew is **Meer Music** (slug `meer`, so `/crews/meer`; Chicago and Amsterdam), led by the owner, djkrucial
 - [ ] Who may start a crew: a per-account permission an admin grants by hand (`pnpm admin:allow-crews <email>`, recorded in our `users` table like the approval gate, not in the auth provider). Only those accounts see the intake form
 - [ ] Crew intake form (`/crews/new`): name, handle, cities, description. It creates a `pending` crew that an admin approves or rejects by hand (`pnpm admin:approve-crew <slug>` / `admin:reject-crew`), like accounts. Nobody else sees a crew until it's approved
 - [ ] Managing members (`/crews/<slug>/manage`): the owner and managers invite people by handle and remove them; only the owner edits the crew, transfers it, or deletes it. Joining takes the invitee's acceptance (nobody is added to a crew without agreeing), and members can leave any time. Inviting, joining, and following notify no one, like follows
 - [ ] Permissions in `packages/authz` (a crew counterpart to `canAccess`, no I/O), with a hand-written table of every role (owner, manager, member, invited, stranger, anonymous) x action (view a pending crew, invite, remove, edit, delete, leave)
 - [ ] A crew grants no access to anything: what it gathers is its active members' **public** tracks only (by effective visibility, checked with `canAccess` as nobody in particular), so private and link-only work never shows. A crew-only visibility level would be its own decision (parking lot)
 - [ ] Following a crew: a crew page (`/crews/<slug>`: name, cities, description, members, their public tracks, Follow; no follower counts), and home's Following view (and `GET /v1/discover?view=following`) includes the active members (with public pages) of approved crews you follow
-- **Done when:** a permitted user submits Meer Music, an admin approves it, members accept their invitations, and someone who follows the crew sees its members' public tracks on home.
+- [ ] Crew projects (planned 2026-11-03): a crew can have projects, and its owner and managers add **public** tracks by active members to them. Unlike a personal project, a crew project doesn't own its tracks: it lists them (`crew_projects`, and `crew_project_tracks` with a position and who added each), so a track stays in its own project, keeps its own visibility, and stays its artist's; it never widens who can hear it (rule 7). A track that turns private (or whose artist leaves the crew) drops out for listeners at once, computed when read like the feed. Its artist is notified when it's added (a new notification type) and can take it out. A crew project is a draft (the crew's owner and managers only) or public
+- **Done when:** djkrucial submits Meer Music, an admin approves it, members accept their invitations, someone who follows the crew sees its members' public tracks on home, and a crew project lists tracks from more than one member.
 
 ### Phase 9: Mobile (Expo)
 
@@ -497,6 +500,6 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 
 ## 13. Open questions (resolve before or during the relevant phase)
 
-- Max upload size and per-user storage quota
+- Max upload size: 500 MB per file is proposed for lossless masters (Phase 7); the per-account quota is decided, 10 GB
 - Email provider for notification digests (Resend or Postmark)
 - Moderation approach for public content
