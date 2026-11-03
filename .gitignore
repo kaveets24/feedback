@@ -9,6 +9,9 @@ playwright-report/
 test-results/
 *.tsbuildinfo
 next-env.d.ts
+# Agent instructions `next dev` writes on every start; the repo's own CLAUDE.md is at the root.
+apps/web/AGENTS.md
+apps/web/CLAUDE.md
 
 .env
 .env.*
