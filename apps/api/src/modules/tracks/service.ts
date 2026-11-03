@@ -53,7 +53,12 @@ export function toTrackSummaries(
   return rows.flatMap(({ track, latestVersion }) => {
     const project = (track.projectId && projects.get(track.projectId)) || null;
     if (!canAccessTrack(actor, track, project, 'view')) return [];
-    return [{ ...trackFields(actor, track, project), latestVersion }];
+    return [
+      {
+        ...trackFields(actor, track, project),
+        latestVersion: { ...latestVersion, createdAt: latestVersion.createdAt.toISOString() },
+      },
+    ];
   });
 }
 

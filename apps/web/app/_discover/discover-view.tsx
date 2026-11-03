@@ -9,7 +9,7 @@ import {
   type Genre,
   type MeResponse,
 } from '@feedback/shared';
-import { formatDuration } from '../../lib/format';
+import { formatDuration, formatShortDate } from '../../lib/format';
 import { Avatar } from '../_shell/avatar';
 import { DownIcon } from '../_shell/icons';
 import { ResultRow } from './result-row';
@@ -300,17 +300,6 @@ function ResultColumns({ item }: { item: DiscoverItem }) {
       </time>
     </>
   );
-}
-
-/** "Nov 3" this year, "Nov 3, 2025" before it: the date column stays narrow. */
-function formatShortDate(iso: string) {
-  const date = new Date(iso);
-  const thisYear = date.getFullYear() === new Date().getFullYear();
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    ...(thisYear ? {} : { year: 'numeric' }),
-  });
 }
 
 /** People matching a search: their picture, name, and handle, each a link to their page. */

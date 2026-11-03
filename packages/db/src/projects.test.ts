@@ -578,7 +578,13 @@ describe('withCurrentVersions', () => {
     expect(rows).toEqual([
       {
         track: expect.objectContaining({ id: played.id }),
-        latestVersion: { id: v1.id, versionNumber: 1, status: 'ready', durationMs: 3000 },
+        latestVersion: {
+          id: v1.id,
+          versionNumber: 1,
+          status: 'ready',
+          durationMs: 3000,
+          createdAt: v1.createdAt,
+        },
       },
     ]);
   });

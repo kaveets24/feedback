@@ -1,6 +1,6 @@
 ---
 name: Feedback
-description: A Winamp-era hardware player for unfinished music, extended to flat graphite working screens. Styled so far are the player, the app header, home (discovery), your tracks, the project pages (with cover art), the track page, and the profile page.
+description: A Winamp-era hardware player for unfinished music, extended to flat graphite working screens. Styled so far are the player, the app header, home (discovery), your tracks, the project pages (with cover art), the track page, the profile page, and public profiles (/@handle).
 colors:
   canvas: '#0b0e0c'
   ink: '#e4eae5'
@@ -198,6 +198,18 @@ components:
   result-row-in-player:
     backgroundColor: '{colors.chrome-lo}'
     textColor: '{colors.accent}'
+  profile-picture-page:
+    backgroundColor: '{colors.chrome-lo}'
+    textColor: '{colors.field-edge}'
+    rounded: '{rounded.sm}'
+    size: '80px'
+  profile-tab:
+    textColor: '{colors.muted}'
+    typography: '{typography.label}'
+    rounded: '{rounded.sm}'
+    height: '44px'
+  profile-tab-current:
+    textColor: '{colors.ink}'
   genre-rail:
     width: '11rem'
   genre-rail-item:
@@ -240,7 +252,7 @@ components:
 
 Feedback borrows the late-90s desktop music player: a graphite hardware housing, a recessed LCD window with lime phosphor ink, and chunky bevel buttons that sink when pressed. The waveform sits inside the LCD as segmented bars. The part you've already heard is lit, the rest shows as dim lime, and the empty cells stay faintly visible behind both, like the unlit segments on a real LCD.
 
-**Scope so far: the player, the app header, home, your tracks, the project pages, the track page, and the profile page.** The player means the track page's waveform player and the global mini-player. The app header sits on every page. Home (`/`) is discovery, the same page for everyone (signed out, signed in, pending, and rejected): a rail of genres beside a list of public tracks that play in place, with a search that also finds people. The feed moved to `/feed` and is still plain HTML. Home, your tracks (`/tracks`, with the upload form), the projects list (`/projects`), the project page (`/projects/[projectId]`, with its cover art), the track page around its player (`/tracks/[trackId]`: the header block, the Project selector, the version history with its notes editor, and the new-version upload), and the profile page (`/settings/profile`) are the working screens: the player's world extended to forms and lists, with flat graphite controls, 1px rules between rows, and the LCD well kept for things that read out (the release type picker, the release type badge, and the upload progress bar). A project's cover art is the one image in the system, and it sits bare, without chrome or an LCD well. Every page uses the same 48rem column under the header, but the bodies of sign-in and sign-up are still deliberately plain semantic HTML. The direction for everything not built yet (glossy LimeWire toolbars, results tables, window panels, Aqua surfaces, light mode, skins) is in CLAUDE.md section 9, "Visual style: Y2K / Winamp / LimeWire". It is not recorded here because none of it exists in code. When one of those surfaces gets built, add it to this file from the shipped code.
+**Scope so far: the player, the app header, home, your tracks, the project pages, the track page, the profile page, and public profiles.** The player means the track page's waveform player and the global mini-player. The app header sits on every page. Home (`/`) is discovery, the same page for everyone (signed out, signed in, pending, and rejected): a rail of genres beside a list of public tracks that play in place, with a search that also finds people. The feed moved to `/feed` and is still plain HTML. Home, your tracks (`/tracks`, with the upload form), the projects list (`/projects`), the project page (`/projects/[projectId]`, with its cover art), the track page around its player (`/tracks/[trackId]`: the header block, the Project selector, the version history with its notes editor, and the new-version upload), the profile page (`/settings/profile`), and a public profile (`/@handle`, served from `/profiles/[handle]`: who someone is, Follow, and their public tracks and projects under two tabs) are the working screens: the player's world extended to forms and lists, with flat graphite controls, 1px rules between rows, and the LCD well kept for things that read out (the release type picker, the release type badge, and the upload progress bar). A project's cover art is the one image in the system, and it sits bare, without chrome or an LCD well. Every page uses the same 48rem column under the header, but the bodies of sign-in and sign-up are still deliberately plain semantic HTML. The direction for everything not built yet (glossy LimeWire toolbars, results tables, window panels, Aqua surfaces, light mode, skins) is in CLAUDE.md section 9, "Visual style: Y2K / Winamp / LimeWire". It is not recorded here because none of it exists in code. When one of those surfaces gets built, add it to this file from the shipped code.
 
 The system is quiet and practical: dark only, no decorative motion, and one bright signature per screen (the lit LCD of the player, the release type picker on a project, the upload bar on your tracks while a file goes up, or on home the row that's in the player). All tokens live in `app/globals.css` under `@theme`, and components use them, never one-off hex values.
 
@@ -312,7 +324,7 @@ A green-tinted near-black world: graphite chrome, a deeper green-black LCD, lime
 - **LCD Figure** (400, 1rem, tabular): track lengths in `ink` on your tracks' and project rows, in the length column and inline in the subtitle on phones (a muted "—" when there's none), the project page's two-digit track numbers in `muted`, the version number ("V3") in `ink` at the head of each version row, a version's length in `ink` (its own column from `sm`, inline in the meta line on phones), a home result's length in `ink` (the same way), and the upload percent in `lcd-ink`.
 - **LCD Figure Small** (400, 0.875rem, tabular): the project's total length, inline in the small "Tracks" count line.
 - **LCD Label** (400, 0.75rem): the time line in the mini-player, the version and state word on the track player, and the release type segment and badge words (uppercase on the last three).
-- **Headline** (600, 1.875rem): the page H1 ("Discover", "Your tracks", "Projects", the project title, the track title, "Edit project"), balanced when it wraps; the track title also breaks long words.
+- **Headline** (600, 1.875rem): the page H1 ("Discover", "Your tracks", "Projects", the project title, the track title, "Edit project", a public profile's name, or "@handle" when there's no name), balanced when it wraps; the track title and the profile name also break long words.
 - **Section Title** (600, 1.125rem): H2s ("Latest", "Older", "Tracks" and "People" on home, a chosen genre after a muted " · " at 400, "Upload a track", "Tracks", "Your projects", "Versions", "Upload a new version"); the rail's "Genres" is smaller, 0.875rem 600 `muted`; in a project's Edit mode the "Cover art" and "Delete project" H2s drop to 1rem.
 - **Title** (500, 0.875rem): the track title link in the mini-player. List titles use body size at 500.
 - **Body** (400, 1rem): page text, field text, and the confirmation sentence; descriptions and the upload privacy line run in `muted` at 65ch, and home's intro line in `muted` at 60ch (the pending and rejected notice: a 500 `ink` title over a small `muted` body with the email in `ink` at 500). A version's change notes run in `ink` with their line breaks kept, or a muted "No change notes." Small text (0.875rem) carries form labels (500; an "(optional)" note inside a label drops to 400 `muted`), counts, subtitles, the privacy line, status lines, the version meta line, and errors; the mini-player's error is 0.75rem.
@@ -342,6 +354,8 @@ The track page stacks a muted "Your tracks" back link (12px above the title), th
 
 The profile page is the H1, then 24px below it the Picture section (see Profile Picture), then 32px below that a form up to 36rem wide with fields 16px apart: Handle (optional), capped at 20rem from `sm`, with a muted line 8px under it that previews the page's address (a link to it once saved, "will be /@…" in `ink` while typing, or what a handle is for when empty); Name, with the name preview 8px under it; Bio (optional), a three-row textarea; City (optional), a select capped at 20rem from `sm` (full width on phones), its cities in native `optgroup`s by region (North America, Europe, Asia), alphabetical within each; then the primary Save with its status or error line 12px beside it, wrapping under it on narrow screens.
 
+A public profile (`/@handle`) is the same for everyone, the owner included. It opens with the Identity block: the 80px picture (see Profile Picture) and, 16px across (20px from `sm`), a column of the H1 name, a small `muted` "@handle · City" line 4px under it (shown only with a display name or a city; with no name the H1 is already the handle, so the line keeps just the city), and the bio 12px under that in `ink`, up to 60ch, with its line breaks kept and long words broken. The page's action sits at the right of the block from `sm`, top-aligned, and under it on phones, 16px down. The owner sees a small `muted` line 16px under the block, up to 60ch, saying everyone sees the page like this. The Profile Tabs follow 32px below, and the active list sits 12px under them: track rows are Result Rows, project rows are the projects list's rows (see Public Profile Lists).
+
 The projects list puts the new-project form (input and Create on one row, up to 28rem wide) under the intro, then rows on 1px rules, 12px tall padding, centred vertically: the 48px cover first, then (16px across) the title and description, and the fixed-width release type badge on the right, 16px from them. Descriptions clamp to two lines on phones and one from `sm`. The whole row is the link's hit area.
 
 The track page player is two rows: the transport button and LCD readout side by side with a 12px gap, then a full-width waveform 12px below, all inside 12px of panel padding. The waveform is 96px tall, 128px from the `sm` breakpoint (640px).
@@ -361,12 +375,12 @@ Depth belongs to the hardware. The page canvas and working screens are flat; sep
 - **Bevel** (`box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 1px 2px rgb(0 0 0 / 0.6)`): transport buttons at rest.
 - **Bevel pressed** (`box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.65)`): transport buttons while pressed, with the gradient flipped.
 - **Focus glow** (`box-shadow: 0 0 10px color-mix(in oklab, #a8f03f 55%, transparent)`): paired with the focus outline on links, buttons, nav items, the wordmark, the file picker, whole list rows, and the player's controls; also the primary button's hover.
-- **Nav underline** (`box-shadow: inset 0 -2px 0 #a8f03f`): the current nav item's 2px accent underline. A line, not depth.
+- **Nav underline** (`box-shadow: inset 0 -2px 0 #a8f03f`): the current nav item's 2px accent underline, and the current profile tab's. A line, not depth.
 - **Lit bar** (`box-shadow: inset 2px 0 0 #a8f03f`): the 2px accent bar on the left of a lit row (the version or home result in the player, the current genre in the rail, a thread picked from its marker), always over a `chrome-lo` fill. A line, not depth.
 
 ### Named Rules
 
-**The Housed Hardware Rule.** Shadows describe hardware: raised housing, recessed LCD windows, buttons that sink. Beyond those, only the focus glow, the nav underline, and the lit bar use a shadow. Working-screen controls, rows, and sections get none.
+**The Housed Hardware Rule.** Shadows describe hardware: raised housing, recessed LCD windows, buttons that sink. Beyond those, only the focus glow, the nav underline (on nav items and profile tabs), and the lit bar use a shadow. Working-screen controls, rows, and sections get none.
 
 **The One Light Rule.** "What's on" is lit the same way everywhere: a `chrome-lo` fill bleeding 12px into the gutter, the 2px accent lit bar on its left edge, and `aria-current`. The version in the player, the home result in the player (its title in `accent`), the current genre in the rail (its word in `ink` at 500), and a thread picked from the waveform all use it. Don't invent a second highlight for current or playing.
 
@@ -423,13 +437,21 @@ Under the profile's Name field, a small `muted` line shows how the name signs a 
 
 ### Profile Picture
 
-Above the profile form, and saved on its own (it doesn't wait for Save): a small 500 "Picture" label with a muted "(optional)", then 8px below, an 80px square picture with 0.25rem corners and a 1px `rule` edge, the same treatment as a project cover. With no picture it's a `chrome-lo` square holding a 32px `field-edge` person icon (a square head over square shoulders, in the icons' filled, square-cornered hand). Beside it, 16px away: a default "Upload a picture" button (or "Change picture" once there is one, then a ghost "Remove", 8px apart, wrapping on phones), and under them a muted line on accepted types and that the image is cropped square with photo details like location removed. Upload progress (capped at 20rem), the muted "Processing your picture…" status, or a `danger` error line sit 12px under the row. Removing has no confirm: it's undone by uploading again.
+Above the profile form, and saved on its own (it doesn't wait for Save): a small 500 "Picture" label with a muted "(optional)", then 8px below, an 80px square picture with 0.25rem corners and a 1px `rule` edge, the same treatment as a project cover. With no picture it's a `chrome-lo` square holding a 32px `field-edge` person icon (a square head over square shoulders, in the icons' filled, square-cornered hand). Beside it, 16px away: a default "Upload a picture" button (or "Change picture" once there is one, then a ghost "Remove", 8px apart, wrapping on phones), and under them a muted line on accepted types and that the image is cropped square with photo details like location removed. Upload progress (capped at 20rem), the muted "Processing your picture…" status, or a `danger` error line sit 12px under the row. Removing has no confirm: it's undone by uploading again. The same 80px picture (or placeholder) leads a public profile's Identity block, with an empty alt since the name sits beside it.
 
 **Save status.** "Saved." (muted, a status) or a failed save (`danger`, an alert) sits beside Save and disappears as soon as the form changes again, so it never describes an edit that wasn't saved.
 
 ### Navigation
 
 The app header: a flat `canvas` bar with a `rule` line under it, 56px tall. The wordmark leads in Silkscreen `lcd-ink` and links home (discovery, for everyone; it takes `aria-current="page"` there, with no underline). Nav items (Feed, Tracks, Projects, approved accounts only) are small 500 sans, `muted` at rest, `accent` on hover; the current one is `ink` with the 2px accent underline and `aria-current="page"`. Notifications (an 18px square-shouldered bell), Profile (approved accounts only; your picture, or the person icon until you have one) and Sign out (or Sign in when signed out) sit muted at the right, 16px apart. The bell is labelled "Notifications" (with a matching hover title), turns `accent` on hover, and carries the unread count after it in LCD Figure `accent` ("99+" past 99, and "9+" past 9 on phones), which its label says to screen readers. Profile is labelled "Profile" (with a matching hover title): your picture at 24px, square with 0.25rem corners and a 1px `rule` edge like every picture (its edge turns `accent` on hover), or the 18px person icon, which turns `accent` on hover like the bell. On phones the bell and Profile drop their 4px side padding, the gaps tighten to 12px, the nav drops to its own row with its items' sides at 8px, and an approved account's Sign out moves to the foot of the profile page (a default button on a `rule` line, phones only). Signed-in accounts that aren't approved (pending or rejected) get no nav: just the wordmark and Sign out, which is the only Sign out on those screens. Every item takes the accent outline and glow on focus.
+
+### Profile Tabs
+
+A public profile's Tracks and Projects, as a `nav` (labelled "Their work") of two links in the header nav's grammar, on a 1px `rule` line, 44px tall, 24px apart. Each is small 500 sans, `muted` at rest and `accent` on hover; the current one is `ink` with the 2px accent underline and `aria-current="page"`. After each label, 8px across, a `muted` count at 400 with tabular figures: how many public tracks or projects there are (a content count, never a popularity number). They're plain links (`/@handle` and `/@handle?tab=projects`, keeping the scroll position), so they work without JavaScript and survive a reload. Focus is the accent outline and glow, with 0.25rem corners.
+
+### Follow Button
+
+The public profile's action, at the right of the Identity block from `sm`. For an approved account on someone else's page: a primary "Follow", or once following a default "Unfollow" with a small `muted` line 8px under it ("You follow them. Their new public tracks and versions show up in your feed."), balanced, right-aligned from `sm`, the whole column capped at 16rem from `sm`. While pending the button is disabled and reads "Following…" or "Unfollowing…", and the line hides. A failure is a small `danger` alert line in the same place. Signed out it's a default "Sign in to follow" button that opens Clerk's sign-in as a modal, so the page stays put. Accounts waiting for approval get no button. On your own page it's a default "Edit profile" link drawn as a button, going to `/settings/profile`.
 
 ### Search Form
 
@@ -441,11 +463,15 @@ From `md`, home's left column: a `nav` of All genres and every genre as compact 
 
 ### Result Row
 
-One public track on home, playable in place (see Layout for the grid): the 44px transport button loads its version into the mini-player without leaving the list, and pausing or resuming once it's there; while fetching it shows the loading state. The title (500, `ink`, `accent` on hover, no underline, focus hugging the words) links to the track page; under it the meta line in small `muted`: the artist in `ink` (a link to their page when they have a handle, `accent` on hover), then " · genre · v3". The LCD length and the short date ("Nov 3", with the year before this one) follow. While its version is in the player, playing or paused, the row is lit (see the One Light Rule) with its title in `accent` and `aria-current`. A play that fails puts a small `danger` alert line ("Couldn't play v3. Try again.") under the title, spanning the columns. Rows sit on 1px `rule` lines with no hover fill, since the row holds its own button.
+One public track on home, playable in place (see Layout for the grid): the 44px transport button loads its version into the mini-player without leaving the list, and pausing or resuming once it's there; while fetching it shows the loading state. The title (500, `ink`, `accent` on hover, no underline, focus hugging the words) links to the track page; under it the meta line in small `muted`: the artist in `ink` (a link to their page when they have a handle, `accent` on hover), then " · genre · v3". The LCD length and the short date ("Nov 3", with the year before this one) follow. While its version is in the player, playing or paused, the row is lit (see the One Light Rule) with its title in `accent` and `aria-current`. On a public profile the same row carries the person's tracks: the meta line drops the artist (the page is theirs) and reads "Project · Genre · v3", leaving out a project or genre the track doesn't have; the date column is the shown version's upload date (track summaries carry it). A play that fails puts a small `danger` alert line ("Couldn't play v3. Try again.") under the title, spanning the columns. Rows sit on 1px `rule` lines with no hover fill, since the row holds its own button.
 
 ### People List
 
 On a home search, above the tracks: rows on 1px `rule` lines with a 60% `chrome-lo` hover fill, each a 24px picture (the header's size, same square treatment), the name (500, `ink`, `accent` on hover) as the row's link stretched over the whole row with focus around it, and the muted @handle after it (left out when the name already is the handle).
+
+### Public Profile Lists
+
+The public profile's active tab. Tracks: their public tracks with a ready version, newest first, as Result Rows (see Result Row). Projects: their public projects, newest first, as the projects list's rows (see List Rows): the 48px cover, the title as the row's link over its `muted` description, and the Release Type Badge 16px to the right. An empty tab is a single row on the rule, 24px tall padding, in `muted` ("No public tracks yet.", "No public projects yet.").
 
 ### Notice
 

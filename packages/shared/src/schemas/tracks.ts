@@ -124,12 +124,15 @@ export const trackSummarySchema = z.object({
    * For the owner, the newest version in any status, so a list can show one still processing or
    * failed. For anyone else, the current version: listeners only ever see ready versions.
    */
-  latestVersion: versionResponseSchema.pick({
-    id: true,
-    versionNumber: true,
-    status: true,
-    durationMs: true,
-  }),
+  latestVersion: versionResponseSchema
+    .pick({ id: true, versionNumber: true, status: true, durationMs: true })
+    .extend({
+      /**
+       * When that version was uploaded. Defaults to null so a web build ahead of the API (a
+       * preview deploy) still reads older responses.
+       */
+      createdAt: z.iso.datetime().nullable().default(null),
+    }),
 });
 export type TrackSummary = z.infer<typeof trackSummarySchema>;
 
