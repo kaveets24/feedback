@@ -109,6 +109,9 @@ const trackVisibilityFields = {
  */
 const trackGenreField = { genre: genreSchema.nullable().default(null) };
 
+/** A track's name, as given at upload or when renaming it. */
+export const trackTitleSchema = z.string().trim().min(1).max(200);
+
 /** A track in a list: enough to show it and its newest version's state. */
 export const trackSummarySchema = z.object({
   id: z.uuid(),
@@ -182,6 +185,8 @@ export type TrackResponse = z.infer<typeof trackResponseSchema>;
 /**
  * `PATCH /v1/tracks/:trackId` (owner only); a field left out stays as it is.
  *
+ * `title`: the track's name.
+ *
  * `visibility`: who can hear the track. For a loose track, its own visibility. For a track in a
  * project, an override of the project's, which may be wider (the owner's explicit choice, rule 7);
  * null goes back to following the project, and is a 409 for a loose track.
@@ -190,10 +195,13 @@ export type TrackResponse = z.infer<typeof trackResponseSchema>;
  */
 export const updateTrackRequestSchema = z
   .object({
+    title: trackTitleSchema.optional(),
     visibility: visibilitySchema.nullable().optional(),
     genre: genreSchema.nullable().optional(),
   })
-  .refine((input) => input.visibility !== undefined || input.genre !== undefined, {
-    message: 'Nothing to change',
-  });
+  .refine(
+    (input) =>
+      input.title !== undefined || input.visibility !== undefined || input.genre !== undefined,
+    { message: 'Nothing to change' },
+  );
 export type UpdateTrackRequest = z.infer<typeof updateTrackRequestSchema>;

@@ -246,6 +246,11 @@ export function createAudioStore({ createAudio, fetchStream, now, memory }: Audi
     await loadSource(item, playing);
   }
 
+  /** Shows a track's new name if it's the one loaded, without touching playback. */
+  function retitle(trackId: string, title: string) {
+    if (state.item?.trackId === trackId) set({ item: { ...state.item, title } });
+  }
+
   /** Fetches a version's stream URL ahead of time, so playing or switching to it starts sooner. */
   async function prefetch(item: PlayerItem) {
     await streamUrl(item, false);
@@ -295,6 +300,7 @@ export function createAudioStore({ createAudio, fetchStream, now, memory }: Audi
     },
     play,
     switchTo,
+    retitle,
     prefetch,
     resume,
     pause,

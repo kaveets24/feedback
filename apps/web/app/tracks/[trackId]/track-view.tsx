@@ -15,6 +15,7 @@ import { DeleteTrack } from './delete-track';
 import { GenreSelect } from './genre-select';
 import { ProcessingStatus } from './processing-status';
 import { ProjectSelect } from './project-select';
+import { TrackTitle } from './track-title';
 import { VersionItem } from './version-item';
 import { VersionRow } from './version-notes';
 
@@ -54,7 +55,7 @@ export function TrackView({
           Your tracks
         </Link>
       </p>
-      <h1 className="text-3xl font-semibold break-words text-balance">{track.title}</h1>
+      <TrackTitle trackId={track.id} title={track.title} />
       <div className="mt-4 flex max-w-md flex-col gap-2">
         <ProjectSelect trackId={track.id} projectId={track.projectId} projects={projects} />
         <GenreSelect trackId={track.id} genre={track.genre} />

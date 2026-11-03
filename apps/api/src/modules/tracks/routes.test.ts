@@ -165,7 +165,7 @@ describe('track routes', () => {
     });
   });
 
-  describe('PATCH /v1/tracks/:trackId genre', () => {
+  describe('PATCH /v1/tracks/:trackId', () => {
     const patch = (url: string, payload: object, providerId?: string) =>
       app.inject({
         method: 'PATCH',
@@ -173,6 +173,56 @@ describe('track routes', () => {
         headers: providerId ? { authorization: `Bearer ${tokenFor(providerId)}` } : {},
         payload,
       });
+
+    it('lets the owner rename a track, which every viewer sees', async () => {
+      const me = await approvedUser('u1');
+      const { track, version } = await newTrack(me.id, 'Idea');
+      await markVersionProcessing(db, version.id);
+      await markVersionReady(db, version.id, {
+        streamKey: `streams/${version.id}`,
+        durationMs: 3000,
+        peaks: [0, 0.5, 1],
+      });
+      const url = `/v1/tracks/${track.id}`;
+      await patch(url, { visibility: 'public', genre: 'grime' }, 'u1');
+
+      const res = await patch(url, { title: '  Night drive  ' }, 'u1');
+      expect(res.statusCode).toBe(200);
+      // Nothing else changes with it.
+      expect(res.json<TrackResponse>()).toMatchObject({
+        title: 'Night drive',
+        genre: 'grime',
+        visibility: 'public',
+      });
+      expect((await get(url)).json<TrackResponse>().title).toBe('Night drive');
+      const [listed] = (await get('/v1/tracks', 'u1')).json<TrackListResponse>().tracks;
+      expect(listed?.title).toBe('Night drive');
+    });
+
+    it('is a 404 for anyone but the owner, and rejects blank and overlong titles', async () => {
+      const me = await approvedUser('u1');
+      await approvedUser('u2');
+      const { track } = await newTrack(me.id, 'Idea');
+      const url = `/v1/tracks/${track.id}`;
+      await patch(url, { visibility: 'public' }, 'u1');
+
+      expect((await patch(url, { title: 'Mine now' }, 'u2')).statusCode).toBe(404);
+      expect((await patch(url, { title: 'Mine now' })).statusCode).toBe(404);
+      expect((await patch(url, { title: '   ' }, 'u1')).statusCode).toBe(400);
+      expect((await patch(url, { title: 'x'.repeat(201) }, 'u1')).statusCode).toBe(400);
+      expect((await get(url, 'u1')).json<TrackResponse>().title).toBe('Idea');
+    });
+
+    it('saves no new title when a visibility change alongside it is refused', async () => {
+      const me = await approvedUser('u1');
+      const { track } = await newTrack(me.id, 'Idea');
+      const url = `/v1/tracks/${track.id}`;
+
+      // A loose track has no project visibility to follow.
+      const refused = await patch(url, { visibility: null, title: 'Night drive' }, 'u1');
+      expect(refused.statusCode).toBe(409);
+      expect((await get(url, 'u1')).json<TrackResponse>().title).toBe('Idea');
+    });
 
     it('lets the owner set and clear the genre, which every viewer sees', async () => {
       const me = await approvedUser('u1');

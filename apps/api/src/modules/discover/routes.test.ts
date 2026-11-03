@@ -9,10 +9,10 @@ import {
   moveTrackToProject,
   profiles,
   setAccessStatus,
-  setTrackGenre,
   setTrackVisibility,
   tracks,
   updateProject,
+  updateTrackDetails,
   upsertUserFromAuth,
   type Db,
 } from '@feedback/db';
@@ -64,7 +64,7 @@ describe('GET /v1/discover', () => {
     const { track, version } = await createTrackWithFirstVersion(db, { ownerId, title, original });
     await ready(version.id);
     if (visibility !== 'private') await setTrackVisibility(db, track.id, visibility);
-    if (genre) await setTrackGenre(db, track.id, genre);
+    if (genre) await updateTrackDetails(db, track.id, { genre });
     return track;
   }
 

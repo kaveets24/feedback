@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import {
   genreSchema,
+  trackTitleSchema,
   updateVersionRequestSchema,
   type TrackResponse,
   type VersionResponse,
@@ -34,6 +35,30 @@ export async function updateVersionNotesAction(
     return { ok: false, message: "Couldn't save the notes. Reload the page and try again." };
   }
   revalidatePath(`/tracks/${result.data.trackId}`);
+  return result;
+}
+
+/** Renames the track. */
+export async function renameTrackAction(
+  trackId: unknown,
+  title: unknown,
+): Promise<ActionResult<TrackResponse>> {
+  const parsedId = z.uuid().safeParse(trackId);
+  const parsed = trackTitleSchema.safeParse(title);
+  if (!parsedId.success) return { ok: false, message: 'Unknown track.' };
+  if (!parsed.success)
+    return { ok: false, message: 'Give the track a title, up to 200 characters.' };
+
+  const result = await toResult(() =>
+    serverApi().updateTrack(parsedId.data, { title: parsed.data }),
+  );
+  if (!result.ok) {
+    return { ok: false, message: "Couldn't rename the track. Reload the page and try again." };
+  }
+  revalidatePath('/tracks');
+  revalidatePath(`/tracks/${parsedId.data}`);
+  // It may be in a project, whose page lists it by name.
+  revalidatePath('/projects', 'layout');
   return result;
 }
 

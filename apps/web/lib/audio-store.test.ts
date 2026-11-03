@@ -447,6 +447,22 @@ describe('volume', () => {
     expect(store.getState().volume).toBe(0);
   });
 
+  it('shows a new name for the loaded track, and ignores any other', async () => {
+    const { store, audio, started } = setup();
+    await store.play(item(1));
+    started();
+
+    store.retitle('track-2', 'Not this one');
+    expect(store.getState().item?.title).toBe('Song 1');
+
+    store.retitle('track-1', 'Night drive');
+    expect(store.getState()).toMatchObject({
+      item: { versionId: 'version-1', title: 'Night drive' },
+      status: 'playing',
+    });
+    expect(audio.play).toHaveBeenCalledOnce();
+  });
+
   it('unmutes back to the level it had, or to half from zero', () => {
     const { store } = setup();
     store.setVolume(0.3);

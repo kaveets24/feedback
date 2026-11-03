@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { changeNotesSchema } from './tracks.ts';
+import { changeNotesSchema, trackTitleSchema } from './tracks.ts';
 
 /** Largest original we accept (CLAUDE.md section 7). Signed into the upload URL. */
 export const MAX_UPLOAD_BYTES = 200 * 1024 * 1024;
@@ -58,7 +58,7 @@ export function audioContentTypeFor(file: { name: string; type: string }): Audio
 }
 
 export const createUploadRequestSchema = z.object({
-  title: z.string().trim().min(1).max(200),
+  title: trackTitleSchema,
   /** The file's name on the artist's device, kept for their reference. */
   filename: z.string().trim().min(1).max(255),
   contentType: z.enum(AUDIO_CONTENT_TYPES),
