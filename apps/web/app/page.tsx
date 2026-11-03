@@ -28,6 +28,11 @@ export default async function HomePage({
             Create an account
           </Link>
         </div>
+        <p className="mt-6 text-sm">
+          <Link href="/discover" className="link">
+            Browse public music
+          </Link>
+        </p>
       </main>
     );
   }

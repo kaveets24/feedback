@@ -1,0 +1,1 @@
+CREATE INDEX "tracks_current_version_id_idx" ON "tracks" USING btree ("current_version_id");

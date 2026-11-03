@@ -113,6 +113,13 @@
       "when": 1793724661747,
       "tag": "0015_track_genre",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793726046683,
+      "tag": "0016_tracks_current_version_index",
+      "breakpoints": true
     }
   ]
 }

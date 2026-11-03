@@ -5,6 +5,7 @@ import {
   type CreateAvatarRequest,
 } from './schemas/avatars.ts';
 import { errorResponseSchema } from './schemas/common.ts';
+import { discoverResponseSchema, type DiscoverQuery } from './schemas/discover.ts';
 import {
   feedbackListResponseSchema,
   feedbackThreadSchema,
@@ -163,6 +164,14 @@ export function createApiClient({
     /** Who the signed-in user follows, most recent first. */
     listFollowing: (query: FollowListQuery = {}) =>
       request(`/v1/me/following${pageQuery(query)}`, followingResponseSchema),
+    /** Public tracks, the most recently updated first; `genre` keeps only one genre. */
+    discover: ({ genre, cursor, limit }: DiscoverQuery = {}) => {
+      const query = new URLSearchParams();
+      if (genre) query.set('genre', genre);
+      if (cursor) query.set('cursor', cursor);
+      if (limit !== undefined) query.set('limit', String(limit));
+      return request(`/v1/discover${query.size ? `?${query}` : ''}`, discoverResponseSchema);
+    },
     /** New public work by the people the signed-in user follows, newest first. */
     getFeed: (query: FollowListQuery = {}) =>
       request(`/v1/feed${pageQuery(query)}`, feedResponseSchema),
