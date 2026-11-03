@@ -24,6 +24,10 @@ running a separate staging and production costs too much for now. The tooling ca
   `/__clerk` proxy isn't used any more, and the middleware no longer matches it.
 - `WEB_ORIGIN` (the API's `authorizedParties` check), the B2 bucket's CORS rule, and the deploy
   smoke tests use the new origin.
+- **Storage moved to a bucket named for what it is**, `feedback-audio-production`, with its own
+  application key and CORS rule (decided 2026-11-02). Unlike the other names, a bucket is cheap
+  to replace: the database stores object keys, not the bucket, so copying the objects across is
+  the whole move.
 - Names stay as they are: renaming the Fly app, Neon branch, GitHub Environment and docs from
   "staging" to "production" is churn with no effect.
 - It stays out of search engines (`ALLOW_INDEXING` unset) until there are public pages worth

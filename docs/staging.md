@@ -5,17 +5,17 @@ It's the one deployed environment, the live app at https://feedback.community, a
 tooling calls it staging ([ADR 0009](decisions/0009-feedback-community-domain.md)). It's invite-only
 (the approval gate) and kept out of search engines.
 
-| Piece        | Where                                                                                                          |
-| ------------ | -------------------------------------------------------------------------------------------------------------- |
-| Web          | Vercel project `feedback`, https://feedback.community (the old `feedback-six-kappa.vercel.app` redirects)      |
-| API + worker | Fly app `feedback-staging` (`api` and `worker` process groups), `iad`                                          |
-| Postgres     | Neon project `feedback` (`bold-feather-90292757`), branch `production`                                         |
-| Auth         | Clerk application "Feedback Staging" (separate from dev and production)                                        |
-| Storage      | Backblaze B2 bucket `feedback-audio-staging` (private), [ADR 0008](decisions/0008-object-storage-and-queue.md) |
-| Queue        | Fly app `feedback-staging-redis` (Redis for BullMQ, private network only), `iad`                               |
-| Images       | `ghcr.io/kaveets24/feedback-server:<sha>`, copied to `registry.fly.io`                                         |
-| Monitoring   | Sentry projects `feedback-server` (api + worker) and `feedback-web`                                            |
-| Deploy creds | GitHub Environment `staging` (only deploy tokens; app secrets stay in the hosts)                               |
+| Piece        | Where                                                                                                                                                                     |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web          | Vercel project `feedback`, https://feedback.community (the old `feedback-six-kappa.vercel.app` redirects)                                                                 |
+| API + worker | Fly app `feedback-staging` (`api` and `worker` process groups), `iad`                                                                                                     |
+| Postgres     | Neon project `feedback` (`bold-feather-90292757`), branch `production`                                                                                                    |
+| Auth         | Clerk application "Feedback Staging" (separate from dev and production)                                                                                                   |
+| Storage      | Backblaze B2 bucket `feedback-audio-production` (private), [ADR 0008](decisions/0008-object-storage-and-queue.md) and [0009](decisions/0009-feedback-community-domain.md) |
+| Queue        | Fly app `feedback-staging-redis` (Redis for BullMQ, private network only), `iad`                                                                                          |
+| Images       | `ghcr.io/kaveets24/feedback-server:<sha>`, copied to `registry.fly.io`                                                                                                    |
+| Monitoring   | Sentry projects `feedback-server` (api + worker) and `feedback-web`                                                                                                       |
+| Deploy creds | GitHub Environment `staging` (only deploy tokens; app secrets stay in the hosts)                                                                                          |
 
 ## How a deploy works
 
@@ -93,7 +93,7 @@ Vercel env vars are set for the **Production** environment (staging) unless a ro
 | `NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `_SIGN_UP_URL`       | Vercel env var                         | `/sign-in`, `/sign-up`                                                                                                                                                                  |
 | `ENABLE_EXPERIMENTAL_COREPACK`                         | Vercel env var                         | `1`, so Vercel uses the pnpm in `packageManager` (ADR 0005)                                                                                                                             |
 | `SENTRY_DSN`                                           | Fly secret                             | `feedback-server` project's DSN, shared by api and worker (events carry a `service` tag)                                                                                                |
-| `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY`  | Fly secret                             | B2 application key `feedback-staging`: this bucket only, Read and Write. Never the master key                                                                                           |
+| `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY`  | Fly secret                             | B2 application key `feedback-production`: this bucket only, Read and Write. Never the master key                                                                                        |
 | `STORAGE_ENDPOINT`, `STORAGE_REGION`, `STORAGE_BUCKET` | `fly.staging.toml`                     | Not secret. The region is the middle part of the endpoint (`s3.<region>.backblazeb2.com`)                                                                                               |
 | `REDIS_PASSWORD`                                       | Fly secret on `feedback-staging-redis` | Random, 64 hex characters                                                                                                                                                               |
 | `REDIS_URL`                                            | Fly secret                             | `redis://default:<REDIS_PASSWORD>@feedback-staging-redis.internal:6379?family=6`. Fly's private network is IPv6, which ioredis only uses with `family=6`                                |
@@ -230,7 +230,7 @@ How staging was provisioned, for reference and for the production setup in Phase
    - Buckets → Create a Bucket: a globally unique name, files **Private**, Object Lock off. Then
      Lifecycle Settings → "Keep only the last version of the file". The bucket card shows the S3
      endpoint; it and the bucket name go in `fly.staging.toml`.
-   - Application Keys → Add a New Application Key: name `feedback-staging`, access to this bucket
+   - Application Keys → Add a New Application Key: name `feedback-production`, access to this bucket
      only, Read and Write, no prefix. Copy the key ID and key (shown once) into Fly without
      leaving them in shell history: `fly secrets import --stage -a feedback-staging`, then type
      `STORAGE_ACCESS_KEY_ID=...` and `STORAGE_SECRET_ACCESS_KEY=...` on separate lines and press
@@ -246,7 +246,7 @@ How staging was provisioned, for reference and for the production setup in Phase
 
      ```bash
      b2 account authorize
-     b2 bucket update --cors-rules '[{"corsRuleName":"web","allowedOrigins":["https://feedback.community"],"allowedOperations":["s3_get","s3_head","s3_put"],"allowedHeaders":["content-type","range"],"exposeHeaders":["content-length","content-range","etag"],"maxAgeSeconds":3600}]' feedback-audio-staging allPrivate
+     b2 bucket update --cors-rules '[{"corsRuleName":"feedback-web","allowedOrigins":["https://feedback.community"],"allowedOperations":["s3_get","s3_head","s3_put"],"allowedHeaders":["content-type","range"],"exposeHeaders":["content-length","content-range","etag"],"maxAgeSeconds":3600}]' feedback-audio-production allPrivate
      b2 account clear
      ```
 
@@ -255,7 +255,7 @@ How staging was provisioned, for reference and for the production setup in Phase
      any other origin):
 
      ```bash
-     curl -si -X OPTIONS "https://s3.us-east-005.backblazeb2.com/feedback-audio-staging/originals/test" \
+     curl -si -X OPTIONS "https://s3.us-east-005.backblazeb2.com/feedback-audio-production/originals/test" \
        -H "Origin: https://feedback.community" \
        -H "Access-Control-Request-Method: PUT" -H "Access-Control-Request-Headers: content-type"
      ```
@@ -263,8 +263,11 @@ How staging was provisioned, for reference and for the production setup in Phase
      Repeat it with `Access-Control-Request-Method: GET` and `Access-Control-Request-Headers: range`
      (the player's seeking), which should also be allowed.
 
-     **Production (Phase 7):** the production bucket needs the same CLI rule, with that bucket's
-     name and `allowedOrigins` set to the production web origin only.
+     The bucket started as `feedback-audio-staging` and moved to `feedback-audio-production` on
+     2026-11-02 (ADR 0009). Its objects were copied across with the master key
+     (`b2 sync b2://feedback-audio-staging b2://feedback-audio-production`), which works because
+     the database stores object keys, never the bucket. The old bucket and its
+     `feedback-staging` key are deleted once the new one is confirmed working.
 
 7. **Redis** (ADR 0008), its own Fly app so app deploys never restart it and ffmpeg can't take its
    memory. It's a plain machine billed for the VM and volume (about $2 a month), not Upstash

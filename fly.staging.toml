@@ -23,7 +23,7 @@ kill_timeout = "30s"
   # Backblaze B2 (ADR 0008). The keys are Fly secrets.
   STORAGE_ENDPOINT = "https://s3.us-east-005.backblazeb2.com"
   STORAGE_REGION = "us-east-005"
-  STORAGE_BUCKET = "feedback-audio-staging"
+  STORAGE_BUCKET = "feedback-audio-production"
 
 [processes]
   api = "node apps/api/src/server.ts"
