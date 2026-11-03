@@ -235,6 +235,9 @@ export function createApiClient({
     /** Sets who can hear a track; null makes a project's track follow the project again. */
     updateTrack: (trackId: string, changes: UpdateTrackRequest) =>
       send('PATCH', `/v1/tracks/${encodeURIComponent(trackId)}`, trackResponseSchema, changes),
+    /** Deletes the track, its versions and comments with it, and turns its share links off. */
+    deleteTrack: (trackId: string) =>
+      send('DELETE', `/v1/tracks/${encodeURIComponent(trackId)}`, z.undefined()),
     /** The signed-in user's projects, newest first. Pass `nextCursor` back as `cursor` for more. */
     listProjects: (query: ProjectListQuery = {}) =>
       request(`/v1/projects${pageQuery(query)}`, projectListResponseSchema),

@@ -11,6 +11,7 @@ import { formatDate, formatDuration, STATUS_LABELS } from '../../../lib/format';
 import { PlayerWithFeedback } from '../../_feedback/player-with-feedback';
 import { SharingSection } from '../../_sharing/sharing-section';
 import { UploadForm } from '../../upload-form';
+import { DeleteTrack } from './delete-track';
 import { ProcessingStatus } from './processing-status';
 import { ProjectSelect } from './project-select';
 import { VersionItem } from './version-item';
@@ -18,7 +19,7 @@ import { VersionRow } from './version-notes';
 
 /**
  * The track page's body: its place, the player and its comments, the version history, sharing,
- * and a new version's upload.
+ * a new version's upload, and deleting it.
  */
 export function TrackView({
   track,
@@ -112,6 +113,8 @@ export function TrackView({
       <section className="mt-12">
         <UploadForm trackId={track.id} />
       </section>
+
+      <DeleteTrack trackId={track.id} title={track.title} />
     </main>
   );
 }

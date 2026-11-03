@@ -1,5 +1,6 @@
 import { effectiveVisibility, type Action } from '@feedback/authz';
 import {
+  deleteTrack as softDeleteTrack,
   findProject,
   findProjectsByIds,
   findTrack,
@@ -153,4 +154,13 @@ export async function updateTrack(
   const { track } = result;
   const project = track.projectId ? await findProject(db, track.projectId) : null;
   return toTrackResponse(db, actor, track, project);
+}
+
+/**
+ * Deletes a track (owner only): soft-deletes it and revokes its share links. Anyone else gets the
+ * usual 404.
+ */
+export async function deleteTrack(db: Db, actor: Actor, trackId: string): Promise<void> {
+  await loadTrackAccess(db, actor, trackId, 'manage');
+  if (!(await softDeleteTrack(db, trackId))) throw httpError(404, 'NOT_FOUND', 'Not found');
 }

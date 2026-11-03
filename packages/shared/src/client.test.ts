@@ -228,6 +228,17 @@ describe('createApiClient', () => {
     expect(init.method).toBe('DELETE');
   });
 
+  it('deletes a track', async () => {
+    const trackId = '01890a5d-ac96-774b-bcce-b302099a8057';
+    const fetch = vi.fn(async () => new Response(null, { status: 204 }));
+    const api = createApiClient({ baseUrl: 'http://api.test', fetch });
+
+    await expect(api.deleteTrack(trackId)).resolves.toBeUndefined();
+    const [url, init] = fetch.mock.calls[0] as unknown as [URL, RequestInit];
+    expect(url.toString()).toBe(`http://api.test/v1/tracks/${trackId}`);
+    expect(init.method).toBe('DELETE');
+  });
+
   it('adds, reorders, and removes project tracks', async () => {
     const trackId = '01890a5d-ac96-774b-bcce-b302099a8057';
     const fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) =>

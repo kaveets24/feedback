@@ -5,6 +5,7 @@ import { createDb } from './client.ts';
 import {
   createProject,
   deleteProject,
+  deleteTrack,
   findProject,
   findProjectsByIds,
   listProjectsForOwner,
@@ -316,6 +317,57 @@ describe('deleteProject', () => {
     expect((await findLink(otherLink.id)).revokedAt).toBeNull();
     // The track lives on, loose, so a link made for it keeps working.
     expect((await findLink(trackLink.id)).revokedAt).toBeNull();
+  });
+});
+
+describe('deleteTrack', () => {
+  it("soft-deletes the track, which drops out of its project and the owner's list", async () => {
+    const owner = await newUser();
+    const project = await createProject(db, { ownerId: owner.id, title: 'EP' });
+    const [first, second, third] = [
+      await newTrack(owner.id, 'One'),
+      await newTrack(owner.id, 'Two'),
+      await newTrack(owner.id, 'Three'),
+    ];
+    for (const t of [first!, second!, third!]) await moveTrackToProject(db, t.id, project.id);
+
+    expect((await deleteTrack(db, second!.id))?.deletedAt).toBeInstanceOf(Date);
+    expect(await findTrack(db, second!.id)).toBeNull();
+    expect(ids(await listProjectTracks(db, project.id))).toEqual([first!.id, third!.id]);
+    // The gap it leaves doesn't stop the rest being reordered.
+    expect(await reorderProjectTracks(db, project.id, [third!.id, first!.id])).toMatchObject({
+      ok: true,
+    });
+    // Its versions stay in the table, like every soft delete.
+    expect(await listVersions(db, second!.id)).toHaveLength(1);
+  });
+
+  it('returns null for an unknown or already deleted track', async () => {
+    const owner = await newUser();
+    const track = await newTrack(owner.id);
+    expect(await deleteTrack(db, track.id)).not.toBeNull();
+    expect(await deleteTrack(db, track.id)).toBeNull();
+    expect(await deleteTrack(db, '01890a5d-ac96-774b-bcce-b302099a8057')).toBeNull();
+  });
+
+  it("revokes the track's links, and only those", async () => {
+    const owner = await newUser();
+    const project = await createProject(db, { ownerId: owner.id, title: 'EP' });
+    const track = await newTrack(owner.id);
+    const other = await newTrack(owner.id, 'Other');
+    await moveTrackToProject(db, track.id, project.id);
+    const trackLink = await newLink(owner.id, 'track', track.id);
+    const earlier = new Date('2026-10-01T00:00:00Z');
+    const alreadyRevoked = await newLink(owner.id, 'track', track.id, { revokedAt: earlier });
+    const otherLink = await newLink(owner.id, 'track', other.id);
+    const projectLink = await newLink(owner.id, 'project', project.id);
+
+    const deleted = await deleteTrack(db, track.id);
+    expect((await findLink(trackLink.id)).revokedAt).toEqual(deleted?.deletedAt);
+    expect((await findLink(alreadyRevoked.id)).revokedAt).toEqual(earlier);
+    expect((await findLink(otherLink.id)).revokedAt).toBeNull();
+    // The project lives on, so its link keeps working for its other tracks.
+    expect((await findLink(projectLink.id)).revokedAt).toBeNull();
   });
 });
 
