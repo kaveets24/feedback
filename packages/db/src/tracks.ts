@@ -112,15 +112,15 @@ export async function findTrack(db: Db, trackId: string): Promise<Track | null> 
   return track ?? null;
 }
 
-/** Files a track under a genre, or none; null if it doesn't exist or was deleted. */
-export async function setTrackGenre(
+/** Sets a track's title or genre (the ones given); null if it doesn't exist or was deleted. */
+export async function updateTrackDetails(
   db: Db,
   trackId: string,
-  value: Genre | null,
+  changes: { title?: string; genre?: Genre | null },
 ): Promise<Track | null> {
   const [track] = await db
     .update(tracks)
-    .set({ genre: value })
+    .set(changes)
     .where(and(eq(tracks.id, trackId), isNull(tracks.deletedAt)))
     .returning();
   return track ?? null;

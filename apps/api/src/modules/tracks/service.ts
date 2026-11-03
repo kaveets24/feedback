@@ -6,8 +6,8 @@ import {
   findTrack,
   listTracksForOwner,
   listVersions,
-  setTrackGenre,
   setTrackVisibility,
+  updateTrackDetails,
   type Db,
   type Project,
   type Track,
@@ -141,7 +141,8 @@ export async function getTrack(db: Db, actor: Actor, trackId: string): Promise<T
 }
 
 /**
- * Changes who can hear a track or its genre (owner only); see `updateTrackRequestSchema`.
+ * Changes a track's title, who can hear it, or its genre (owner only); see
+ * `updateTrackRequestSchema`.
  * Visibility goes first, since only it can be refused, so a refused change saves nothing.
  */
 export async function updateTrack(
@@ -164,8 +165,12 @@ export async function updateTrack(
     if (!result.ok) throw httpError(404, 'NOT_FOUND', 'Not found');
     track = result.track;
   }
-  if (input.genre !== undefined) {
-    const updated = await setTrackGenre(db, trackId, input.genre);
+  const { title, genre } = input;
+  if (title !== undefined || genre !== undefined) {
+    const updated = await updateTrackDetails(db, trackId, {
+      ...(title !== undefined && { title }),
+      ...(genre !== undefined && { genre }),
+    });
     if (!updated) throw httpError(404, 'NOT_FOUND', 'Not found');
     track = updated;
   }
