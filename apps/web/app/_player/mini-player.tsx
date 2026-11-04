@@ -49,8 +49,9 @@ export function MiniPlayer() {
             </p>
           )}
         </div>
+        {/* On phones it takes the full width, so it goes last to keep Mute on the first row. */}
         <Waveform
-          className="h-7 basis-full sm:h-9 sm:flex-1 sm:basis-auto"
+          className="h-7 basis-full max-sm:order-last sm:h-9 sm:flex-1 sm:basis-auto"
           peaks={item.peaks}
           durationMs={item.durationMs}
           positionMs={positionMs}

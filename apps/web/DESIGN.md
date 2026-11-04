@@ -360,7 +360,7 @@ The projects list puts the new-project form (input and Create on one row, up to 
 
 The track page player is two rows: the transport button and LCD readout side by side with a 12px gap, then a full-width waveform 12px below, all inside 12px of panel padding. The waveform is 96px tall, 128px from the `sm` breakpoint (640px).
 
-The mini-player is stuck to the bottom of the viewport across the full width, with its inner row padded 8px by 16px. On phones it wraps: the button and title/time on one line, and the waveform (28px tall) across the full width below. From `sm` up it's one row: button, a 288px title column, and the waveform (36px tall) filling the rest.
+The mini-player is stuck to the bottom of the viewport across the full width, with its inner row padded 8px by 16px. On phones it wraps: the button, title/time, and Mute on one line, and the waveform (28px tall) across the full width below. From `sm` up it's one row: button, a 288px title column, the waveform (36px tall) filling the rest, then the volume control.
 
 The waveform's geometry is fixed in CSS pixels so it stays crisp at any width: each bar takes a 6px slot (4px bar, 2px gap), each segment 4px of height (3px lit, 1px gap), bars mirror around a center gap, and quiet tracks are scaled up by at most 4x so near-silence still reads as near-silence.
 
