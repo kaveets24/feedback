@@ -102,7 +102,7 @@ export function TrackDetails({
                 {project.title}
               </Link>
             ) : (
-              'Not in a project'
+              'None'
             )}
           </dd>
           <dt className="text-muted">Genre</dt>
@@ -142,7 +142,7 @@ export function TrackDetails({
           />
         </div>
         <Select id="track-project" name="projectId" label="Project" defaultValue={projectId ?? ''}>
-          <option value="">Not in a project</option>
+          <option value="">None</option>
           {projects.map((p) => (
             <option key={p.id} value={p.id}>
               {p.title}

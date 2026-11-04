@@ -155,7 +155,7 @@ export async function reorderProjectTracksAction(
 
 /**
  * The track page's project selector: moves the track into the chosen project, or out of its
- * current one when "Not in a project" is chosen.
+ * current one when "None" is chosen.
  */
 export async function setTrackProjectAction(_prev: FormState, form: FormData): Promise<FormState> {
   const trackId = id.safeParse(form.get('trackId'));
