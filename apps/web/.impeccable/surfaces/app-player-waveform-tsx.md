@@ -19,7 +19,7 @@ OWN-WORLD: Near-black ground tinted green. A graphite-chrome hardware panel with
 
 STORY: The listener sees where the song is loud and quiet, hits play, clicks or drags anywhere to jump, and keeps listening from the mini-player on other pages.
 
-FIRST VIEWPORT: Under the track title sits the panel. Row one: a 56px bevel play button (lime icon while playing), then an LCD readout: large elapsed time in fixed digit cells over unlit "8" ghosts, then "/ total" in cyan, and on the right the version and a state word (Stopped, Loading, Playing, Paused, Error) in cyan. Row two: a full-width LCD waveform, 96px tall (128px from sm). The mini-player is a solid graphite bar stuck to the bottom of the viewport (sticky, so it never covers page content): button, title link plus LCD time, and a compact waveform strip.
+FIRST VIEWPORT: Under the track title sits the panel. Row one: a 56px bevel play button (lime icon while playing), then an LCD readout: large elapsed time in fixed digit cells over unlit "8" ghosts, then "/ total" in cyan, and on the right the version and a state word (Stopped, Loading, Playing, Paused, Error) in cyan. Row two: a full-width LCD waveform, 96px tall (128px from sm). The mini-player is a solid graphite bar at the bottom of the viewport (its own row of the app shell, so it never covers page content): button, title link plus LCD time, and a compact waveform strip.
 
 FORM: Winamp-era hardware player rendered with standard web controls (button, slider). Position 1 of 1. seed: none (the direction is pinned by CLAUDE.md section 9; no concept roll ran)
 
