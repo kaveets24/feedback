@@ -204,7 +204,7 @@ function GenreRail({
 }: Pick<Filters, 'view' | 'q' | 'genre'> & { following: FollowedArtist[] | null }) {
   const showFollowing = following !== null && following.length > 0;
   const choices: { value: Genre | undefined; label: string }[] = [
-    { value: undefined, label: 'All genres' },
+    { value: undefined, label: 'All' },
     ...GENRE_OPTIONS.map((value) => ({ value, label: GENRE_LABELS[value] })),
   ];
   return (
@@ -220,7 +220,7 @@ function GenreRail({
           id="genres-heading"
           className={`mb-2 text-sm font-semibold text-muted ${showFollowing ? '' : 'mt-2.5'}`}
         >
-          Genres
+          Genre
         </h2>
         {/* Items bleed 12px into the gutter, so their words line up with the column edge. */}
         <ul className="-mx-3">
@@ -319,7 +319,7 @@ function SearchForm({
           defaultValue={genre ?? ''}
           className="field appearance-none pr-10"
         >
-          <option value="">All genres</option>
+          <option value="">All</option>
           {GENRE_OPTIONS.map((option) => (
             <option key={option} value={option}>
               {GENRE_LABELS[option]}
