@@ -38,47 +38,35 @@ export async function updateVersionNotesAction(
   return result;
 }
 
-/** Renames the track. */
-export async function renameTrackAction(
+const trackDetailsSchema = z.object({
+  title: trackTitleSchema.optional(),
+  genre: genreSchema.nullable().optional(),
+});
+
+/** Saves the track's title and genre, the ones given; a null genre clears it. */
+export async function updateTrackDetailsAction(
   trackId: unknown,
-  title: unknown,
+  changes: unknown,
 ): Promise<ActionResult<TrackResponse>> {
   const parsedId = z.uuid().safeParse(trackId);
-  const parsed = trackTitleSchema.safeParse(title);
+  const parsed = trackDetailsSchema.safeParse(changes);
   if (!parsedId.success) return { ok: false, message: 'Unknown track.' };
-  if (!parsed.success)
-    return { ok: false, message: 'Give the track a title, up to 200 characters.' };
+  if (!parsed.success) {
+    const message =
+      parsed.error.issues[0]?.path[0] === 'genre'
+        ? 'Pick a genre from the list.'
+        : 'Give the track a title, up to 200 characters.';
+    return { ok: false, message };
+  }
 
-  const result = await toResult(() =>
-    serverApi().updateTrack(parsedId.data, { title: parsed.data }),
-  );
+  const result = await toResult(() => serverApi().updateTrack(parsedId.data, parsed.data));
   if (!result.ok) {
-    return { ok: false, message: "Couldn't rename the track. Reload the page and try again." };
+    return { ok: false, message: "Couldn't save your changes. Reload the page and try again." };
   }
   revalidatePath('/tracks');
   revalidatePath(`/tracks/${parsedId.data}`);
   // It may be in a project, whose page lists it by name.
   revalidatePath('/projects', 'layout');
-  return result;
-}
-
-/** Files the track under a genre; an empty value clears it. */
-export async function setTrackGenreAction(
-  trackId: unknown,
-  genre: unknown,
-): Promise<ActionResult<TrackResponse>> {
-  const parsedId = z.uuid().safeParse(trackId);
-  const parsed = genreSchema.nullable().safeParse(genre === '' ? null : genre);
-  if (!parsedId.success) return { ok: false, message: 'Unknown track.' };
-  if (!parsed.success) return { ok: false, message: 'Pick a genre from the list.' };
-
-  const result = await toResult(() =>
-    serverApi().updateTrack(parsedId.data, { genre: parsed.data }),
-  );
-  if (!result.ok) {
-    return { ok: false, message: "Couldn't save the genre. Reload the page and try again." };
-  }
-  revalidatePath(`/tracks/${parsedId.data}`);
   return result;
 }
 
