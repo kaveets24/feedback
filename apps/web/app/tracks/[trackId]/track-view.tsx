@@ -12,10 +12,8 @@ import { PlayerWithFeedback } from '../../_feedback/player-with-feedback';
 import { SharingSection } from '../../_sharing/sharing-section';
 import { UploadForm } from '../../upload-form';
 import { DeleteTrack } from './delete-track';
-import { GenreSelect } from './genre-select';
 import { ProcessingStatus } from './processing-status';
-import { ProjectSelect } from './project-select';
-import { TrackTitle } from './track-title';
+import { TrackDetails } from './track-details';
 import { VersionItem } from './version-item';
 import { VersionRow } from './version-notes';
 
@@ -55,11 +53,13 @@ export function TrackView({
           Your tracks
         </Link>
       </p>
-      <TrackTitle trackId={track.id} title={track.title} />
-      <div className="mt-4 flex max-w-md flex-col gap-2">
-        <ProjectSelect trackId={track.id} projectId={track.projectId} projects={projects} />
-        <GenreSelect trackId={track.id} genre={track.genre} />
-      </div>
+      <TrackDetails
+        trackId={track.id}
+        title={track.title}
+        projectId={track.projectId}
+        genre={track.genre}
+        projects={projects}
+      />
 
       {currentItem ? (
         <PlayerWithFeedback
