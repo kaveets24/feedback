@@ -16,7 +16,7 @@ const loadProfile = cache(async (handle: string) =>
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const profile = await loadProfile((await params).handle);
   const name = profile.displayName ?? `@${profile.handle}`;
-  return { title: `${name} · Feedback` };
+  return { title: name };
 }
 
 /**

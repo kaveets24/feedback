@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { SharedView } from './shared-view';
 
 export const metadata: Metadata = {
-  title: 'Shared with you · Feedback',
+  title: 'Shared with you',
   // Whatever a link opens is meant for whoever was sent it, never search results.
   robots: { index: false, follow: false },
 };

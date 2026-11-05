@@ -7,9 +7,18 @@ import { PageScroller } from './_shell/page-scroller';
 import { lcdFont } from './fonts';
 import './globals.css';
 
+const DESCRIPTION =
+  'Share your song ideas, choose who can hear them, and get feedback pinned to moments in a track.';
+
+// What a shared link shows, the same for every page on purpose: a link can open private work, and
+// a preview goes to whatever service it's pasted into, so no page adds a track, project, or person
+// to it (CLAUDE.md section 6). The icons and preview image are the files beside this one.
 export const metadata: Metadata = {
-  title: 'Feedback',
-  description: 'Share unfinished music and get feedback on it.',
+  metadataBase: new URL('https://feedback.community'),
+  title: { default: 'Feedback', template: '%s · Feedback' },
+  description: DESCRIPTION,
+  openGraph: { type: 'website', siteName: 'Feedback', title: 'Feedback', description: DESCRIPTION },
+  twitter: { card: 'summary_large_image', title: 'Feedback', description: DESCRIPTION },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
