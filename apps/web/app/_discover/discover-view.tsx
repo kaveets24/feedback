@@ -6,28 +6,19 @@ import {
   GENRE_OPTIONS,
   type DiscoverItem,
   type DiscoverResponse,
-  type DiscoverView as View,
   type FollowedArtist,
   type Genre,
   type MeResponse,
 } from '@feedback/shared';
 import { formatDuration, formatShortDate } from '../../lib/format';
 import { Avatar } from '../_shell/avatar';
-import { DownIcon } from '../_shell/icons';
 import { UnderlineTabs } from '../_shell/tabs';
+import { href, type Filters } from './filters';
+import { GenreSelect } from './genre-select';
 import { ResultRow } from './result-row';
 
-export type Filters = { view?: View; q?: string; genre?: Genre; cursor?: string };
-
-/** Home with a view, search, genre, and cursor, leaving out whichever is unset (or the default). */
-function href({ view, q, genre, cursor }: Filters) {
-  const query = new URLSearchParams();
-  if (view === 'following') query.set('view', view);
-  if (q) query.set('q', q);
-  if (genre) query.set('genre', genre);
-  if (cursor) query.set('cursor', cursor);
-  return query.size ? `/?${query}` : '/';
-}
+/** The search form's id, for the genre select that belongs to it from beside the results. */
+const SEARCH_FORM = 'discover-search';
 
 /**
  * Discovery, for everyone: public tracks, the most recently updated first, narrowed by a genre
@@ -113,7 +104,7 @@ export function DiscoverView({
               ]}
             />
           )}
-          <SearchForm typed={typed} genre={genre} view={view} />
+          <SearchForm typed={typed} view={view} />
           {/* From md the genres are in the rail, after the results in the source. Absolute while
               focused (at its place in the flow), so showing it doesn't move the list. */}
           <a
@@ -131,10 +122,19 @@ export function DiscoverView({
           {q && !cursor && <People q={q} people={people} />}
 
           <section aria-labelledby="results-heading" className="mt-8">
-            <h2 id="results-heading" className="mb-3 text-lg font-semibold">
-              {q ? 'Tracks' : cursor ? 'Older' : 'Latest'}
-              {genre && <span className="font-normal text-muted"> · {GENRE_LABELS[genre]}</span>}
-            </h2>
+            <div className="mb-3 flex items-center justify-between gap-4">
+              <h2 id="results-heading" className="min-w-0 text-lg font-semibold">
+                {q ? 'Tracks' : cursor ? 'Older' : 'Latest'}
+                {/* On phones the select beside it already says which genre. */}
+                {genre && (
+                  <span className="font-normal text-muted max-md:hidden">
+                    {' '}
+                    · {GENRE_LABELS[genre]}
+                  </span>
+                )}
+              </h2>
+              <GenreSelect form={SEARCH_FORM} view={view} q={q} genre={genre} />
+            </div>
             {page.items.length === 0 ? (
               <p className="border-y border-rule py-6 text-muted">
                 {cursor
@@ -197,8 +197,8 @@ export function DiscoverView({
 
 /**
  * Every genre as a link, the current one lit like the version in the player, and on the
- * Following view who they follow. From `md` only; on phones the search form's Genre select does
- * the genres' job, and the people they follow sit under the results. Links keep the view and
+ * Following view who they follow. From `md` only; on phones the select beside the results' heading
+ * does the genres' job, and the people they follow sit under the results. Links keep the view and
  * search.
  */
 function GenreRail({
@@ -286,21 +286,10 @@ function FollowingList({
   );
 }
 
-/**
- * Search, and on phones the genre too (the rail does it from `md`). The select stays in the form
- * when hidden, so a search keeps the genre the rail picked.
- */
-function SearchForm({
-  typed,
-  genre,
-  view,
-}: {
-  typed: string;
-  genre: Genre | undefined;
-  view: View;
-}) {
+/** Search. The genre goes with it, from the select beside the results (see `GenreSelect`). */
+function SearchForm({ typed, view }: { typed: string; view: Filters['view'] }) {
   return (
-    <form action="/" role="search" className="mt-5 flex flex-wrap gap-2">
+    <form id={SEARCH_FORM} action="/" role="search" className="mt-5 flex gap-2">
       {view === 'following' && <input type="hidden" name="view" value="following" />}
       <label htmlFor="search-q" className="sr-only">
         Search tracks and people
@@ -312,30 +301,9 @@ function SearchForm({
         defaultValue={typed}
         maxLength={100}
         placeholder="Track, artist, or @handle"
-        className="field w-full md:w-auto md:flex-1"
+        className="field min-w-0 flex-1"
       />
-      <label htmlFor="search-genre" className="sr-only">
-        Genre
-      </label>
-      <div className="relative min-w-0 flex-1 md:hidden">
-        <select
-          id="search-genre"
-          name="genre"
-          defaultValue={genre ?? ''}
-          className="field appearance-none pr-10"
-        >
-          <option value="">All</option>
-          {GENRE_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {GENRE_LABELS[option]}
-            </option>
-          ))}
-        </select>
-        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted">
-          <DownIcon />
-        </span>
-      </div>
-      <button type="submit" className="btn btn-primary">
+      <button type="submit" className="btn btn-primary shrink-0">
         Search
       </button>
     </form>
