@@ -504,6 +504,13 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 - **Same API, no special paths:** it uses the presigned upload flow (section 7) and the typed client in `packages/shared`, like web and mobile. Duplicate and half-written files (a bounce still being exported) need care, plus quotas and rate limits (Phase 7).
 - **Stack:** pick one (e.g. Tauri or Electron) in an ADR when the time comes.
 
+**Caching to cut B2 downloads (idea, 2026-11-04).** Every signing makes a new URL for a song's stream, a cover, or a profile picture, and nothing sets a cache lifetime, so browsers download files again instead of reusing them. Each download counts against B2's daily transaction caps, and egress is free only up to 3x the data stored (ADR 0008). Not planned yet; things to settle before building it:
+
+- **Measure first:** B2's transaction and egress numbers should show which files cost the most before anything changes.
+- **Reusable signed URLs:** URLs that stay the same for a few minutes, with a short cache lifetime, would let browsers reuse a file and keep everything private. They have to stay within the 15-minute limit on signed URLs (rule 5 in section 6). Confirm that B2 and SeaweedFS both honour this on signed URLs.
+- **Songs:** caching has to work with range requests (seeking), and a cached copy shouldn't outlast the short window after someone loses access (rule 10).
+- **Pictures only:** a public bucket or CDN for profile pictures is the bigger option. It needs an ADR, since ADR 0008 says nothing is public, and real deletion when a picture is removed. Audio and covers stay private.
+
 ---
 
 ## 12. How to work with me (Claude Code)
