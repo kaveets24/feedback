@@ -360,7 +360,7 @@ The projects list puts the new-project form (input and Create on one row, up to 
 
 The track page player is two rows: the transport button and LCD readout side by side with a 12px gap, then a full-width waveform 12px below, all inside 12px of panel padding. The waveform is 96px tall, 128px from the `sm` breakpoint (640px).
 
-The mini-player is stuck to the bottom of the viewport across the full width, with its inner row padded 8px by 16px. On phones it wraps: the button, title/time, and Mute on one line, and the waveform (28px tall) across the full width below. From `sm` up it's one row: button, a 288px title column, the waveform (36px tall) filling the rest, then the volume control.
+The mini-player is the bottom row of the app shell's grid, across the full width, with the scrolling page above it (so it never covers content), and its inner row padded 8px by 16px. On phones it wraps: the button, title/time, and Mute on one line, and the waveform (28px tall) across the full width below. From `sm` up it's one row: button, a 288px title column, the waveform (36px tall) filling the rest, then the volume control.
 
 The waveform's geometry is fixed in CSS pixels so it stays crisp at any width: each bar takes a 6px slot (4px bar, 2px gap), each segment 4px of height (3px lit, 1px gap), bars mirror around a center gap, and quiet tracks are scaled up by at most 4x so near-silence still reads as near-silence.
 
@@ -491,7 +491,7 @@ The track page's housing: graphite gradient, 1px edge, panel shadow, 0.5rem corn
 
 ### Mini-Player
 
-A solid `chrome-lo` bar (no gradient, since it carries text) with a 1px `chrome-edge` top border and the panel shadow, stuck to the bottom of every page once something has played. It holds the 44px transport button, the track title (sans, links to the track page, hover `accent`) above an LCD-face time line in lime and cyan, a compact waveform window, and the mini Volume Fader (a 40px mute button, and from `sm` a 6rem fader with no readout). An error replaces the time line in `danger`.
+A solid `chrome-lo` bar (no gradient, since it carries text) with a 1px `chrome-edge` top border and the panel shadow, the bottom row of every page once something has played. It holds the 44px transport button, the track title (sans, links to the track page, hover `accent`) above an LCD-face time line in lime and cyan, a compact waveform window, and the mini Volume Fader (a 40px mute button, and from `sm` a 6rem fader with no readout). An error replaces the time line in `danger`.
 
 ### Volume Fader
 

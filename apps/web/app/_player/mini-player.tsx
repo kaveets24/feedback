@@ -9,7 +9,7 @@ import { Waveform } from './waveform';
 
 /**
  * The player bar at the bottom of every page once something has played, so listening carries on
- * across navigation. Sticks to the bottom of the viewport; the root layout keeps it there.
+ * across navigation. It's the bottom row of the root layout's grid, under the scrolling page.
  */
 export function MiniPlayer() {
   const item = useAudio((s) => s.item);
@@ -23,7 +23,7 @@ export function MiniPlayer() {
   return (
     <aside
       aria-label="Now playing"
-      className="sticky bottom-0 z-10 border-t border-chrome-edge bg-chrome-lo shadow-panel selection:bg-accent selection:text-canvas"
+      className="relative z-10 border-t border-chrome-edge bg-chrome-lo shadow-panel selection:bg-accent selection:text-canvas"
     >
       <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2">
         <TransportButton status={status} title={item.title} size="md" onClick={toggle} />
