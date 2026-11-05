@@ -6,7 +6,7 @@ import { loadOrNotFound } from '../../../lib/load';
 import { AvatarControl } from './avatar-control';
 import { ProfileForm } from './profile-form';
 
-export const metadata: Metadata = { title: 'Your profile · Feedback' };
+export const metadata: Metadata = { title: 'Your profile' };
 
 /** The signed-in user's own profile. Only they see this page. */
 export default async function ProfilePage() {

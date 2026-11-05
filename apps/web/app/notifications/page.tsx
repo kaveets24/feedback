@@ -6,7 +6,7 @@ import { serverApi } from '../../lib/api';
 import { loadOrNotFound } from '../../lib/load';
 import { NotificationList } from './notification-list';
 
-export const metadata: Metadata = { title: 'Notifications · Feedback' };
+export const metadata: Metadata = { title: 'Notifications' };
 
 /**
  * The signed-in user's notifications, newest first under day headings: comments and replies others
