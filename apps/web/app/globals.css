@@ -68,6 +68,20 @@
     0 0 0 3px var(--color-chrome-lip);
 }
 
+/*
+ * An LCD window with a file held over it: the same well, ringed and glowing. It repeats the lip
+ * because box-shadow doesn't combine, so use it alongside `lcd`.
+ */
+@utility lcd-lit {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  box-shadow:
+    var(--shadow-lcd),
+    0 0 0 2px var(--color-chrome-lo),
+    0 0 0 3px var(--color-chrome-lip),
+    var(--shadow-focus-glow);
+}
+
 /* The bright focus ring every themed control uses. */
 @utility focus-glow {
   &:focus-visible {

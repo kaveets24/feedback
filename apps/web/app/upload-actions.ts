@@ -20,9 +20,18 @@ export async function startUploadAction(
 ): Promise<ActionResult<CreateUploadResponse>> {
   const parsed = createUploadRequestSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, message: 'Check the title and file, then try again.' };
+    return { ok: false, message: 'Check the details and file, then try again.' };
   }
-  return toResult(() => serverApi().createUpload(parsed.data));
+  try {
+    return { ok: true, data: await serverApi().createUpload(parsed.data) };
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      // The only thing that can be missing is the project, deleted since the page loaded.
+      return { ok: false, message: 'That project is no longer available. Choose another.' };
+    }
+    if (err instanceof ApiError && err.status < 500) return { ok: false, message: err.message };
+    throw err;
+  }
 }
 
 /** Starts uploading a track's next version (the track page's upload form). */
@@ -36,7 +45,7 @@ export async function startVersionUploadAction(
   if (!parsed.success) {
     return {
       ok: false,
-      message: 'Check the file and notes (up to 2000 characters), then try again.',
+      message: 'Check the file and your notes (up to 2000 characters each), then try again.',
     };
   }
   // Server errors are rethrown (as `toResult` does); the API's 4xx answers get their own words.
