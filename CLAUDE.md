@@ -496,6 +496,13 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 
 **$1 artist donations (parked 2026-10-22: the app starts free).** If they come back, the earlier plan still holds: a $1 cap enforced server-side, a provider that handles cards and payouts (Stripe Connect was the proposal), artists opt in and pass the provider's identity checks, donations attach to a track and version, no self-donations, webhooks verified and handled idempotently, and no public totals. Card fees (roughly 30¢ + ~3%) take about a third of a $1 donation, so who covers them is the first question.
 
+**City filter on discovery (idea, 2026-11-04).** Narrow home's list to artists in a city, from the fixed `CITIES` list, and maybe one day pick the city on an interactive map. Not planned yet, and it would reverse section 1, where a city is a label nothing filters by and maps are out of scope, so that line changes first. Things to settle before building it:
+
+- **Privacy:** an artist's city only shows on their public page today, but discovery also lists artists without one, so a filter that included them would reveal their city. Count only artists with a public page, and decide whether people who picked a city as just a label need to opt in.
+- **City level only:** the map shows the fixed cities and never anyone's precise location, and nothing asks for the browser's location. No PostGIS.
+- **Thin cities:** a filter on a city with one or two artists points straight at them, and an empty one looks dead. Decide what the list and the map show in those cases.
+- **Keep the client light:** a map library and map tiles are a real dependency and possibly a cost (section 9), so the plain filter ships first and the map has to earn its place.
+
 **Desktop sync app (idea, 2026-10-20).** A small Mac and Windows app that watches the music folders you pick (a DAW's bounce or export folder, say) and uploads new bounces as new versions automatically, so shipping v4 is just exporting it. Not planned yet; things to settle before building it:
 
 - **Matching files to tracks:** how a new file becomes the next version of the right track rather than a new one (a file-name convention, a per-folder mapping, or asking the first time), and what happens to files it can't place.
