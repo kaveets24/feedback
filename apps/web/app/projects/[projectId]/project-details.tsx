@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useTransition, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from 'react';
 import type { CoverImage, ProjectDetailResponse } from '@feedback/shared';
+import { EditIcon } from '../../_shell/icons';
 import { deleteProjectAction, removeCoverAction, updateProjectAction } from '../actions';
 import { visibilitySentence } from '../../../lib/share';
 import { ProjectCover } from '../project-cover';
 import { CoverControl } from './cover-control';
 
 /**
- * The project's cover, name, and description, with an Edit mode for the words and, inside it,
- * removing the cover and deleting the project. `releaseType` is the release type picker, usable
- * in either mode.
+ * The project's cover, name, and description. A pencil button beside the name opens an edit mode
+ * for the words and, inside it, removing the cover and deleting the project. Escape in the form
+ * cancels (unless a save is under way), and focus goes back to the pencil afterwards.
+ * `releaseType` is the release type picker, usable in either mode.
  */
 export function ProjectDetails({
   project,
@@ -22,6 +24,20 @@ export function ProjectDetails({
   releaseType: ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
+  const editRef = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef(false);
+
+  useEffect(() => {
+    if (!editing && returnFocus.current) {
+      returnFocus.current = false;
+      editRef.current?.focus();
+    }
+  }, [editing]);
+
+  function close() {
+    returnFocus.current = true;
+    setEditing(false);
+  }
 
   const typeRow = (
     <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
@@ -32,23 +48,11 @@ export function ProjectDetails({
           Sharing
         </a>
       </p>
-      {!editing && (
-        <button type="button" className="btn ml-auto" onClick={() => setEditing(true)}>
-          Edit
-        </button>
-      )}
     </div>
   );
 
   if (editing) {
-    return (
-      <EditForm
-        project={project}
-        trackCount={trackCount}
-        typeRow={typeRow}
-        onDone={() => setEditing(false)}
-      />
-    );
+    return <EditForm project={project} trackCount={trackCount} typeRow={typeRow} onDone={close} />;
   }
   const pending = project.coverUpload;
   return (
@@ -56,7 +60,22 @@ export function ProjectDetails({
       <div className="flex items-start gap-4 sm:gap-6">
         <ProjectCover cover={project.cover} size="page" alt={`Cover art for ${project.title}`} />
         <div className="min-w-0 flex-1">
-          <h1 className="text-3xl font-semibold break-words text-balance">{project.title}</h1>
+          <div className="flex items-start gap-2">
+            {/* The margin centres the first line on the button, which stays beside a long name. */}
+            <h1 className="mt-0.5 min-w-0 text-3xl font-semibold break-words text-balance">
+              {project.title}
+            </h1>
+            <button
+              ref={editRef}
+              type="button"
+              className="btn btn-ghost btn-icon shrink-0"
+              aria-label="Edit project"
+              title="Edit project"
+              onClick={() => setEditing(true)}
+            >
+              <EditIcon />
+            </button>
+          </div>
           {project.description && (
             <p className="mt-2 max-w-[65ch] whitespace-pre-line text-muted">
               {project.description}
@@ -122,7 +141,14 @@ function EditForm({
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-semibold">Edit project</h1>
-      <form onSubmit={onSubmit} className="space-y-4" aria-label="Edit project">
+      <form
+        onSubmit={onSubmit}
+        className="space-y-4"
+        aria-label="Edit project"
+        onKeyDown={(event) => {
+          if (event.key === 'Escape' && !pending) onDone();
+        }}
+      >
         <div>
           <label htmlFor="project-title" className="mb-1 block text-sm font-medium">
             Name
