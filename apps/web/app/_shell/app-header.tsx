@@ -84,20 +84,18 @@ export async function AppHeader() {
               </Link>
             </>
           )}
-          {isAuthenticated ? (
-            // On phones an approved account signs out from the profile page instead.
-            <SignOutButton>
-              <button
-                type="button"
-                className={`link text-sm text-muted ${showNav ? 'max-sm:hidden' : ''}`}
-              >
-                Sign out
-              </button>
-            </SignOutButton>
-          ) : (
+          {!isAuthenticated && (
             <Link href="/sign-in" className="link text-sm">
               Sign in
             </Link>
+          )}
+          {/* An approved account signs out from the profile page; others can't reach that page. */}
+          {isAuthenticated && !showNav && (
+            <SignOutButton>
+              <button type="button" className="link text-sm text-muted">
+                Sign out
+              </button>
+            </SignOutButton>
           )}
         </div>
       </div>

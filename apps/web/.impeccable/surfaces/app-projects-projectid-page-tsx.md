@@ -19,7 +19,7 @@ OWN-WORLD: The player's world, extended to working screens. Green-black canvas, 
 
 STORY: The artist sees which project this is, what kind of release it is and its songs in order. They change the type in one click, drag or nudge songs into order, add a track from the picker, and edit or delete the project in plain, serious words.
 
-FIRST VIEWPORT: App header: lime Silkscreen wordmark, Tracks and Projects nav with a 2px accent underline on the current one, Sign out at the right. A 48rem column: a "Projects" back link, the title as H1 (1.875rem, 600) with a ghost pencil button beside it, the description in muted ink at 65ch, then one row with the release type picker (the chosen segment solid lime with dark text, the others unlit but readable) and "Private: only you can see this project". Below: "Tracks" with "5 tracks · 17:39", then rows of grip, LCD number, title link, version or state, LCD length, remove. The add-a-track picker sits at the list's foot.
+FIRST VIEWPORT: App header: lime Silkscreen wordmark, Tracks and Projects nav with a 2px accent underline on the current one, the notifications bell and Profile at the right. A 48rem column: a "Projects" back link, the title as H1 (1.875rem, 600) with a ghost pencil button beside it, the description in muted ink at 65ch, then one row with the release type picker (the chosen segment solid lime with dark text, the others unlit but readable) and "Private: only you can see this project". Below: "Tracks" with "5 tracks · 17:39", then rows of grip, LCD number, title link, version or state, LCD length, remove. The add-a-track picker sits at the list's foot.
 
 FORM: Status pipeline, position 6 of 7 on the ordered list (dealt lead). seed:df0245d063152caf
 
