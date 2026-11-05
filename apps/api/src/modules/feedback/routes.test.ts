@@ -133,13 +133,6 @@ describe('feedback routes', () => {
       expect(asArtist!.can).toEqual({ reply: true, edit: false, delete: true, resolve: true });
       const [asOther] = await threads(v1.id, 'u3');
       expect(asOther!.can).toEqual({ reply: true, edit: false, delete: false, resolve: false });
-      const [asAnonymous] = await threads(v1.id);
-      expect(asAnonymous!.can).toEqual({
-        reply: false,
-        edit: false,
-        delete: false,
-        resolve: false,
-      });
     });
 
     it('takes a general comment, and lists pinned ones in timeline order, then general ones', async () => {
@@ -179,10 +172,15 @@ describe('feedback routes', () => {
       expect(JSON.stringify(thread)).not.toContain(listener.id);
     });
 
-    it('needs an account to comment, but not to read', async () => {
+    it('needs an account to read comments as well as to write them', async () => {
       const { v1 } = await newTrack();
       await comment(v1.id, 'u2', { body: 'Hi' });
-      expect(await threads(v1.id)).toHaveLength(1);
+
+      const read = await list(v1.id);
+      expect(read.statusCode).toBe(401);
+      expect(read.json().error.code).toBe('UNAUTHENTICATED');
+      // Nothing of the comment comes back with the refusal.
+      expect(read.body).not.toContain('Hi');
 
       const res = await request('POST', `/v1/versions/${v1.id}/feedback`, {
         payload: { body: 'Me too' },
@@ -222,7 +220,7 @@ describe('feedback routes', () => {
       }
     });
 
-    it('lets signed-in link holders comment, anonymous ones read, until the link is revoked', async () => {
+    it('lets signed-in link holders read and comment, anonymous ones neither, until the link is revoked', async () => {
       const { track, v1 } = await newTrack('unlisted');
       const made = await request('POST', `/v1/tracks/${track.id}/share-links`, {
         as: 'u1',
@@ -233,7 +231,8 @@ describe('feedback routes', () => {
 
       expect((await list(v1.id, 'u2')).statusCode).toBe(404);
       const thread = await comment(v1.id, 'u2', { body: 'Via the link' }, token);
-      expect(await threads(v1.id, undefined, token)).toHaveLength(1);
+      expect(await threads(v1.id, 'u2', token)).toHaveLength(1);
+      expect((await list(v1.id, undefined, token)).statusCode).toBe(401);
       const anonymous = await request('POST', `/v1/versions/${v1.id}/feedback`, {
         token,
         payload: { body: 'Hi' },
@@ -289,13 +288,19 @@ describe('feedback routes', () => {
       expect(nested.json().error.code).toBe('NOT_A_THREAD');
     });
 
-    it('needs an account to reply', async () => {
-      const { v1 } = await newTrack();
+    it('needs an account to reply, edit, or delete, or a 404 if the track is out of sight', async () => {
+      const { track, v1 } = await newTrack();
       const thread = await comment(v1.id, 'u2', { body: 'Hi' });
-      const res = await request('POST', `/v1/feedback/${thread.id}/replies`, {
-        payload: { body: 'Hi back' },
-      });
-      expect(res.statusCode).toBe(401);
+      const attempts = () =>
+        Promise.all([
+          request('POST', `/v1/feedback/${thread.id}/replies`, { payload: { body: 'Hi back' } }),
+          request('PATCH', `/v1/feedback/${thread.id}`, { payload: { body: 'Edited' } }),
+          request('DELETE', `/v1/feedback/${thread.id}`),
+        ]);
+
+      expect((await attempts()).map((res) => res.statusCode)).toEqual([401, 401, 401]);
+      await setTrackVisibility(db, track.id, 'private');
+      expect((await attempts()).map((res) => res.statusCode)).toEqual([404, 404, 404]);
     });
   });
 

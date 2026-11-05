@@ -67,6 +67,7 @@ export function TrackView({
           older={older}
           feedback={feedback}
           prompts={Object.fromEntries(track.versions.map((v) => [v.id, v.feedbackPrompt]))}
+          canRead
           canComment
           canEditPrompt
           status={latest && <LatestStatus version={latest} />}

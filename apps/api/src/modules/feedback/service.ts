@@ -20,8 +20,9 @@ import { findAuthors, findFeedback, insertFeedback, listFeedback, updateFeedback
 
 // Comments on a track's versions (CLAUDE.md section 5). Every decision about a comment goes
 // through canAccessTrackFeedback, which first requires viewing the track: anyone who can't gets
-// the usual 404, so a comment never reveals a track. Someone who can see a comment but may not do
-// what they asked gets a 403, and an anonymous visitor asking to write gets a 401.
+// the usual 404, so a comment never reveals a track. An anonymous visitor who can see the track
+// gets a 401, since comments need an account even to read, and someone who can see a comment but
+// may not do what they asked gets a 403.
 
 export interface FeedbackDeps {
   db: Db;
@@ -36,14 +37,17 @@ interface TrackScope {
 
 const notFound = () => httpError(404, 'NOT_FOUND', 'Not found');
 const signInToComment = () => httpError(401, 'UNAUTHENTICATED', 'Sign in to comment');
+const signInToRead = () => httpError(401, 'UNAUTHENTICATED', 'Sign in to read comments');
 
-/** Every comment on a version the actor may view, in threads. */
+/** Every comment on a version, in threads, for anyone signed in who may view it. */
 export async function getFeedback(
   deps: FeedbackDeps,
   actor: Actor,
   versionId: string,
 ): Promise<FeedbackListResponse> {
   const { track, project } = await loadVersionFor(deps.db, actor, versionId, 'view');
+  if (actor.kind === 'anonymous') throw signInToRead();
+  if (!canAccessTrack(actor, track, project, 'comment')) throw notFound();
   const rows = await listFeedback(deps.db, { versionId });
   return { threads: await toThreads(deps, actor, { track, project }, rows) };
 }
@@ -145,9 +149,7 @@ export async function deleteFeedback(
   const found = await findFeedback(deps.db, feedbackId);
   if (!found) throw notFound();
   const scope = await scopeOf(deps.db, found.track);
-  if (!canAccessTrackFeedback(actor, scope.track, scope.project, found.feedback, 'read')) {
-    throw notFound();
-  }
+  ensureReadable(actor, scope, found.feedback);
   if (found.feedback.deletedAt) return;
   ensureAllowed(actor, scope, found.feedback, 'delete');
   await updateFeedback(deps.db, feedbackId, { deletedAt: new Date() });
@@ -163,7 +165,7 @@ async function scopeOf(db: Db, track: Track): Promise<TrackScope> {
   return { track, project: track.projectId ? await findProject(db, track.projectId) : null };
 }
 
-/** A live comment the actor may read, with its track; anything else is a 404. */
+/** A live comment the actor may read, with its track; see ensureReadable for anything else. */
 async function loadFeedbackFor(
   db: Db,
   actor: Actor,
@@ -172,10 +174,19 @@ async function loadFeedbackFor(
   const found = await findFeedback(db, feedbackId);
   if (!found || found.feedback.deletedAt) throw notFound();
   const scope = await scopeOf(db, found.track);
-  if (!canAccessTrackFeedback(actor, scope.track, scope.project, found.feedback, 'read')) {
-    throw notFound();
-  }
+  ensureReadable(actor, scope, found.feedback);
   return { feedback: found.feedback, scope };
+}
+
+/**
+ * For the routes that change a comment: a 404 unless the actor can view its track, then a 401 if
+ * they're anonymous, so a comment never reveals a track and signing in is what's asked of anyone
+ * who can see it.
+ */
+function ensureReadable(actor: Actor, scope: TrackScope, row: Feedback) {
+  if (!canAccessTrack(actor, scope.track, scope.project, 'view')) throw notFound();
+  if (actor.kind === 'anonymous') throw signInToComment();
+  if (!canAccessTrackFeedback(actor, scope.track, scope.project, row, 'read')) throw notFound();
 }
 
 /** Throws a 403 unless the actor may do `action` (they can already see the comment). */

@@ -17,6 +17,7 @@ export function PlayerWithFeedback({
   older,
   feedback,
   prompts,
+  canRead,
   canComment,
   canEditPrompt,
   signIn,
@@ -31,9 +32,11 @@ export function PlayerWithFeedback({
   feedback: Readonly<Record<string, Threads>>;
   /** What the artist wants feedback on, by version id. */
   prompts: Readonly<Record<string, string | null>>;
+  /** Whether this visitor may read comments at all. Without it, `feedback` stays empty. */
+  canRead: boolean;
   canComment: boolean;
   canEditPrompt: boolean;
-  /** In the comment box's place for someone who can't comment. */
+  /** In the comment box's place for someone who can't read or write comments. */
   signIn?: ReactNode;
   status?: ReactNode;
   /** Told which version is shown, so a page can load its comments. */
@@ -110,6 +113,7 @@ export function PlayerWithFeedback({
         item={shown}
         threads={feedback[shown.versionId]}
         prompt={prompts[shown.versionId] ?? null}
+        canRead={canRead}
         canComment={canComment}
         canEditPrompt={canEditPrompt}
         highlightId={highlightId}

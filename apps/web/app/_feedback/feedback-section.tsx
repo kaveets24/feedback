@@ -14,12 +14,14 @@ export type Threads = readonly FeedbackThread[] | null | undefined;
 /**
  * The comments on the version in the player: how many are open, what the artist wants feedback
  * on, a box to write one (or, for someone who can't comment, `signIn` in its place), and the
- * threads in timeline order.
+ * threads in timeline order. Someone who can't read them (`canRead`) gets only the artist's prompt
+ * and `signIn`.
  */
 export function FeedbackSection({
   item,
   threads,
   prompt,
+  canRead,
   canComment,
   canEditPrompt,
   highlightId,
@@ -28,6 +30,7 @@ export function FeedbackSection({
   item: PlayerItem;
   threads: Threads;
   prompt: string | null;
+  canRead: boolean;
   canComment: boolean;
   canEditPrompt: boolean;
   /** A comment picked from the waveform, lit until another is picked. */
@@ -40,18 +43,20 @@ export function FeedbackSection({
 
   return (
     <section aria-labelledby="feedback-heading" className="mt-12">
-      <h2 id="feedback-heading" className="text-lg font-semibold">
+      <h2 id="feedback-heading" className={`text-lg font-semibold ${canRead ? '' : 'mb-4'}`}>
         Feedback
       </h2>
-      <p className="mt-1 mb-4 text-sm text-muted" role={threads === null ? 'alert' : undefined}>
-        {threads === undefined
-          ? 'Loading comments…'
-          : threads === null
-            ? 'Couldn’t load the comments. Reload the page to try again.'
-            : live.length === 0
-              ? `No comments on v${item.versionNumber} yet.`
-              : `On v${item.versionNumber}: ${open} open${resolved ? `, ${resolved} resolved` : ''}.`}
-      </p>
+      {canRead && (
+        <p className="mt-1 mb-4 text-sm text-muted" role={threads === null ? 'alert' : undefined}>
+          {threads === undefined
+            ? 'Loading comments…'
+            : threads === null
+              ? 'Couldn’t load the comments. Reload the page to try again.'
+              : live.length === 0
+                ? `No comments on v${item.versionNumber} yet.`
+                : `On v${item.versionNumber}: ${open} open${resolved ? `, ${resolved} resolved` : ''}.`}
+        </p>
+      )}
 
       <FeedbackPrompt
         key={`prompt-${item.versionId}`}
