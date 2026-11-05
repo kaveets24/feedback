@@ -1,12 +1,12 @@
 import {
   createNextVersion,
+  createTrackInProject,
   createTrackWithFirstVersion,
   findVersion,
   markVersionFailed,
   markVersionProcessing,
   type Db,
   type TrackVersion,
-  type User,
 } from '@feedback/db';
 import type {
   CreateUploadRequest,
@@ -18,6 +18,7 @@ import type { Storage } from '@feedback/storage';
 import type { Actor } from '../../auth/plugin.ts';
 import { httpError } from '../../errors.ts';
 import type { JobQueue } from '../../queue.ts';
+import { loadProjectFor } from '../projects/service.ts';
 import { loadTrackFor } from '../tracks/service.ts';
 import { loadVersionFor, toVersionResponse } from '../versions/service.ts';
 import { sniffAudio, SNIFF_BYTES } from './sniff.ts';
@@ -39,22 +40,41 @@ export const FAILURE_REASONS = {
     "This file isn't a supported audio format. Upload an mp3, wav, m4a, aac, flac, or ogg file.",
 } as const;
 
-/** Creates the track and its v1 (`uploading`), and a URL the browser PUTs the file to. */
+/**
+ * Creates the track and its v1 (`uploading`), with any details given, and a URL the browser PUTs
+ * the file to. There's no track to check access on yet: a signed-in, approved user (the gate
+ * checks approval) may always create their own private track. A project is checked like any other,
+ * so one that isn't theirs is a 404 and nothing is created.
+ */
 export async function startUpload(
   { db, storage }: Pick<UploadDeps, 'db' | 'storage'>,
-  owner: User,
+  actor: Actor,
   input: CreateUploadRequest,
 ): Promise<CreateUploadResponse> {
-  const { version } = await createTrackWithFirstVersion(db, {
-    ownerId: owner.id,
+  if (actor.kind === 'anonymous') throw httpError(401, 'UNAUTHENTICATED', 'Sign in required');
+
+  const details = {
+    ownerId: actor.user.id,
     title: input.title,
+    genre: input.genre,
+    // Blank is stored as none.
+    feedbackPrompt: input.feedbackPrompt || null,
     original: {
       filename: input.filename,
       contentType: input.contentType,
       sizeBytes: input.sizeBytes,
     },
-  });
-  return uploadFor(storage, version);
+  };
+  if (!input.projectId) {
+    const { version } = await createTrackWithFirstVersion(db, details);
+    return uploadFor(storage, version);
+  }
+
+  await loadProjectFor(db, actor, input.projectId, 'manage');
+  const created = await createTrackInProject(db, { ...details, projectId: input.projectId });
+  // Null only if the project was deleted since the check above.
+  if (!created) throw httpError(404, 'NOT_FOUND', 'Not found');
+  return uploadFor(storage, created.version);
 }
 
 /**
@@ -70,8 +90,9 @@ export async function startVersionUpload(
   await loadTrackFor(db, actor, trackId, 'manage');
   const version = await createNextVersion(db, {
     trackId,
-    // Blank notes are stored as none.
+    // Blank is stored as none.
     changeNotes: input.changeNotes || null,
+    feedbackPrompt: input.feedbackPrompt || null,
     original: {
       filename: input.filename,
       contentType: input.contentType,

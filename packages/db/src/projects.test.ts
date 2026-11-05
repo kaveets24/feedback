@@ -1,9 +1,11 @@
 import { randomBytes } from 'node:crypto';
+import { effectiveVisibility } from '@feedback/authz';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createDb } from './client.ts';
 import {
   createProject,
+  createTrackInProject,
   deleteProject,
   deleteTrack,
   findProject,
@@ -126,6 +128,83 @@ describe('updateProject', () => {
     await deleteProject(db, project.id);
     expect(await updateProject(db, project.id, { title: 'Back?' })).toBeNull();
     expect(await updateProject(db, '01900000-0000-7000-8000-000000000000', {})).toBeNull();
+  });
+});
+
+describe('createTrackInProject', () => {
+  const create = (ownerId: string, projectId: string, title = 'New') =>
+    createTrackInProject(db, { ownerId, projectId, title, original });
+
+  it('adds the track and its v1 at the end of the project', async () => {
+    const owner = await newUser();
+    const project = await createProject(db, { ownerId: owner.id, title: 'EP' });
+    const first = await newTrack(owner.id, 'First');
+    await moveTrackToProject(db, first.id, project.id);
+
+    const created = await createTrackInProject(db, {
+      ownerId: owner.id,
+      projectId: project.id,
+      title: 'Second',
+      genre: 'pop',
+      feedbackPrompt: 'Too long?',
+      original,
+    });
+
+    expect(created?.track).toMatchObject({ projectId: project.id, position: 1, genre: 'pop' });
+    expect(created?.version).toMatchObject({
+      versionNumber: 1,
+      status: 'uploading',
+      feedbackPrompt: 'Too long?',
+    });
+    expect(ids(await listProjectTracks(db, project.id))).toEqual([first.id, created!.track.id]);
+  });
+
+  it('follows a private project, since that lets no one else hear it', async () => {
+    const owner = await newUser();
+    const project = await createProject(db, { ownerId: owner.id, title: 'EP' });
+    const created = await create(owner.id, project.id);
+    expect(created?.track).toMatchObject({ visibility: 'private', visibilityOverride: null });
+  });
+
+  it.each(['unlisted', 'public'] as const)(
+    'stays private in a project that is %s',
+    async (visibility) => {
+      const owner = await newUser();
+      const project = await createProject(db, { ownerId: owner.id, title: 'EP' });
+      await updateProject(db, project.id, { visibility });
+
+      const created = await create(owner.id, project.id);
+      expect(created?.track).toMatchObject({
+        visibility: 'private',
+        visibilityOverride: 'private',
+      });
+
+      // Nor does the project widening later reach it.
+      await updateProject(db, project.id, { visibility: 'public' });
+      const widened = await findProject(db, project.id);
+      expect(effectiveVisibility(created!.track, widened)).toBe('private');
+    },
+  );
+
+  it("creates nothing for a deleted, missing, or stranger's project", async () => {
+    const owner = await newUser(1);
+    const other = await newUser(2);
+    const deleted = await createProject(db, { ownerId: owner.id, title: 'Gone' });
+    await deleteProject(db, deleted.id);
+    const theirs = await createProject(db, { ownerId: other.id, title: 'Theirs' });
+
+    expect(await create(owner.id, deleted.id)).toBeNull();
+    expect(await create(owner.id, theirs.id)).toBeNull();
+    expect(await create(owner.id, crypto.randomUUID())).toBeNull();
+    expect(await db.select().from(tracks)).toEqual([]);
+  });
+
+  it('gives concurrent uploads distinct positions', async () => {
+    const owner = await newUser();
+    const project = await createProject(db, { ownerId: owner.id, title: 'EP' });
+    await Promise.all([1, 2, 3, 4, 5].map(() => create(owner.id, project.id)));
+    const listed = await listProjectTracks(db, project.id);
+    expect(listed.map((t) => t.position)).toEqual([0, 1, 2, 3, 4]);
   });
 });
 

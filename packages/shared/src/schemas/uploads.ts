@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { genreSchema } from './genres.ts';
 import { changeNotesSchema, trackTitleSchema } from './tracks.ts';
 
 /** Largest original we accept (CLAUDE.md section 7). Signed into the upload URL. */
@@ -57,22 +58,42 @@ export function audioContentTypeFor(file: { name: string; type: string }): Audio
   return (extension && CONTENT_TYPE_BY_EXTENSION[extension]) || null;
 }
 
-export const createUploadRequestSchema = z.object({
-  title: trackTitleSchema,
+/** What the API needs to know about a file before it goes up. */
+const uploadFileFields = {
   /** The file's name on the artist's device, kept for their reference. */
   filename: z.string().trim().min(1).max(255),
   contentType: z.enum(AUDIO_CONTENT_TYPES),
   sizeBytes: z.number().int().positive().max(MAX_UPLOAD_BYTES),
+};
+
+/**
+ * `POST /v1/uploads`: starts a new track and its v1. Everything but the title and file is
+ * optional, and saved with the track in one transaction.
+ */
+export const createUploadRequestSchema = z.object({
+  title: trackTitleSchema,
+  ...uploadFileFields,
+  /**
+   * One of the artist's own projects; the track joins at the end. It stays private whatever the
+   * project's visibility (CLAUDE.md section 6, rule 7). Anything else is a 404.
+   */
+  projectId: z.uuid().optional(),
+  genre: genreSchema.optional(),
+  /** What the artist wants feedback on in v1. Blank is saved as none. */
+  feedbackPrompt: changeNotesSchema.optional(),
 });
 export type CreateUploadRequest = z.infer<typeof createUploadRequestSchema>;
 
 /**
  * `POST /v1/tracks/:trackId/versions`: starts uploading the track's next version. Same file
- * fields as a new track, plus optional change notes; the response is the same as a new upload's.
+ * fields as a new track, plus optional change notes and feedback prompt; the response is the same
+ * as a new upload's.
  */
-export const createVersionRequestSchema = createUploadRequestSchema
-  .omit({ title: true })
-  .extend({ changeNotes: changeNotesSchema.optional() });
+export const createVersionRequestSchema = z.object({
+  ...uploadFileFields,
+  changeNotes: changeNotesSchema.optional(),
+  feedbackPrompt: changeNotesSchema.optional(),
+});
 export type CreateVersionRequest = z.infer<typeof createVersionRequestSchema>;
 
 /** Where and how the browser PUTs a file straight to storage. */
