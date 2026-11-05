@@ -325,8 +325,8 @@ describe('canAccessFeedback', () => {
     artist: 'read reply delete resolve',
     author: 'read reply edit delete',
     'other listener': 'read reply',
-    // Reading needs no account; replying does.
-    anonymous: 'read',
+    // Comments need an account, even to read them.
+    anonymous: NONE,
   };
 
   it.each(

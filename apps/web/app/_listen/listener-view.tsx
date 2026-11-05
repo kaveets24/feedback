@@ -21,7 +21,7 @@ import { ProjectCover } from '../projects/project-cover';
 // until styled (CLAUDE.md section 9), apart from the player, cover art and comments.
 
 const SHARED_BY_LINK =
-  'Shared with you by link. You can listen, and comment once you’re signed in.';
+  'Shared with you by link. You can listen, and read and leave comments once you’re signed in.';
 
 /** A ready version as the player plays it, through the link if there is one. */
 function playerItem(
@@ -42,8 +42,9 @@ function playerItem(
 
 /**
  * The player for a track's current version, with A/B against its other versions, and the comments
- * on the version it shows, loaded as it's shown. Anyone who can see the track can read them; an
- * approved, signed-in visitor can comment, as themselves (and through the link, if there is one).
+ * on the version it shows, loaded as it's shown. Only an approved, signed-in visitor gets the
+ * comments: they read and write them as themselves (and through the link, if there is one). Anyone
+ * else can listen, and is told what it would take.
  */
 function Player({ track, token }: { track: TrackResponse; token: string | null }) {
   // Listeners only get ready versions, newest first; the current one leads.
@@ -54,11 +55,16 @@ function Player({ track, token }: { track: TrackResponse; token: string | null }
   const [shownId, setShownId] = useState(current?.versionId);
   const [feedback, setFeedback] = useState<Record<string, Threads>>({});
 
-  // Who's here decides what the comments say they may do, so it's settled before they load, and
-  // again after signing in or out (the sign-in is a modal, so the page and its link stay put).
+  // Who's here decides whether comments load and what they may do with them, so it's settled
+  // before they load, and again after signing in or out (the sign-in is a modal, so the page and
+  // its link stay put). Signing out takes away any comments already on the page.
   useEffect(() => {
     let live = true;
-    void listenerAction().then((who) => live && setListener(who));
+    void listenerAction().then((who) => {
+      if (!live) return;
+      setListener(who);
+      if (who !== 'approved') setFeedback({});
+    });
     return () => {
       live = false;
     };
@@ -67,7 +73,7 @@ function Player({ track, token }: { track: TrackResponse; token: string | null }
   // Bumped after each change to the comments, to load them again.
   const [changes, setChanges] = useState(0);
   useEffect(() => {
-    if (!listener || !shownId) return;
+    if (listener !== 'approved' || !shownId) return;
     let live = true;
     void listListenerFeedbackAction(token, shownId).then((result) => {
       if (!live) return;
@@ -91,17 +97,19 @@ function Player({ track, token }: { track: TrackResponse; token: string | null }
         older={items.filter((i) => i !== current)}
         feedback={feedback}
         prompts={Object.fromEntries(track.versions.map((v) => [v.id, v.feedbackPrompt]))}
+        // While it's still settling, the section says the comments are loading.
+        canRead={listener === null || listener === 'approved'}
         canComment={listener === 'approved'}
         canEditPrompt={false}
-        signIn={<SignInToComment listener={listener} />}
+        signIn={<CommentsNeedAccount listener={listener} />}
         onShow={setShownId}
       />
     </FeedbackPlaceContext.Provider>
   );
 }
 
-/** In the comment box's place for someone who can't comment (yet), saying why. */
-function SignInToComment({ listener }: { listener: Listener | null }) {
+/** In the comment box's place for someone who can't read or write comments (yet), saying why. */
+function CommentsNeedAccount({ listener }: { listener: Listener | null }) {
   switch (listener) {
     case 'anonymous':
       return (
@@ -109,20 +117,20 @@ function SignInToComment({ listener }: { listener: Listener | null }) {
           {/* A modal, so the page (and the link in its address) stays put. */}
           <SignInButton mode="modal">
             <button type="button" className="btn">
-              Sign in to comment
+              Sign in to read and leave comments
             </button>
           </SignInButton>
-          <p className="text-sm text-muted">You can listen and read without an account.</p>
+          <p className="text-sm text-muted">You can listen without an account.</p>
         </div>
       );
     case 'pending':
       return (
         <p className="text-sm text-muted">
-          Your account is waiting for approval. You can comment once it’s approved.
+          Your account is waiting for approval. You can read and leave comments once it’s approved.
         </p>
       );
     case 'rejected':
-      return <p className="text-sm text-muted">Your account can’t comment.</p>;
+      return <p className="text-sm text-muted">Your account can’t read or leave comments.</p>;
     default:
       return null;
   }

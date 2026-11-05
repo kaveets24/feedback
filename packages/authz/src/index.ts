@@ -130,7 +130,7 @@ export function roleFor(actor: Actor, resource: Resource, context?: AccessContex
  * - `public`: anyone may view and listen.
  * - `unlisted`: only holders of an active share link may view and listen.
  * - `private`: the owner only. Links do nothing.
- * - Anyone who may view may also comment, if signed in (rule 11).
+ * - Anyone who may view may also read and write comments, if signed in (rules 8 and 11).
  * - Managing and downloading need the owner.
  */
 export function canAccess(
@@ -145,12 +145,12 @@ export function canAccess(
   return ROLE_ACTIONS[role].includes(action);
 }
 
-// Feedback (comments) on a track's versions. Every comment is visible to everyone who can see
-// the track; canAccessFeedback answers the questions about changing one.
+// Feedback (comments) on a track's versions. Every comment is visible to everyone signed in who
+// can see the track; canAccessFeedback answers the questions about one comment.
 
 /**
- * What can be done to an existing comment. Writing a new top-level comment is `canAccess(...,
- * 'comment')` on the track; `reply` is answering this one.
+ * What can be done to an existing comment. Reading a track's comments as a list, or writing a new
+ * top-level one, is `canAccess(..., 'comment')` on the track; `reply` is answering this one.
  */
 export const FEEDBACK_ACTIONS = ['read', 'reply', 'edit', 'delete', 'resolve'] as const;
 export type FeedbackAction = (typeof FEEDBACK_ACTIONS)[number];
@@ -163,10 +163,10 @@ export interface FeedbackItem {
 /**
  * Whether `actor` may do `action` to `feedback`, a comment on a version of `track`. `track` and
  * `context` are what canAccess takes for the track; nobody gets anything on a comment without
- * being able to view its track, authors included.
+ * being able to view its track, authors included, and anonymous visitors get nothing at all.
  *
- * - `read`: anyone who can view the track.
- * - `reply`: anyone who may comment on the track (so, signed in).
+ * - `read`: anyone signed in who can view the track.
+ * - `reply`: anyone who may comment on the track (the same people).
  * - `edit`: its author only. Nobody else rewrites someone's words.
  * - `delete`: its author, or the artist (on their own track).
  * - `resolve` (and reopen): the artist only.
@@ -178,6 +178,7 @@ export function canAccessFeedback(
   action: FeedbackAction,
   context?: AccessContext,
 ): boolean {
+  if (actor.kind === 'anonymous') return false;
   if (!canAccess(actor, track, 'view', context)) return false;
   const isArtist = roleFor(actor, track, context) === 'owner';
   const isAuthor = actor.kind === 'user' && actor.userId === feedback.authorId;

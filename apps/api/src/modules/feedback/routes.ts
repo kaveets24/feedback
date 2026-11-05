@@ -26,9 +26,9 @@ const errors = {
   404: errorResponseSchema,
 };
 
-// Comments on a version. Reading works for anyone who can view the track, signed in or not and
-// with a share link if they have one; writing needs an account. Writes return the thread they
-// changed, as the asker sees it.
+// Comments on a version. Reading and writing both need an account, on a track the asker can view
+// (with a share link if they have one). Writes return the thread they changed, as the asker sees
+// it.
 export function feedbackRoutes(deps: FeedbackDeps): FastifyPluginAsyncZod {
   return async (app) => {
     app.get(
@@ -36,7 +36,11 @@ export function feedbackRoutes(deps: FeedbackDeps): FastifyPluginAsyncZod {
       {
         schema: {
           params: versionParamsSchema,
-          response: { 200: feedbackListResponseSchema, 404: errorResponseSchema },
+          response: {
+            200: feedbackListResponseSchema,
+            401: errorResponseSchema,
+            404: errorResponseSchema,
+          },
         },
       },
       async (request, reply) => {

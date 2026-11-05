@@ -14,7 +14,7 @@ A native mobile app (Expo) is planned for Phase 11. Until then, the web app has 
 ## Users
 
 - **Primary: solo bedroom producers.** Individual songwriters and producers who make demos at home. They want honest feedback on rough bounces before a song is finished, without putting unfinished work in public.
-- **Feedback givers, at launch: the artist's trusted circle.** Friends, mentors, collaborators, and engineers who open a private or unlisted share link (often on a phone, often signed out). They listen and leave comments at specific moments in the track.
+- **Feedback givers, at launch: the artist's trusted circle.** Friends, mentors, collaborators, and engineers who open a private or unlisted share link (often on a phone, often signed out). They can listen signed out, and sign in to read comments and leave their own at specific moments in the track.
 - **Later: public listeners.** People who find public works in progress through profiles and discovery (Phase 6). This group is secondary to the link-holders.
 - Bands and multi-person collaboration (stems, co-owners) are parked, not current audiences.
 
@@ -27,7 +27,7 @@ Feedback is a social app for sharing unfinished music. Artists upload rough song
 SoundCloud meets Google Docs comments, for work-in-progress music. What sets it apart:
 
 - **Versions are first-class.** Every comment belongs to a specific version, so the artist can see what changed and whether a note still applies.
-- **Comments are timestamped on the waveform** and work like a to-do list (open or resolved). Everyone who can hear a track can read its comments.
+- **Comments are timestamped on the waveform** and work like a to-do list (open or resolved). Everyone signed in who can hear a track can read its comments.
 - **Private is the default everywhere.** Sharing works by unguessable links that can expire and be revoked, which is what makes people comfortable uploading unfinished work.
 
 ## Operating Context

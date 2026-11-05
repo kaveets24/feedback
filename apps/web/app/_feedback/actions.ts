@@ -14,7 +14,7 @@ import {
   type VersionResponse,
 } from '@feedback/shared';
 import { toResult, type ActionResult } from '../../lib/action-result';
-import { getMe, serverApi, sharedApi, sharedApiAs, viewerApi } from '../../lib/api';
+import { getMe, serverApi, sharedApiAs } from '../../lib/api';
 
 // Comment calls to the API. They go with the user's session; on the listen page, with the share
 // link's token too (`shareToken`), so the link counts. Server actions are
@@ -51,8 +51,8 @@ async function call<T>(run: () => Promise<T>): Promise<ActionResult<T>> {
 
 /**
  * A version's comments for a listener: through a share link (`shareToken`), or with none (null)
- * for a public track. An approved, signed-in visitor asks as themselves, so the API says what they
- * may do with each comment; anyone else asks as the link alone, or as nobody.
+ * for a public track. Comments need an approved account, so anyone else gets none without asking
+ * the API, whose approval gate and sign-in check would refuse them anyway.
  */
 export async function listListenerFeedbackAction(
   shareToken: unknown,
@@ -60,14 +60,16 @@ export async function listListenerFeedbackAction(
 ): Promise<ActionResult<FeedbackListResponse>> {
   const parsedId = id.safeParse(versionId);
   if (!parsedId.success) return { ok: false, message: GONE };
+  if ((await listenerAction()) !== 'approved') {
+    return { ok: false, message: 'Sign in to read the comments.' };
+  }
   let api;
   if (shareToken === null) {
-    api = await viewerApi();
+    api = serverApi();
   } else {
     const token = shareTokenSchema.safeParse(shareToken);
     if (!token.success) return { ok: false, message: GONE };
-    const asSelf = (await listenerAction()) === 'approved';
-    api = asSelf ? sharedApiAs(token.data) : sharedApi(token.data);
+    api = sharedApiAs(token.data);
   }
   try {
     return await call(() => api.listFeedback(parsedId.data));
