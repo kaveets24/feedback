@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
+import { RATE_LIMITED_DIGEST } from './lib/rate-limited-digest';
 import { sentryOptions } from './lib/sentry';
 
 // Runs once when the server starts: validate env so a bad config fails fast, then start error
@@ -9,4 +10,8 @@ export async function register() {
 }
 
 // Reports errors thrown while rendering server components, route handlers, and server actions.
-export const onRequestError = Sentry.captureRequestError;
+// Being rate limited is working as intended, so it isn't one.
+export const onRequestError: typeof Sentry.captureRequestError = (error, ...rest) => {
+  if ((error as { digest?: unknown } | null)?.digest === RATE_LIMITED_DIGEST) return;
+  Sentry.captureRequestError(error, ...rest);
+};

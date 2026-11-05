@@ -1,13 +1,22 @@
 import 'server-only';
 import { auth } from '@clerk/nextjs/server';
+import { headers } from 'next/headers';
 import { cache } from 'react';
 import { createApiClient } from '@feedback/shared';
 import { env } from './env';
+import { forwardedClientHeaders, rateLimitedFetch } from './rate-limit';
+
+/** What every API client needs, whoever it's asking as. */
+const apiOptions = {
+  baseUrl: env.API_URL,
+  getHeaders: async () => forwardedClientHeaders(await headers(), env.WEB_API_SECRET),
+  fetch: rateLimitedFetch,
+};
 
 /** API client for server components, authenticated as the signed-in user (if any). */
 export function serverApi() {
   return createApiClient({
-    baseUrl: env.API_URL,
+    ...apiOptions,
     getToken: async () => (await auth()).getToken(),
   });
 }
@@ -20,7 +29,7 @@ export function serverApi() {
 export async function viewerApi() {
   const { isAuthenticated } = await auth();
   if (isAuthenticated && (await getMe()).accessStatus === 'approved') return serverApi();
-  return createApiClient({ baseUrl: env.API_URL });
+  return createApiClient(apiOptions);
 }
 
 /**
@@ -29,7 +38,7 @@ export async function viewerApi() {
  * for approval, or signed out), and what it opens never depends on who's asking.
  */
 export function sharedApi(shareToken: string) {
-  return createApiClient({ baseUrl: env.API_URL, shareToken });
+  return createApiClient({ ...apiOptions, shareToken });
 }
 
 /**
@@ -40,7 +49,7 @@ export function sharedApi(shareToken: string) {
  */
 export function sharedApiAs(shareToken: string) {
   return createApiClient({
-    baseUrl: env.API_URL,
+    ...apiOptions,
     shareToken,
     getToken: async () => (await auth()).getToken(),
   });
