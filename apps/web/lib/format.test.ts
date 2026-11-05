@@ -1,6 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import type { TrackSummary } from '@feedback/shared';
-import { formatDate, formatDuration, totalDurationMs } from './format';
+import { formatDate, formatDuration, totalDurationMs, truncate } from './format';
+
+describe('truncate', () => {
+  it('leaves text that fits alone', () => {
+    expect(truncate('Night Drive', 11)).toBe('Night Drive');
+  });
+
+  it('cuts longer text to the limit, ellipsis included', () => {
+    expect(truncate('Night Drive', 6)).toBe('Night…');
+  });
+
+  it('leaves no space before the ellipsis', () => {
+    expect(truncate('Night Drive', 7)).toBe('Night…');
+  });
+
+  it('never splits an emoji', () => {
+    expect(truncate('🎸🎸🎸🎸', 3)).toBe('🎸🎸…');
+  });
+});
 
 describe('formatDuration', () => {
   it.each([

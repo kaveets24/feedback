@@ -9,8 +9,8 @@ import { NotificationList } from './notification-list';
 export const metadata: Metadata = { title: 'Notifications · Feedback' };
 
 /**
- * The signed-in user's notifications, newest first: comments and replies others left on their
- * tracks. Showing them marks them read. Plain HTML until this page is styled (CLAUDE.md section 9).
+ * The signed-in user's notifications, newest first under day headings: comments and replies others
+ * left on their tracks. Showing them marks them read.
  */
 export default async function NotificationsPage({
   searchParams,
@@ -27,22 +27,40 @@ export default async function NotificationsPage({
   );
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6">
-      <h1>Notifications</h1>
-      {page.notifications.length === 0 ? (
-        <p>
-          {cursor
-            ? 'No older notifications.'
-            : 'Nothing yet. When someone comments on one of your tracks, it shows up here.'}
+    <main className="mx-auto max-w-3xl px-4 pt-6 pb-16">
+      <h1 className="mb-6 text-3xl font-semibold text-balance">Notifications</h1>
+      {page.notifications.length === 0 && (
+        <p className="border-y border-rule py-6 text-muted">
+          {cursor ? (
+            'No older notifications.'
+          ) : (
+            <>
+              Nothing yet.{' '}
+              <Link href="/tracks" className="link">
+                Share a track
+              </Link>{' '}
+              and comments on it show up here.
+            </>
+          )}
         </p>
-      ) : (
-        <NotificationList notifications={page.notifications} />
       )}
-      <p>
-        {cursor && <Link href="/notifications">Newest</Link>}
-        {cursor && page.nextCursor && ' · '}
-        {page.nextCursor && <Link href={`/notifications?cursor=${page.nextCursor}`}>Older</Link>}
-      </p>
+      {/* Stays mounted through an empty page, so it remembers what was new this visit. */}
+      <NotificationList notifications={page.notifications} now={new Date().toISOString()} />
+
+      {(cursor || page.nextCursor) && (
+        <nav aria-label="More notifications" className="mt-4 flex gap-4 text-sm">
+          {cursor && (
+            <Link href="/notifications" className="link">
+              Newest
+            </Link>
+          )}
+          {page.nextCursor && (
+            <Link href={`/notifications?cursor=${page.nextCursor}`} className="link">
+              Older
+            </Link>
+          )}
+        </nav>
+      )}
     </main>
   );
 }

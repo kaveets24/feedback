@@ -4,8 +4,8 @@ import Link from 'next/link';
 import type { CoverImage } from '@feedback/shared';
 import { getMe, serverApi } from '../../lib/api';
 import { Avatar } from './avatar';
-import { BellIcon, PersonIcon } from './icons';
-import { NavLinks } from './nav-links';
+import { PersonIcon } from './icons';
+import { NavLinks, NotificationsLink } from './nav-links';
 import { Wordmark } from './wordmark';
 
 /**
@@ -55,21 +55,7 @@ export async function AppHeader() {
           {showNav && (
             <>
               {/* Icons, not words: the bell, and your picture (or the person until you have one). */}
-              <Link
-                href="/notifications"
-                className="focus-glow inline-flex items-center self-stretch rounded-sm text-sm text-muted hover:text-accent sm:px-1"
-                aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
-                title="Notifications"
-              >
-                <BellIcon />
-                {unread > 0 && (
-                  // Phones have room for one digit, so the count stops at 9+ there.
-                  <span className="ml-1 font-lcd text-accent tabular-nums">
-                    <span className="sm:hidden">{unread > 9 ? '9+' : unread}</span>
-                    <span className="hidden sm:inline">{unread > 99 ? '99+' : unread}</span>
-                  </span>
-                )}
-              </Link>
+              <NotificationsLink unread={unread} />
               <Link
                 href="/settings/profile"
                 className="group focus-glow inline-flex items-center self-stretch rounded-sm text-muted hover:text-accent sm:px-1"

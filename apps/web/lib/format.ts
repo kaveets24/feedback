@@ -11,6 +11,17 @@ export function formatDuration(ms: number): string {
     : `${minutes}:${seconds}`;
 }
 
+/** Text cut to at most `max` characters, ending in an ellipsis if it was cut. */
+export function truncate(text: string, max: number): string {
+  // By code point, so a cut never splits an emoji in half.
+  const characters = Array.from(text);
+  if (characters.length <= max) return text;
+  return `${characters
+    .slice(0, max - 1)
+    .join('')
+    .trimEnd()}…`;
+}
+
 /** A version's status in words for the artist. */
 export const STATUS_LABELS: Record<VersionStatus, string> = {
   uploading: 'Upload not finished',
