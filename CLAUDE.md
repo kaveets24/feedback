@@ -29,10 +29,10 @@ Read this file fully before making changes. If something here conflicts with a r
 **Explicitly out of scope for now** (do not build or scaffold these)
 
 - Geolocation, maps, places, PostGIS, location-based discovery or ranking. The one exception is a profile's optional city, a label the user picks from a fixed list that nothing filters, sorts, or ranks by (see `profiles` in section 5)
-- Audio feature extraction / ML / embeddings. The exceptions are a track's tempo (BPM, Phase 9) and, much later, its key and genre (Phase 11), each editable by the artist; anything else, such as embeddings or similarity, stays out (decided 2026-11-04)
+- Audio feature extraction / ML / embeddings. The exceptions are a track's tempo (BPM, Phase 9) and, much later, its key and genre (Phase 12), each editable by the artist; anything else, such as embeddings or similarity, stays out (decided 2026-11-04)
 - Reputation scores, leaderboards, give-to-get credits
-- Payments and monetization (the app starts free; $1 artist donations are parked, section 11), plus direct messaging and live streaming
-- Mobile apps (planned for Phase 10; keep the API client-agnostic so it's easy later) and desktop apps (a folder-sync app is an idea in the parking lot, section 11)
+- Payments and monetization (the app starts free; $1 artist donations are parked, section 11), plus direct messaging between users (Phase 13's help chat is only ever with the team) and live streaming
+- Mobile apps (planned for Phase 11; keep the API client-agnostic so it's easy later) and desktop apps (a folder-sync app is an idea in the parking lot, section 11)
 
 ---
 
@@ -81,7 +81,7 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 │   ├── web/            # Next.js app
 │   ├── api/            # Fastify HTTP API
 │   ├── worker/         # BullMQ consumers (ffmpeg pipeline)
-│   └── mobile/         # Expo app (Phase 10, not yet created)
+│   └── mobile/         # Expo app (Phase 11, not yet created)
 ├── packages/
 │   ├── db/             # Drizzle schema, migrations, seed, query helpers
 │   ├── shared/         # zod schemas, shared types, constants, API client
@@ -473,7 +473,19 @@ Planned 2026-11-04: detect each upload's tempo, let the artist correct it, and l
 - [ ] Home: a BPM range and a sort control beside search and genre, kept in the URL like the other filters, and BPM on each row (blank when there is none), in home's existing style
 - **Done when:** an uploaded song gets a BPM without the artist doing anything; on at least 20 of the owner's real songs, most land within 2 BPM of the true tempo or at exactly half or double it (synthetic click tracks cover this in tests, since real songs can't be committed); the artist can correct it and the correction survives a new version; existing tracks are filled in on their own; and home filters and sorts by BPM across pages, with tracks that have none handled as above.
 
-### Phase 10: Mobile (Expo)
+### Phase 10: Discord feed
+
+Planned 2026-11-04: post to a Discord channel when an artist shares a new track, so the community sees new work. One channel to start, ours, through a Discord webhook; channels belonging to artists or crews can come later if they're wanted. A post goes to another company's service and can't be fully taken back once people have seen it, so the rules below are careful about what goes out (section 1, trust first). The design below is the starting point for this phase's task breakdown; schema changes are shown before any UI, as always.
+
+- [ ] What posts: an upload alone never does, since everything starts private. A track posts once it's public by effective visibility, with a ready version, from an approved account that opted in, checked with `canAccess` as nobody in particular. Private and link-only tracks never post. Each track posts once: new versions don't post for now, and going private and public again doesn't repost
+- [ ] Opting in: a per-account setting, off by default, on `/settings/profile`, saying plainly that new public tracks are posted to Discord. Public today means your profile and discovery (section 6), not another service, so making a track public isn't taken as agreeing to this. Turning it on doesn't post what's already public
+- [ ] How it runs: a recurring job on the worker's `maintenance` queue (`apps/worker/src/cleanup/`) every few minutes finds tracks to post, with a cap per run. Asking the database covers every way a track can turn public (an upload finishing, its visibility changing, its project's changing) without hooks in each, and the wait leaves a moment to undo a mistake. Schema: `tracks.discord_posted_at` and `tracks.discord_message_id`, and the opt-in on `profiles`. It can never affect an upload: a failed post is simply tried again on a later run, honouring Discord's rate limits
+- [ ] What a post says: the track's title, the artist's display name, its genre, and a link to its public page. Never audio, signed URLs, file names, notes, or share links. Titles are free text, so a post sets Discord's `allowed_mentions` to none and escapes formatting, so a track called `@everyone` pings nobody
+- [ ] Taking posts down: when a track stops being public, is deleted, or its artist opts out, the same job deletes its message using the stored id. This is best effort: it can't remove what people already saw, and the track's link stops working either way. The moderation question in section 13 applies, since this sends public titles somewhere new
+- [ ] The webhook URL contains a token, so it's a secret: a Fly secret and an optional variable in the worker's env schema, where leaving it unset turns the feed off (local, CI). It's never logged or sent to monitoring (section 10). Plain `fetch`, no new dependency, and tests use a fake server rather than Discord
+- **Done when:** an opted-in artist's new public track appears in the channel once, within a few minutes, with a working link; private, link-only, and opted-out tracks never appear; making a posted track private removes its post; and a title containing `@everyone` pings nobody.
+
+### Phase 11: Mobile (Expo)
 
 - [ ] Reuse `packages/shared` client and zod schemas
 - [ ] Background playback + lock-screen controls (`react-native-track-player`)
@@ -481,14 +493,27 @@ Planned 2026-11-04: detect each upload's tempo, let the artist correct it, and l
 - [ ] **Quick-capture recording** straight into a new private track
 - [ ] Share-link deep linking
 
-### Phase 11: Key and genre detection
+### Phase 12: Key and genre detection
 
-Planned 2026-11-04 and deliberately last: nothing here should come ahead of the phases above. Whether to build each one gets decided when the phase starts, based on how well Phase 9's detection did and whether artists are correcting it. Both follow Phase 9's approach: detection runs in the worker, can never fail a version, stays blank rather than guess, and the artist's edit wins.
+Planned 2026-11-04 and deliberately near the end: nothing here should come ahead of the phases above. Whether to build each one gets decided when the phase starts, based on how well Phase 9's detection did and whether artists are correcting it. Both follow Phase 9's approach: detection runs in the worker, can never fail a version, stays blank rather than guess, and the artist's edit wins.
 
 - [ ] Key detection: the musical key of each upload from one fixed list of 24 major and minor keys, stored and edited like BPM (a detected value per version, the value everyone sees on the track, and the pencil form). Plain signal processing should do, since it needs no trained model. Whether discovery filters by key is decided here
 - [ ] Auto genre tagging: fills in a track's genre from `GENRES`, only when it's blank and the detector is confident, and never replaces one the artist chose (genres already set count as theirs). A wrong guess would put a public track under the wrong discovery filter, so the owner can see it was detected and change it. Whether it also fills in existing tracks is decided here
 - [ ] The genre model: this likely needs a trained model, which would be the app's first ML, so an ADR picks one and checks its license, accuracy against our genre list, and cost on the worker before anything is added. It runs on our own worker: unfinished audio is never sent to a third-party service (section 1, trust first)
 - **Done when:** the detectors that were chosen fill in new uploads without the artist doing anything, on the owner's real songs they're right often enough that correcting them is the exception, and an artist's edit is never overwritten.
+
+### Phase 13: Help and feature requests
+
+Planned 2026-11-04 and deliberately last: a simple place in the app to get help or ask for a feature, and hear back. It's a private conversation between one person and the team: not an AI assistant, not messages between users (section 1), and not a public request board with votes (section 1: no vanity metrics). The design below is the starting point for this phase's task breakdown; schema and permission changes are shown before any UI, as always.
+
+- [ ] Conversations and messages. Tables: `help_conversations` (id, user_id, topic `help | feature_request`, status `open | closed`) and `help_messages` (id, conversation_id, sender `user | team`, body, up to 2000 characters and not blank). Text only, with no attachments. The words "help" and "request" are used throughout, since `feedback` already means comments on a track
+- [ ] Permissions in `packages/authz` (a help counterpart to `canAccess`, no I/O), with a hand-written table of every actor (the conversation's author, another approved account, pending or rejected account, anonymous) x action (view, send). Only the author and the team can read a conversation, and anyone else gets a 404 (rule 9). Approved accounts only to start: the approval gate stays as it is, so a pending account still can't write in
+- [ ] Web: `/help`, linked from the header, with short answers to common questions (who can hear my track, how share links work, what versions are), a form to start a conversation with its topic picked, and your past conversations with their replies. Refreshing is plain polling (section 2). Plain semantic HTML until asked (section 9)
+- [ ] The team's side starts as admin scripts, like approvals: `pnpm admin:help-list` and `pnpm admin:help-reply <conversationId> <message>`, closing with `pnpm admin:help-close <conversationId>`, with the same through `pnpm staging:admin` for the deployed app. A web inbox, and an admin role for it, come later if the queue gets big
+- [ ] Notifications: a team reply notifies the person through the existing bell, with a new `help_reply` type. A notification points at a comment today (`feedback_id` is required), so this needs a nullable pointer to the conversation as well, added expand-first
+- [ ] How the team hears about a new message: settled in this phase's task breakdown. Email is the natural answer, so this may settle the email provider question in section 13. Until then the list script is the only way to see them, which is easy to miss
+- [ ] Limits and privacy: Phase 7's rate limits apply, with a cap on how many conversations one account can have open. Messages are private content, so they're never logged or sent to monitoring (section 10), and account deletion and data export (Phase 7) cover them
+- **Done when:** a signed-in artist asks for a feature on `/help`, the owner sees it and replies, the artist gets a notification and reads the reply, and nobody else can reach that conversation by any URL.
 
 ### Later / parking lot
 
