@@ -241,6 +241,7 @@ Client                API                      B2/S3              Worker
   |                     |<------------------------------------------| status=ready
 ```
 
+- `POST /v1/uploads` can also take a `projectId` (one of the artist's own, or a 404), `genre`, and `feedbackPrompt`, all saved with the track in one transaction, so nothing has to be entered twice. A track that joins a wider project this way stays private, through the same override as moving one in (rule 7). `POST /v1/tracks/:trackId/versions` takes `feedbackPrompt` beside `changeNotes` (decided 2026-11-05).
 - Accepted inputs: mp3, wav, m4a, aac, flac, ogg. Enforce max size (start at 200 MB) and max duration (start at 20 min). Validate by sniffing, not only by extension.
 - Output: AAC (m4a) stream file, plus waveform peaks (about 1000 points, normalized 0 to 1) and `duration_ms`.
 - Originals live in a **private** bucket/prefix. Stream files likewise; both only reachable via signed URLs.

@@ -4,43 +4,69 @@ import { statusesBefore, type Genre } from '@feedback/shared';
 import type { Db } from './client.ts';
 import { tracks, trackVersions, type Track, type TrackVersion } from './schema.ts';
 
+type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
+
 export interface NewOriginal {
   filename: string;
   contentType: string;
   sizeBytes: number;
 }
 
+export interface NewTrack {
+  ownerId: string;
+  title: string;
+  genre?: Genre | null;
+  /** What the artist wants feedback on in v1. */
+  feedbackPrompt?: string | null;
+  original: NewOriginal;
+}
+
+/** Which project a track is in, where, and who can hear it there. */
+export type TrackPlacement = Pick<
+  Track,
+  'projectId' | 'position' | 'visibility' | 'visibilityOverride'
+>;
+
 /**
- * Creates a track and its v1 (`uploading`) in one transaction. The original's storage key is
- * derived from the version id (`originals/<versionId>`, ADR 0008).
+ * Inserts a track and its v1 (`uploading`) in the caller's transaction. Without a `placement` the
+ * track is loose and private. The original's storage key is derived from the version id
+ * (`originals/<versionId>`, ADR 0008).
  */
+export async function insertTrackWithFirstVersion(
+  tx: Tx,
+  input: NewTrack,
+  placement?: TrackPlacement,
+): Promise<{ track: Track; version: TrackVersion }> {
+  const [track] = await tx
+    .insert(tracks)
+    .values({ ownerId: input.ownerId, title: input.title, genre: input.genre, ...placement })
+    .returning();
+  if (!track) throw new Error('insert returned no track');
+
+  const versionId = uuidv7();
+  const [version] = await tx
+    .insert(trackVersions)
+    .values({
+      id: versionId,
+      trackId: track.id,
+      versionNumber: 1,
+      feedbackPrompt: input.feedbackPrompt,
+      originalKey: `originals/${versionId}`,
+      originalFilename: input.original.filename,
+      originalContentType: input.original.contentType,
+      originalSizeBytes: input.original.sizeBytes,
+    })
+    .returning();
+  if (!version) throw new Error('insert returned no version');
+  return { track, version };
+}
+
+/** Creates a loose, private track and its v1 in one transaction. */
 export async function createTrackWithFirstVersion(
   db: Db,
-  input: { ownerId: string; title: string; original: NewOriginal },
+  input: NewTrack,
 ): Promise<{ track: Track; version: TrackVersion }> {
-  return db.transaction(async (tx) => {
-    const [track] = await tx
-      .insert(tracks)
-      .values({ ownerId: input.ownerId, title: input.title })
-      .returning();
-    if (!track) throw new Error('insert returned no track');
-
-    const versionId = uuidv7();
-    const [version] = await tx
-      .insert(trackVersions)
-      .values({
-        id: versionId,
-        trackId: track.id,
-        versionNumber: 1,
-        originalKey: `originals/${versionId}`,
-        originalFilename: input.original.filename,
-        originalContentType: input.original.contentType,
-        originalSizeBytes: input.original.sizeBytes,
-      })
-      .returning();
-    if (!version) throw new Error('insert returned no version');
-    return { track, version };
-  });
+  return db.transaction((tx) => insertTrackWithFirstVersion(tx, input));
 }
 
 /**
@@ -51,7 +77,12 @@ export async function createTrackWithFirstVersion(
  */
 export async function createNextVersion(
   db: Db,
-  input: { trackId: string; original: NewOriginal; changeNotes?: string | null },
+  input: {
+    trackId: string;
+    original: NewOriginal;
+    changeNotes?: string | null;
+    feedbackPrompt?: string | null;
+  },
 ): Promise<TrackVersion | null> {
   return db.transaction(async (tx) => {
     // `no key update`: the version insert's foreign key check on the track isn't blocked by it.
@@ -74,6 +105,7 @@ export async function createNextVersion(
         trackId: track.id,
         versionNumber: (last?.versionNumber ?? 0) + 1,
         changeNotes: input.changeNotes ?? null,
+        feedbackPrompt: input.feedbackPrompt ?? null,
         originalKey: `originals/${versionId}`,
         originalFilename: input.original.filename,
         originalContentType: input.original.contentType,

@@ -1,10 +1,15 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
+  createProject,
+  deleteProject,
+  findTrack,
   findVersion,
   markVersionFailed,
   markVersionProcessing,
   markVersionReady,
   setAccessStatus,
+  updateProject,
+  trackVersions,
   upsertUserFromAuth,
   type Db,
 } from '@feedback/db';
@@ -150,6 +155,105 @@ describe('uploads', () => {
         originalContentType: 'audio/wav',
         originalSizeBytes: 2044,
       });
+      expect(found?.track).toMatchObject({ projectId: null, genre: null });
+      expect(found?.version.feedbackPrompt).toBeNull();
+    });
+
+    it('saves the genre and feedback prompt, and blank prompts as none', async () => {
+      await approvedUser('u1');
+      const res = await createUpload(auth('u1'), {
+        ...valid,
+        genre: 'pop',
+        feedbackPrompt: '  Is the vocal too loud? ',
+      });
+      expect(res.statusCode).toBe(201);
+      const found = await findVersion(db, res.json().versionId);
+      expect(found?.track.genre).toBe('pop');
+      expect(found?.version.feedbackPrompt).toBe('Is the vocal too loud?');
+
+      const blank = await createUpload(auth('u1'), { ...valid, feedbackPrompt: '   ' });
+      expect((await findVersion(db, blank.json().versionId))?.version.feedbackPrompt).toBeNull();
+    });
+
+    it.each([
+      ['an unknown genre', { genre: 'polka-metal' }],
+      ['a prompt over 2000 characters', { feedbackPrompt: 'x'.repeat(2001) }],
+      ['a project id that is not one', { projectId: 'nope' }],
+    ])('rejects %s', async (_label, change) => {
+      await approvedUser('u1');
+      const res = await createUpload(auth('u1'), { ...valid, ...change });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().error.code).toBe('VALIDATION_ERROR');
+    });
+
+    describe('into a project', () => {
+      it('adds the track to the end of the project', async () => {
+        const user = await approvedUser('u1');
+        const project = await createProject(db, { ownerId: user.id, title: 'EP' });
+
+        const first = await createUpload(auth('u1'), { ...valid, projectId: project.id });
+        const second = await createUpload(auth('u1'), { ...valid, projectId: project.id });
+
+        expect(first.statusCode).toBe(201);
+        expect(await findTrack(db, first.json().trackId)).toMatchObject({
+          projectId: project.id,
+          position: 0,
+        });
+        expect(await findTrack(db, second.json().trackId)).toMatchObject({
+          projectId: project.id,
+          position: 1,
+        });
+      });
+
+      // The privacy promise: picking a public project at upload never makes the track public.
+      it('keeps the track private in a public project, even once it is ready', async () => {
+        const user = await approvedUser('u1');
+        await approvedUser('u2');
+        const project = await createProject(db, { ownerId: user.id, title: 'EP' });
+        await updateProject(db, project.id, { visibility: 'public' });
+
+        const res = await createUpload(auth('u1'), { ...valid, projectId: project.id });
+        const { trackId, versionId }: CreateUploadResponse = res.json();
+        await markVersionProcessing(db, versionId);
+        await markVersionReady(db, versionId, {
+          streamKey: `streams/${versionId}`,
+          durationMs: 1000,
+          peaks: [0.5],
+        });
+
+        const read = (headers: Record<string, string>) =>
+          app.inject({ method: 'GET', url: `/v1/tracks/${trackId}`, headers });
+        expect((await read(auth('u1'))).json()).toMatchObject({
+          visibility: 'private',
+          inheritsVisibility: false,
+        });
+        expect((await read(auth('u2'))).statusCode).toBe(404);
+        expect((await read({})).statusCode).toBe(404);
+      });
+
+      it('returns 404 for a project that is not theirs or is gone, and creates nothing', async () => {
+        const user = await approvedUser('u1');
+        const other = await approvedUser('u2');
+        const theirs = await createProject(db, { ownerId: other.id, title: 'Theirs' });
+        // Public, so being able to see it isn't enough: adding to it takes `manage`.
+        await updateProject(db, theirs.id, { visibility: 'public' });
+        const gone = await createProject(db, { ownerId: user.id, title: 'Gone' });
+        await deleteProject(db, gone.id);
+
+        for (const projectId of [theirs.id, gone.id, crypto.randomUUID()]) {
+          const res = await createUpload(auth('u1'), { ...valid, projectId });
+          expect(res.statusCode).toBe(404);
+          expect(res.json().error.code).toBe('NOT_FOUND');
+        }
+        const list = await app.inject({ method: 'GET', url: '/v1/tracks', headers: auth('u1') });
+        expect(list.json().tracks).toEqual([]);
+        expect(await db.select().from(trackVersions)).toEqual([]);
+      });
+
+      it('asks anonymous callers to sign in, whatever the project', async () => {
+        const res = await createUpload({}, { ...valid, projectId: crypto.randomUUID() });
+        expect(res.statusCode).toBe(401);
+      });
     });
   });
 
@@ -163,6 +267,7 @@ describe('uploads', () => {
       const res = await newVersion(v1.trackId, auth('u1'), {
         ...file,
         changeNotes: '  Louder vocals, new bridge  ',
+        feedbackPrompt: ' Is the bridge too long? ',
       });
 
       expect(res.statusCode).toBe(201);
@@ -177,6 +282,7 @@ describe('uploads', () => {
         versionNumber: 2,
         status: 'uploading',
         changeNotes: 'Louder vocals, new bridge',
+        feedbackPrompt: 'Is the bridge too long?',
         originalFilename: 'idea-v2.wav',
       });
     });
@@ -226,6 +332,7 @@ describe('uploads', () => {
       ['an unsupported type', { contentType: 'video/mp4' }],
       ['a file over the size limit', { sizeBytes: MAX_UPLOAD_BYTES + 1 }],
       ['notes over 2000 characters', { changeNotes: 'x'.repeat(2001) }],
+      ['a prompt over 2000 characters', { feedbackPrompt: 'x'.repeat(2001) }],
     ])('rejects %s', async (_label, change) => {
       const v1 = await start('u1');
       const res = await newVersion(v1.trackId, auth('u1'), { ...file, ...change });

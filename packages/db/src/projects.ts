@@ -2,7 +2,16 @@ import { and, asc, desc, eq, inArray, isNull, lt, max, sql } from 'drizzle-orm';
 import { effectiveVisibility, overrideOnJoin, type Visibility } from '@feedback/authz';
 import type { ReleaseType } from '@feedback/shared';
 import type { Db } from './client.ts';
-import { projects, shareLinks, tracks, users, type Project, type Track } from './schema.ts';
+import {
+  projects,
+  shareLinks,
+  tracks,
+  users,
+  type Project,
+  type Track,
+  type TrackVersion,
+} from './schema.ts';
+import { insertTrackWithFirstVersion, type NewTrack, type TrackPlacement } from './tracks.ts';
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 /** The helpers that also run inside the transactions below take either. */
@@ -143,6 +152,48 @@ export async function listProjectTracks(db: Queryable, projectId: string): Promi
 }
 
 /**
+ * Where a track goes when it joins a project: at the end, and never audible to more people than
+ * `current` (CLAUDE.md section 6, rule 7), with an override if the project is wider. Null if the
+ * project doesn't exist, was deleted, or isn't `ownerId`'s. Call it holding the owner's lock.
+ */
+async function placementInProject(
+  tx: Tx,
+  ownerId: string,
+  projectId: string,
+  current: Visibility,
+): Promise<TrackPlacement | null> {
+  const project = await findProject(tx, projectId);
+  if (!project || project.ownerId !== ownerId) return null;
+  const [last] = await tx
+    .select({ position: max(tracks.position) })
+    .from(tracks)
+    .where(eq(tracks.projectId, projectId));
+  return {
+    projectId,
+    position: (last?.position ?? -1) + 1,
+    // Ignored while it's in a project; kept so leaving again restores something sensible.
+    visibility: current,
+    visibilityOverride: overrideOnJoin(current, project.visibility),
+  };
+}
+
+/**
+ * Creates a track and its v1 (`uploading`) at the end of a project, in one transaction. New tracks
+ * are private (rule 1), so one joining a wider project gets a private override. Null, with nothing
+ * created, if the project doesn't exist, was deleted, or isn't the owner's.
+ */
+export async function createTrackInProject(
+  db: Db,
+  input: NewTrack & { projectId: string },
+): Promise<{ track: Track; version: TrackVersion } | null> {
+  return db.transaction(async (tx) => {
+    await lockOwnerProjects(tx, input.ownerId);
+    const placement = await placementInProject(tx, input.ownerId, input.projectId, 'private');
+    return placement ? insertTrackWithFirstVersion(tx, input, placement) : null;
+  });
+}
+
+/**
  * Moves a track to the end of a project, or out of any project when `projectId` is null. Moving
  * never lets more people hear it (CLAUDE.md section 6, rule 7): leaving a project, it keeps the
  * visibility it had there as its own; joining a project with a wider visibility, it gets an
@@ -176,24 +227,10 @@ export async function moveTrackToProject(
       track,
       track.projectId ? await findProject(tx, track.projectId) : null,
     );
-    let changes: Pick<Track, 'projectId' | 'position' | 'visibility' | 'visibilityOverride'>;
-    if (projectId) {
-      const project = await findProject(tx, projectId);
-      if (!project || project.ownerId !== track.ownerId) return null;
-      const [last] = await tx
-        .select({ position: max(tracks.position) })
-        .from(tracks)
-        .where(eq(tracks.projectId, projectId));
-      changes = {
-        projectId,
-        position: (last?.position ?? -1) + 1,
-        // Ignored while it's in a project; kept so leaving again restores something sensible.
-        visibility: current,
-        visibilityOverride: overrideOnJoin(current, project.visibility),
-      };
-    } else {
-      changes = { projectId: null, position: null, visibility: current, visibilityOverride: null };
-    }
+    const changes: TrackPlacement | null = projectId
+      ? await placementInProject(tx, track.ownerId, projectId, current)
+      : { projectId: null, position: null, visibility: current, visibilityOverride: null };
+    if (!changes) return null;
 
     const [moved] = await tx.update(tracks).set(changes).where(eq(tracks.id, trackId)).returning();
     return moved ?? null;

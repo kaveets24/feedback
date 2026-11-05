@@ -65,6 +65,21 @@ describe('createTrackWithFirstVersion', () => {
       originalContentType: 'audio/wav',
       originalSizeBytes: 1234,
     });
+    expect(track.genre).toBeNull();
+    expect(version.feedbackPrompt).toBeNull();
+  });
+
+  it('saves the genre on the track and the feedback prompt on v1', async () => {
+    const owner = await upsertUserFromAuth(db, { authProviderId: 'a', email: 'a@x.test' });
+    const { track, version } = await createTrackWithFirstVersion(db, {
+      ownerId: owner.id,
+      title: 'Late Night Idea',
+      genre: 'pop',
+      feedbackPrompt: 'Is the vocal too loud?',
+      original,
+    });
+    expect(track).toMatchObject({ genre: 'pop', projectId: null, position: null });
+    expect(version.feedbackPrompt).toBe('Is the vocal too loud?');
   });
 });
 
@@ -262,6 +277,16 @@ describe('createNextVersion', () => {
       changeNotes: 'Louder vocals',
       originalKey: `originals/${v2!.id}`,
     });
+  });
+
+  it('saves a feedback prompt', async () => {
+    const { track } = await newTrack();
+    const v2 = await createNextVersion(db, {
+      trackId: track.id,
+      original,
+      feedbackPrompt: 'Is the bridge too long?',
+    });
+    expect(v2?.feedbackPrompt).toBe('Is the bridge too long?');
   });
 
   it('never reuses a number, even after a failed version', async () => {
