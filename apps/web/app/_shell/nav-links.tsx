@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { BellIcon } from './icons';
 
 const LINKS = [
   {
@@ -43,5 +44,30 @@ export function NavLinks() {
         );
       })}
     </nav>
+  );
+}
+
+/** The bell, with the unread count after it. Its icon turns `ink` on the notifications page. */
+export function NotificationsLink({ unread }: { unread: number }) {
+  const current = usePathname().startsWith('/notifications');
+  return (
+    <Link
+      href="/notifications"
+      aria-current={current ? 'page' : undefined}
+      className={`focus-glow inline-flex items-center self-stretch rounded-sm text-sm hover:text-accent sm:px-1 ${
+        current ? 'text-ink' : 'text-muted'
+      }`}
+      aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
+      title="Notifications"
+    >
+      <BellIcon />
+      {unread > 0 && (
+        // Phones have room for one digit, so the count stops at 9+ there.
+        <span className="ml-1 font-lcd text-accent tabular-nums">
+          <span className="sm:hidden">{unread > 9 ? '9+' : unread}</span>
+          <span className="hidden sm:inline">{unread > 99 ? '99+' : unread}</span>
+        </span>
+      )}
+    </Link>
   );
 }
