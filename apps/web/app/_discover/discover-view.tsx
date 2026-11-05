@@ -1,3 +1,4 @@
+import { SignInButton, SignUpButton } from '@clerk/nextjs';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import {
@@ -66,13 +67,17 @@ export function DiscoverView({
           {me === null ? (
             <p className="mt-2 max-w-[60ch] text-muted">
               Share your song ideas, give feedback to others, and build community.{' '}
-              <Link href="/sign-in" className="link">
-                Sign in
-              </Link>{' '}
+              <SignInButton mode="modal">
+                <button type="button" className="link">
+                  Sign in
+                </button>
+              </SignInButton>{' '}
               or{' '}
-              <Link href="/sign-up" className="link">
-                create an account
-              </Link>{' '}
+              <SignUpButton mode="modal">
+                <button type="button" className="link">
+                  create an account
+                </button>
+              </SignUpButton>{' '}
               to join in.
             </p>
           ) : (
