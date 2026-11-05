@@ -29,10 +29,10 @@ Read this file fully before making changes. If something here conflicts with a r
 **Explicitly out of scope for now** (do not build or scaffold these)
 
 - Geolocation, maps, places, PostGIS, location-based discovery or ranking. The one exception is a profile's optional city, a label the user picks from a fixed list that nothing filters, sorts, or ranks by (see `profiles` in section 5)
-- Audio feature extraction / ML / embeddings
+- Audio feature extraction / ML / embeddings. The exceptions are a track's tempo (BPM, Phase 9) and, much later, its key and genre (Phase 11), each editable by the artist; anything else, such as embeddings or similarity, stays out (decided 2026-11-04)
 - Reputation scores, leaderboards, give-to-get credits
 - Payments and monetization (the app starts free; $1 artist donations are parked, section 11), plus direct messaging and live streaming
-- Mobile apps (planned for Phase 9; keep the API client-agnostic so it's easy later) and desktop apps (a folder-sync app is an idea in the parking lot, section 11)
+- Mobile apps (planned for Phase 10; keep the API client-agnostic so it's easy later) and desktop apps (a folder-sync app is an idea in the parking lot, section 11)
 
 ---
 
@@ -81,7 +81,7 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 │   ├── web/            # Next.js app
 │   ├── api/            # Fastify HTTP API
 │   ├── worker/         # BullMQ consumers (ffmpeg pipeline)
-│   └── mobile/         # Expo app (Phase 9, not yet created)
+│   └── mobile/         # Expo app (Phase 10, not yet created)
 ├── packages/
 │   ├── db/             # Drizzle schema, migrations, seed, query helpers
 │   ├── shared/         # zod schemas, shared types, constants, API client
@@ -460,7 +460,20 @@ Planned 2026-11-03: groups of artists you can follow as one. The design below is
 - [ ] Crew projects (planned 2026-11-03): a crew can have projects, and its owner and managers add **public** tracks by active members to them. Unlike a personal project, a crew project doesn't own its tracks: it lists them (`crew_projects`, and `crew_project_tracks` with a position and who added each), so a track stays in its own project, keeps its own visibility, and stays its artist's; it never widens who can hear it (rule 7). A track that turns private (or whose artist leaves the crew) drops out for listeners at once, computed when read like the feed. Its artist is notified when it's added (a new notification type) and can take it out. A crew project is a draft (the crew's owner and managers only) or public
 - **Done when:** djkrucial submits Meer Music, an admin approves it, members accept their invitations, someone who follows the crew sees its members' public tracks on home, and a crew project lists tracks from more than one member.
 
-### Phase 9: Mobile (Expo)
+### Phase 9: BPM
+
+Planned 2026-11-04: detect each upload's tempo, let the artist correct it, and let people filter and sort discovery by it. The design below is the starting point for this phase's task breakdown; schema changes are shown before any UI, as always. Permissions don't change: BPM is shown to everyone who can see the track, like genre, and editing it is `manage` through the existing `PATCH /v1/tracks/:trackId`.
+
+- [ ] Detection in the worker: no ML and no new dependency to start. The transcode pass already pipes 16 kHz mono samples for the peaks (`apps/worker/src/transcode/ffmpeg.ts`), so a pure TypeScript module alongside `peaks.ts` builds an onset-strength envelope from the same stream, so nothing decodes twice, and picks the strongest tempo by autocorrelation, whole BPM, 60 to 200. Without a clear beat (spoken word, ambient) it reports nothing rather than a guess. Detection can never fail a version: an error logs and leaves the BPM empty. If it proves too inaccurate on real songs, propose a library in an ADR before adding one
+- [ ] Schema: `track_versions.detected_bpm` (smallint, nullable; what the detector found for that version), `track_versions.bpm_analyzed_at` (when it looked, so "found nothing" differs from "not looked yet"), `tracks.bpm` (smallint, nullable; what everyone sees, stored on the track so discovery can sort and page on it), `tracks.bpm_edited` (boolean, default false), and an index on `tracks(bpm, current_version_id)`. All additive, so the running release is unaffected. Detected fields are analysis, not audio, so filling them on a `ready` version doesn't break version immutability
+- [ ] Which number a track shows: when a version becomes current, `markVersionReady` copies its `detected_bpm` to `tracks.bpm` unless `bpm_edited` is set, in the same transaction, so a new version's tempo follows it automatically. An artist's edit sticks across later versions, since half-time and double-time mistakes would otherwise come back on every upload
+- [ ] Editing: BPM joins title, project, and genre in the track page's pencil form (whole numbers, 40 to 300). `PATCH /v1/tracks/:trackId` takes `bpm`, a number or null, and sets `bpm_edited`; null means no BPM, and it stays empty. The owner also sees the latest detected value, with a "Use detected" button that clears `bpm_edited` and restores it. Listeners see only the track's `bpm`, on the track and listen pages
+- [ ] Existing tracks: the worker's maintenance sweep (`apps/worker/src/cleanup/`) analyzes a small batch of `ready` versions with no `bpm_analyzed_at` on each run, decoding their stream files under the same ffmpeg guards, until none are left. No manual step and no load spike
+- [ ] Discovery: `GET /v1/discover` gains `bpmMin` and `bpmMax` (a range, either end optional, combinable with `q`, `genre`, and `view`; set both to the same number for an exact match; tracks with no BPM are left out) and `sort` (`recent`, the default, or `bpm_asc` or `bpm_desc`, with tracks that have no BPM last and ties newest first). A BPM sort pages on `(bpm, current_version_id)`, so `cursor` and `nextCursor` become opaque strings instead of UUIDs; `recent` cursors stay valid, so the web version running during a deploy keeps working. Each item gains `track.bpm`. The search box still searches names only
+- [ ] Home: a BPM range and a sort control beside search and genre, kept in the URL like the other filters, and BPM on each row (blank when there is none), in home's existing style
+- **Done when:** an uploaded song gets a BPM without the artist doing anything; on at least 20 of the owner's real songs, most land within 2 BPM of the true tempo or at exactly half or double it (synthetic click tracks cover this in tests, since real songs can't be committed); the artist can correct it and the correction survives a new version; existing tracks are filled in on their own; and home filters and sorts by BPM across pages, with tracks that have none handled as above.
+
+### Phase 10: Mobile (Expo)
 
 - [ ] Reuse `packages/shared` client and zod schemas
 - [ ] Background playback + lock-screen controls (`react-native-track-player`)
@@ -468,9 +481,18 @@ Planned 2026-11-03: groups of artists you can follow as one. The design below is
 - [ ] **Quick-capture recording** straight into a new private track
 - [ ] Share-link deep linking
 
+### Phase 11: Key and genre detection
+
+Planned 2026-11-04 and deliberately last: nothing here should come ahead of the phases above. Whether to build each one gets decided when the phase starts, based on how well Phase 9's detection did and whether artists are correcting it. Both follow Phase 9's approach: detection runs in the worker, can never fail a version, stays blank rather than guess, and the artist's edit wins.
+
+- [ ] Key detection: the musical key of each upload from one fixed list of 24 major and minor keys, stored and edited like BPM (a detected value per version, the value everyone sees on the track, and the pencil form). Plain signal processing should do, since it needs no trained model. Whether discovery filters by key is decided here
+- [ ] Auto genre tagging: fills in a track's genre from `GENRES`, only when it's blank and the detector is confident, and never replaces one the artist chose (genres already set count as theirs). A wrong guess would put a public track under the wrong discovery filter, so the owner can see it was detected and change it. Whether it also fills in existing tracks is decided here
+- [ ] The genre model: this likely needs a trained model, which would be the app's first ML, so an ADR picks one and checks its license, accuracy against our genre list, and cost on the worker before anything is added. It runs on our own worker: unfinished audio is never sent to a third-party service (section 1, trust first)
+- **Done when:** the detectors that were chosen fill in new uploads without the artist doing anything, on the owner's real songs they're right often enough that correcting them is the exception, and an artist's edit is never overwritten.
+
 ### Later / parking lot
 
-Reputation and give-to-get credits, local/geo features and place-based listening, audio analysis and auto-tagging, collaboration (stems, co-owners), embeds, invites to specific users or emails (a `shares` table plus a visibility level between `private` and `unlisted`; dropped from Phase 4 on 2026-10-15), a crew-only visibility level (sharing with a crew's members; Phase 8 crews gather public tracks only), playlists (curated collections that can include other people's tracks) and likes (a private list of tracks you liked), both dropped from Phase 6 on 2026-10-22. Free-form tags on tracks (genre is a fixed list for now; decided 2026-11-03). Reporting and blocking (moved from Phase 6 on 2026-11-03): blocking would touch `canAccess` and `canAccessFeedback`, and reporting waits on the moderation question in section 13.
+Reputation and give-to-get credits, local/geo features and place-based listening, audio analysis beyond tempo, key, and genre, collaboration (stems, co-owners), embeds, invites to specific users or emails (a `shares` table plus a visibility level between `private` and `unlisted`; dropped from Phase 4 on 2026-10-15), a crew-only visibility level (sharing with a crew's members; Phase 8 crews gather public tracks only), playlists (curated collections that can include other people's tracks) and likes (a private list of tracks you liked), both dropped from Phase 6 on 2026-10-22. Free-form tags on tracks (genre is a fixed list for now; decided 2026-11-03). Reporting and blocking (moved from Phase 6 on 2026-11-03): blocking would touch `canAccess` and `canAccessFeedback`, and reporting waits on the moderation question in section 13.
 
 **$1 artist donations (parked 2026-10-22: the app starts free).** If they come back, the earlier plan still holds: a $1 cap enforced server-side, a provider that handles cards and payouts (Stripe Connect was the proposal), artists opt in and pass the provider's identity checks, donations attach to a track and version, no self-donations, webhooks verified and handled idempotently, and no public totals. Card fees (roughly 30¢ + ~3%) take about a third of a $1 donation, so who covers them is the first question.
 
