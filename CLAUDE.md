@@ -29,7 +29,7 @@ Read this file fully before making changes. If something here conflicts with a r
 **Explicitly out of scope for now** (do not build or scaffold these)
 
 - Geolocation, maps, places, PostGIS, location-based discovery or ranking. The one exception is a profile's optional city, a label the user picks from a fixed list that nothing filters, sorts, or ranks by (see `profiles` in section 5)
-- Audio feature extraction / ML / embeddings. The one exception is a track's tempo (BPM, Phase 9), detected with plain signal processing and editable by the artist; key detection, auto-tagging, and anything similar stay out (decided 2026-11-04)
+- Audio feature extraction / ML / embeddings. The exceptions are a track's tempo (BPM, Phase 9) and, much later, its key and genre (Phase 11), each editable by the artist; anything else, such as embeddings or similarity, stays out (decided 2026-11-04)
 - Reputation scores, leaderboards, give-to-get credits
 - Payments and monetization (the app starts free; $1 artist donations are parked, section 11), plus direct messaging and live streaming
 - Mobile apps (planned for Phase 10; keep the API client-agnostic so it's easy later) and desktop apps (a folder-sync app is an idea in the parking lot, section 11)
@@ -481,9 +481,18 @@ Planned 2026-11-04: detect each upload's tempo, let the artist correct it, and l
 - [ ] **Quick-capture recording** straight into a new private track
 - [ ] Share-link deep linking
 
+### Phase 11: Key and genre detection
+
+Planned 2026-11-04 and deliberately last: nothing here should come ahead of the phases above. Whether to build each one gets decided when the phase starts, based on how well Phase 9's detection did and whether artists are correcting it. Both follow Phase 9's approach: detection runs in the worker, can never fail a version, stays blank rather than guess, and the artist's edit wins.
+
+- [ ] Key detection: the musical key of each upload from one fixed list of 24 major and minor keys, stored and edited like BPM (a detected value per version, the value everyone sees on the track, and the pencil form). Plain signal processing should do, since it needs no trained model. Whether discovery filters by key is decided here
+- [ ] Auto genre tagging: fills in a track's genre from `GENRES`, only when it's blank and the detector is confident, and never replaces one the artist chose (genres already set count as theirs). A wrong guess would put a public track under the wrong discovery filter, so the owner can see it was detected and change it. Whether it also fills in existing tracks is decided here
+- [ ] The genre model: this likely needs a trained model, which would be the app's first ML, so an ADR picks one and checks its license, accuracy against our genre list, and cost on the worker before anything is added. It runs on our own worker: unfinished audio is never sent to a third-party service (section 1, trust first)
+- **Done when:** the detectors that were chosen fill in new uploads without the artist doing anything, on the owner's real songs they're right often enough that correcting them is the exception, and an artist's edit is never overwritten.
+
 ### Later / parking lot
 
-Reputation and give-to-get credits, local/geo features and place-based listening, audio analysis beyond tempo and auto-tagging, collaboration (stems, co-owners), embeds, invites to specific users or emails (a `shares` table plus a visibility level between `private` and `unlisted`; dropped from Phase 4 on 2026-10-15), a crew-only visibility level (sharing with a crew's members; Phase 8 crews gather public tracks only), playlists (curated collections that can include other people's tracks) and likes (a private list of tracks you liked), both dropped from Phase 6 on 2026-10-22. Free-form tags on tracks (genre is a fixed list for now; decided 2026-11-03). Reporting and blocking (moved from Phase 6 on 2026-11-03): blocking would touch `canAccess` and `canAccessFeedback`, and reporting waits on the moderation question in section 13.
+Reputation and give-to-get credits, local/geo features and place-based listening, audio analysis beyond tempo, key, and genre, collaboration (stems, co-owners), embeds, invites to specific users or emails (a `shares` table plus a visibility level between `private` and `unlisted`; dropped from Phase 4 on 2026-10-15), a crew-only visibility level (sharing with a crew's members; Phase 8 crews gather public tracks only), playlists (curated collections that can include other people's tracks) and likes (a private list of tracks you liked), both dropped from Phase 6 on 2026-10-22. Free-form tags on tracks (genre is a fixed list for now; decided 2026-11-03). Reporting and blocking (moved from Phase 6 on 2026-11-03): blocking would touch `canAccess` and `canAccessFeedback`, and reporting waits on the moderation question in section 13.
 
 **$1 artist donations (parked 2026-10-22: the app starts free).** If they come back, the earlier plan still holds: a $1 cap enforced server-side, a provider that handles cards and payouts (Stripe Connect was the proposal), artists opt in and pass the provider's identity checks, donations attach to a track and version, no self-donations, webhooks verified and handled idempotently, and no public totals. Card fees (roughly 30¢ + ~3%) take about a third of a $1 donation, so who covers them is the first question.
 
