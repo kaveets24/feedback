@@ -1,4 +1,4 @@
-import { SignOutButton } from '@clerk/nextjs';
+import { SignInButton, SignOutButton } from '@clerk/nextjs';
 import { auth } from '@clerk/nextjs/server';
 import Link from 'next/link';
 import type { CoverImage } from '@feedback/shared';
@@ -71,9 +71,12 @@ export async function AppHeader() {
             </>
           )}
           {!isAuthenticated && (
-            <Link href="/sign-in" className="link text-sm">
-              Sign in
-            </Link>
+            // A modal, so the page stays put.
+            <SignInButton mode="modal">
+              <button type="button" className="link text-sm">
+                Sign in
+              </button>
+            </SignInButton>
           )}
           {/* An approved account signs out from the profile page; others can't reach that page. */}
           {isAuthenticated && !showNav && (

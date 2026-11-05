@@ -4,18 +4,28 @@ import { discoverViewSchema, genreSchema, searchTermSchema } from '@feedback/sha
 import { getMe, serverApi, viewerApi } from '../lib/api';
 import { collectPages } from '../lib/pages';
 import { DiscoverView } from './_discover/discover-view';
+import { AuthModalOpener } from './_shell/auth-modal-opener';
 
 /**
  * Home, for everyone: public tracks, the most recently updated first, narrowed by a genre or a
  * search, which also finds people, or for an approved account by who they follow (see
- * `DiscoverView`).
+ * `DiscoverView`). A visit to `/sign-in` or `/sign-up` arrives here with `auth` set, to open the
+ * modal over it.
  */
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; q?: string; genre?: string; cursor?: string }>;
+  searchParams: Promise<{
+    view?: string;
+    q?: string;
+    genre?: string;
+    cursor?: string;
+    auth?: string;
+    redirect_url?: string;
+  }>;
 }) {
   const params = await searchParams;
+  const authModal = params.auth === 'sign-in' || params.auth === 'sign-up' ? params.auth : null;
   // A hand-edited URL shows everything, or the first page, rather than an error.
   const genre = genreSchema.safeParse(params.genre).data;
   const cursor = z.uuid().safeParse(params.cursor).data;
@@ -45,16 +55,19 @@ export default async function HomePage({
   ]);
 
   return (
-    <DiscoverView
-      me={me}
-      view={view}
-      following={following}
-      typed={typed}
-      q={q}
-      genre={genre}
-      cursor={cursor}
-      page={page}
-      people={people}
-    />
+    <>
+      <DiscoverView
+        me={me}
+        view={view}
+        following={following}
+        typed={typed}
+        q={q}
+        genre={genre}
+        cursor={cursor}
+        page={page}
+        people={people}
+      />
+      {authModal && <AuthModalOpener modal={authModal} returnTo={params.redirect_url} />}
+    </>
   );
 }
