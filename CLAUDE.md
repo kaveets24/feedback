@@ -29,10 +29,10 @@ Read this file fully before making changes. If something here conflicts with a r
 **Explicitly out of scope for now** (do not build or scaffold these)
 
 - Geolocation, maps, places, PostGIS, location-based discovery or ranking. The one exception is a profile's optional city, a label the user picks from a fixed list that nothing filters, sorts, or ranks by (see `profiles` in section 5)
-- Audio feature extraction / ML / embeddings. The exceptions are a track's tempo (BPM, Phase 9) and, much later, its key and genre (Phase 11), each editable by the artist; anything else, such as embeddings or similarity, stays out (decided 2026-11-04)
+- Audio feature extraction / ML / embeddings. The exceptions are a track's tempo (BPM, Phase 10) and, much later, its key and genre (Phase 12), each editable by the artist; anything else, such as embeddings or similarity, stays out (decided 2026-11-04)
 - Reputation scores, leaderboards, give-to-get credits
-- Payments and monetization (the app starts free; $1 artist donations are parked, section 11), plus direct messaging and live streaming
-- Mobile apps (planned for Phase 10; keep the API client-agnostic so it's easy later) and desktop apps (a folder-sync app is an idea in the parking lot, section 11)
+- Payments and monetization (the app starts free; $1 artist donations are parked, section 11), plus direct messaging between users (Phase 8's help chat is only ever with the team) and live streaming
+- Mobile apps (planned for Phase 11; keep the API client-agnostic so it's easy later) and desktop apps (a folder-sync app is an idea in the parking lot, section 11)
 
 ---
 
@@ -81,7 +81,7 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 │   ├── web/            # Next.js app
 │   ├── api/            # Fastify HTTP API
 │   ├── worker/         # BullMQ consumers (ffmpeg pipeline)
-│   └── mobile/         # Expo app (Phase 10, not yet created)
+│   └── mobile/         # Expo app (Phase 11, not yet created)
 ├── packages/
 │   ├── db/             # Drizzle schema, migrations, seed, query helpers
 │   ├── shared/         # zod schemas, shared types, constants, API client
@@ -446,7 +446,20 @@ Order agreed 2026-11-03, one PR each: stuck-upload cleanup, rate limits, upload 
 - [ ] Production environment, deployed by promoting the same images that passed staging. Its B2 bucket needs the CORS rule set with the CLI, allowing only the production web origin (see "Backblaze B2" in docs/staging.md)
 - [x] SSO sign-in on Clerk: Google, plus any other providers we pick. Set up on each Clerk instance (staging and production) with our own OAuth credentials, and confirm the `email` session claim is still populated _(Google and Discord, set up by the owner on the one Clerk instance; confirming Discord sign-ins carry the `email` claim is on the launch checklist)_
 
-### Phase 8: Crews
+### Phase 8: Help and feature requests
+
+Planned 2026-11-04: a simple place in the app to get help or ask for a feature, and hear back. It comes right after launch prep so that what people ask for can shape the phases after it. It's a private conversation between one person and the team: not an AI assistant, not messages between users (section 1), and not a public request board with votes (section 1: no vanity metrics). The design below is the starting point for this phase's task breakdown; schema and permission changes are shown before any UI, as always.
+
+- [ ] Conversations and messages. Tables: `help_conversations` (id, user_id, topic `help | feature_request`, status `open | closed`) and `help_messages` (id, conversation_id, sender `user | team`, body, up to 2000 characters and not blank). Text only, with no attachments. The words "help" and "request" are used throughout, since `feedback` already means comments on a track
+- [ ] Permissions in `packages/authz` (a help counterpart to `canAccess`, no I/O), with a hand-written table of every actor (the conversation's author, another approved account, pending or rejected account, anonymous) x action (view, send). Only the author and the team can read a conversation, and anyone else gets a 404 (rule 9). Approved accounts only to start: the approval gate stays as it is, so a pending account still can't write in
+- [ ] Web: `/help`, linked from the header, with short answers to common questions (who can hear my track, how share links work, what versions are), a form to start a conversation with its topic picked, and your past conversations with their replies. Refreshing is plain polling (section 2). Plain semantic HTML until asked (section 9)
+- [ ] The team's side starts as admin scripts, like approvals: `pnpm admin:help-list` and `pnpm admin:help-reply <conversationId> <message>`, closing with `pnpm admin:help-close <conversationId>`, with the same through `pnpm staging:admin` for the deployed app. A web inbox, and an admin role for it, come later if the queue gets big
+- [ ] Notifications: a team reply notifies the person through the existing bell, with a new `help_reply` type. A notification points at a comment today (`feedback_id` is required), so this needs a nullable pointer to the conversation as well, added expand-first
+- [ ] How the team hears about a new message: settled in this phase's task breakdown. Email is the natural answer, so this may settle the email provider question in section 13. Until then the list script is the only way to see them, which is easy to miss
+- [ ] Limits and privacy: Phase 7's rate limits apply, with a cap on how many conversations one account can have open. Messages are private content, so they're never logged or sent to monitoring (section 10), and account deletion and data export (Phase 7) cover them
+- **Done when:** a signed-in artist asks for a feature on `/help`, the owner sees it and replies, the artist gets a notification and reads the reply, and nobody else can reach that conversation by any URL.
+
+### Phase 9: Crews
 
 Planned 2026-11-03: groups of artists you can follow as one. The design below is the starting point for this phase's task breakdown; schema and permission changes are shown before any UI, as always.
 
@@ -460,7 +473,7 @@ Planned 2026-11-03: groups of artists you can follow as one. The design below is
 - [ ] Crew projects (planned 2026-11-03): a crew can have projects, and its owner and managers add **public** tracks by active members to them. Unlike a personal project, a crew project doesn't own its tracks: it lists them (`crew_projects`, and `crew_project_tracks` with a position and who added each), so a track stays in its own project, keeps its own visibility, and stays its artist's; it never widens who can hear it (rule 7). A track that turns private (or whose artist leaves the crew) drops out for listeners at once, computed when read like the feed. Its artist is notified when it's added (a new notification type) and can take it out. A crew project is a draft (the crew's owner and managers only) or public
 - **Done when:** djkrucial submits Meer Music, an admin approves it, members accept their invitations, someone who follows the crew sees its members' public tracks on home, and a crew project lists tracks from more than one member.
 
-### Phase 9: BPM
+### Phase 10: BPM
 
 Planned 2026-11-04: detect each upload's tempo, let the artist correct it, and let people filter and sort discovery by it. The design below is the starting point for this phase's task breakdown; schema changes are shown before any UI, as always. Permissions don't change: BPM is shown to everyone who can see the track, like genre, and editing it is `manage` through the existing `PATCH /v1/tracks/:trackId`.
 
@@ -473,7 +486,7 @@ Planned 2026-11-04: detect each upload's tempo, let the artist correct it, and l
 - [ ] Home: a BPM range and a sort control beside search and genre, kept in the URL like the other filters, and BPM on each row (blank when there is none), in home's existing style
 - **Done when:** an uploaded song gets a BPM without the artist doing anything; on at least 20 of the owner's real songs, most land within 2 BPM of the true tempo or at exactly half or double it (synthetic click tracks cover this in tests, since real songs can't be committed); the artist can correct it and the correction survives a new version; existing tracks are filled in on their own; and home filters and sorts by BPM across pages, with tracks that have none handled as above.
 
-### Phase 10: Mobile (Expo)
+### Phase 11: Mobile (Expo)
 
 - [ ] Reuse `packages/shared` client and zod schemas
 - [ ] Background playback + lock-screen controls (`react-native-track-player`)
@@ -481,9 +494,9 @@ Planned 2026-11-04: detect each upload's tempo, let the artist correct it, and l
 - [ ] **Quick-capture recording** straight into a new private track
 - [ ] Share-link deep linking
 
-### Phase 11: Key and genre detection
+### Phase 12: Key and genre detection
 
-Planned 2026-11-04 and deliberately last: nothing here should come ahead of the phases above. Whether to build each one gets decided when the phase starts, based on how well Phase 9's detection did and whether artists are correcting it. Both follow Phase 9's approach: detection runs in the worker, can never fail a version, stays blank rather than guess, and the artist's edit wins.
+Planned 2026-11-04 and deliberately last: nothing here should come ahead of the phases above. Whether to build each one gets decided when the phase starts, based on how well Phase 10's detection did and whether artists are correcting it. Both follow Phase 10's approach: detection runs in the worker, can never fail a version, stays blank rather than guess, and the artist's edit wins.
 
 - [ ] Key detection: the musical key of each upload from one fixed list of 24 major and minor keys, stored and edited like BPM (a detected value per version, the value everyone sees on the track, and the pencil form). Plain signal processing should do, since it needs no trained model. Whether discovery filters by key is decided here
 - [ ] Auto genre tagging: fills in a track's genre from `GENRES`, only when it's blank and the detector is confident, and never replaces one the artist chose (genres already set count as theirs). A wrong guess would put a public track under the wrong discovery filter, so the owner can see it was detected and change it. Whether it also fills in existing tracks is decided here
@@ -492,7 +505,7 @@ Planned 2026-11-04 and deliberately last: nothing here should come ahead of the 
 
 ### Later / parking lot
 
-Reputation and give-to-get credits, local/geo features and place-based listening, audio analysis beyond tempo, key, and genre, collaboration (stems, co-owners), embeds, invites to specific users or emails (a `shares` table plus a visibility level between `private` and `unlisted`; dropped from Phase 4 on 2026-10-15), a crew-only visibility level (sharing with a crew's members; Phase 8 crews gather public tracks only), playlists (curated collections that can include other people's tracks) and likes (a private list of tracks you liked), both dropped from Phase 6 on 2026-10-22. Free-form tags on tracks (genre is a fixed list for now; decided 2026-11-03). Reporting and blocking (moved from Phase 6 on 2026-11-03): blocking would touch `canAccess` and `canAccessFeedback`, and reporting waits on the moderation question in section 13.
+Reputation and give-to-get credits, local/geo features and place-based listening, audio analysis beyond tempo, key, and genre, collaboration (stems, co-owners), embeds, invites to specific users or emails (a `shares` table plus a visibility level between `private` and `unlisted`; dropped from Phase 4 on 2026-10-15), a crew-only visibility level (sharing with a crew's members; Phase 9 crews gather public tracks only), playlists (curated collections that can include other people's tracks) and likes (a private list of tracks you liked), both dropped from Phase 6 on 2026-10-22. Free-form tags on tracks (genre is a fixed list for now; decided 2026-11-03). Reporting and blocking (moved from Phase 6 on 2026-11-03): blocking would touch `canAccess` and `canAccessFeedback`, and reporting waits on the moderation question in section 13.
 
 **$1 artist donations (parked 2026-10-22: the app starts free).** If they come back, the earlier plan still holds: a $1 cap enforced server-side, a provider that handles cards and payouts (Stripe Connect was the proposal), artists opt in and pass the provider's identity checks, donations attach to a track and version, no self-donations, webhooks verified and handled idempotently, and no public totals. Card fees (roughly 30¢ + ~3%) take about a third of a $1 donation, so who covers them is the first question.
 
