@@ -1,6 +1,6 @@
 import type { FastifyRequest } from 'fastify';
 import type { LoggerOptions } from 'pino';
-import { SHARE_TOKEN_HEADER } from '@feedback/shared';
+import { SHARE_TOKEN_HEADER, WEB_SECRET_HEADER } from '@feedback/shared';
 import { scrubUrl } from '@feedback/shared/monitoring';
 import type { Env } from './env.ts';
 
@@ -11,6 +11,7 @@ const redact = [
   'req.headers.authorization',
   'req.headers.cookie',
   `req.headers["${SHARE_TOKEN_HEADER}"]`,
+  `req.headers["${WEB_SECRET_HEADER}"]`,
 ];
 
 /** What a request log line records about the request. */

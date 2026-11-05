@@ -24,6 +24,7 @@ export function coverRoutes(deps: CoverUploadDeps): FastifyPluginAsyncZod {
     app.post(
       '/projects/:projectId/covers',
       {
+        config: { limit: 'upload' },
         schema: {
           params: projectParamsSchema,
           body: createCoverRequestSchema,

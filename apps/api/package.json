@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@clerk/backend": "^3.22.0",
+    "@fastify/rate-limit": "^11.2.2",
     "@fastify/swagger": "^9.9.1",
     "@feedback/authz": "workspace:*",
     "@feedback/db": "workspace:*",

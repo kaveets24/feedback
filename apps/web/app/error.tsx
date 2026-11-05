@@ -4,6 +4,7 @@ import { Show, useClerk } from '@clerk/nextjs';
 import * as Sentry from '@sentry/browser';
 import Link from 'next/link';
 import { useEffect } from 'react';
+import { RATE_LIMITED_DIGEST } from '../lib/rate-limited-digest';
 
 // Clerk's <SignOutButton> navigates client-side, which keeps this boundary mounted when the error
 // was on "/" (Next only resets it on a path change). A full load starts over, signed out.
@@ -32,6 +33,21 @@ export default function ErrorPage({
     console.error(error);
     if (!error.digest) Sentry.captureException(error);
   }, [error]);
+
+  if (error.digest === RATE_LIMITED_DIGEST) {
+    return (
+      <main>
+        <h1>Too many requests</h1>
+        <p>You’ve been moving fast, so we’ve paused for a moment. Wait a minute and try again.</p>
+        <p>
+          <button type="button" onClick={() => retry()}>
+            Try again
+          </button>{' '}
+          <Link href="/">Go to the home page</Link>
+        </p>
+      </main>
+    );
+  }
 
   return (
     <main>

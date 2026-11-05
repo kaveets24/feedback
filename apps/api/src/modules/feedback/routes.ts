@@ -54,6 +54,7 @@ export function feedbackRoutes(deps: FeedbackDeps): FastifyPluginAsyncZod {
     app.post(
       '/versions/:versionId/feedback',
       {
+        config: { limit: 'comment' },
         schema: {
           params: versionParamsSchema,
           body: createFeedbackRequestSchema,
@@ -74,6 +75,7 @@ export function feedbackRoutes(deps: FeedbackDeps): FastifyPluginAsyncZod {
     app.post(
       '/feedback/:feedbackId/replies',
       {
+        config: { limit: 'comment' },
         schema: {
           params: feedbackParamsSchema,
           body: createReplyRequestSchema,

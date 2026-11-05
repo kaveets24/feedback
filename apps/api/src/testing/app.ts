@@ -7,6 +7,7 @@ import type { AuthPort } from '../auth/port.ts';
 import { loadEnv } from '../env.ts';
 import type { ErrorReporter } from '../monitoring/port.ts';
 import type { JobQueue, QueueHealth } from '../queue.ts';
+import type { RateLimitDeps } from '../rate-limit.ts';
 
 /**
  * Fake auth for tests: `test|<providerId>|<email>` is a valid token, anything else is invalid.
@@ -68,10 +69,14 @@ export function fakeQueue(): FakeQueue {
 /**
  * Builds the app against the API's test database and bucket, with fake auth and a fake queue.
  * Close the app when done. `env` adds or overrides env vars; `errorReporter` captures what the
- * error handler reports.
+ * error handler reports; `rateLimits` turns rate limiting on, which is otherwise off.
  */
 export async function buildTestApp(
-  options: { env?: NodeJS.ProcessEnv; errorReporter?: ErrorReporter } = {},
+  options: {
+    env?: NodeJS.ProcessEnv;
+    errorReporter?: ErrorReporter;
+    rateLimits?: RateLimitDeps;
+  } = {},
 ) {
   const env = loadEnv({
     NODE_ENV: 'test',
@@ -90,6 +95,7 @@ export async function buildTestApp(
     storage,
     queue,
     errorReporter: options.errorReporter,
+    rateLimits: options.rateLimits,
   });
   app.addHook('onClose', () => db.close());
   app.addHook('onClose', async () => storage.close());

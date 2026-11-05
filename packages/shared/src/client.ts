@@ -91,6 +91,8 @@ export interface ApiClientOptions {
   getToken?: () => Promise<string | null>;
   /** A share link's token, sent with every request so the API opens what the link is for. */
   shareToken?: string;
+  /** More headers to send with every request. */
+  getHeaders?: () => Promise<Record<string, string>>;
   fetch?: typeof fetch;
 }
 
@@ -99,10 +101,14 @@ export function createApiClient({
   baseUrl,
   getToken,
   shareToken,
+  getHeaders,
   fetch = globalThis.fetch,
 }: ApiClientOptions) {
   async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit = {}) {
     const headers = new Headers(init.headers);
+    for (const [name, value] of Object.entries((await getHeaders?.()) ?? {})) {
+      headers.set(name, value);
+    }
     const token = await getToken?.();
     if (token) headers.set('authorization', `Bearer ${token}`);
     if (shareToken) headers.set(SHARE_TOKEN_HEADER, shareToken);

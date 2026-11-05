@@ -20,6 +20,7 @@ export function uploadRoutes(deps: UploadDeps): FastifyPluginAsyncZod {
     app.post(
       '/uploads',
       {
+        config: { limit: 'upload' },
         schema: {
           body: createUploadRequestSchema,
           response: { 201: createUploadResponseSchema, 401: errorResponseSchema },
@@ -36,6 +37,7 @@ export function uploadRoutes(deps: UploadDeps): FastifyPluginAsyncZod {
     app.post(
       '/tracks/:trackId/versions',
       {
+        config: { limit: 'upload' },
         schema: {
           params: trackParamsSchema,
           body: createVersionRequestSchema,

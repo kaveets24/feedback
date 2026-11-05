@@ -11,6 +11,13 @@ const envSchema = z.object({
   REDIS_URL: z.url({ protocol: /^rediss?$/ }),
   /** Origin of the web app; session tokens from other origins are rejected. */
   WEB_ORIGIN: z.url().default('http://localhost:3000'),
+  /**
+   * Shared with the web app, which sends it with the visitor's address so signed-out visitors are
+   * rate limited one by one. Unset turns the signed-out limit off (the default locally).
+   */
+  WEB_API_SECRET: z.string().min(32).optional(),
+  /** Set by Fly on its machines; says `Fly-Client-IP` came from Fly's proxy and can be trusted. */
+  FLY_APP_NAME: z.string().optional(),
   /** Sentry project DSN; unset turns error reporting off (the default locally). */
   SENTRY_DSN: z.url().optional(),
   /** Tags error reports with where they came from, e.g. `staging`. */
