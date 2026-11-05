@@ -22,8 +22,8 @@ export default async function ProfilePage() {
       <div className="mt-8">
         <ProfileForm profile={profile} />
       </div>
-      {/* The header has no room for Sign out on phones, so it's here too. */}
-      <div className="mt-12 border-t border-rule pt-6 sm:hidden">
+      {/* The one Sign out for approved accounts: the header only shows it to the others. */}
+      <div className="mt-12 border-t border-rule pt-6">
         <SignOutButton>
           <button type="button" className="btn">
             Sign out
