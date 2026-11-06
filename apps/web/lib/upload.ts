@@ -70,6 +70,28 @@ export function uploadPrivacy(project: { title: string; visibility: Visibility }
   }
 }
 
+/**
+ * Who will hear a new version, given who can hear its track. A version is live for all of them as
+ * soon as it's processed, and on a public track it also brings the track back to the top of
+ * discovery and followers' lists (CLAUDE.md section 11, Phase 6).
+ */
+export function versionPrivacy(visibility: Visibility): { lead: string; rest: string } {
+  switch (visibility) {
+    case 'private':
+      return { lead: 'Private.', rest: 'Only you can hear this until you share the track.' };
+    case 'unlisted':
+      return {
+        lead: 'Shared by link.',
+        rest: 'Anyone with a link can hear this version once it’s processed.',
+      };
+    case 'public':
+      return {
+        lead: 'Public.',
+        rest: 'Anyone can hear this version once it’s processed. The track also returns to the top of Discover and your followers’ lists.',
+      };
+  }
+}
+
 export type UploadProgressState = { step: 'uploading'; progress: number } | { step: 'finishing' };
 
 export type UploadOutcome =

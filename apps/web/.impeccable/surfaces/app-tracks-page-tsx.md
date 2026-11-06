@@ -21,13 +21,13 @@ STORY: The artist sees an unlit slot, drags a bounce over it and watches it ligh
 
 FIRST VIEWPORT: Under the "Your tracks" H1, the deck spans the column: "NO FILE LOADED" and a small line on the left, the primary "Choose a file" on the right, the formats line beneath, then the track list.
 
-FORM: Established-world extension; the deck is this page's one signature, joined by the upload bar only inside the dialog. seed: none (extension inside the established world; no concept roll ran)
+FORM: Established-world extension; the deck is this page's one signature. It holds the upload bar's empty track, at half power under a held file and never lit fully, and the working bar appears only inside the dialog. seed: none (extension inside the established world; no concept roll ran)
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
 ## Signature interaction
 
-Holding a file over the deck lights it: the readout turns from unlit to phosphor and says what happens next.
+Holding a file over the deck lights it: the readout turns from unlit to phosphor and says what happens next, and the empty track comes up to half power: ready, not done.
 
 ## Unresolved
 

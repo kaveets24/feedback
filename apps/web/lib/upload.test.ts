@@ -7,6 +7,7 @@ import {
   runUpload,
   titleFromFilename,
   uploadPrivacy,
+  versionPrivacy,
   type UploadProgressState,
 } from './upload';
 
@@ -70,6 +71,19 @@ describe('uploadPrivacy', () => {
     expect(lead).toBe('Private.');
     expect(rest).toContain('Only you can hear this track, even though');
     expect(rest).toContain('Summer EP');
+  });
+});
+
+describe('versionPrivacy', () => {
+  it('says who hears a new version at each visibility', () => {
+    expect(versionPrivacy('private')).toEqual({
+      lead: 'Private.',
+      rest: 'Only you can hear this until you share the track.',
+    });
+    expect(versionPrivacy('unlisted').rest).toContain('Anyone with a link can hear this version');
+    expect(versionPrivacy('public').lead).toBe('Public.');
+    expect(versionPrivacy('public').rest).toContain('Anyone can hear this version');
+    expect(versionPrivacy('public').rest).toContain('followers');
   });
 });
 

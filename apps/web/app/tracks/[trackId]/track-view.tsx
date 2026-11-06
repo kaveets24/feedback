@@ -115,7 +115,7 @@ export function TrackView({
       />
 
       <section className="mt-12">
-        <UploadZone target={{ kind: 'version', trackId: track.id }} />
+        <UploadZone target={{ kind: 'version', trackId: track.id, visibility: track.visibility }} />
       </section>
 
       <DeleteTrack trackId={track.id} title={track.title} />

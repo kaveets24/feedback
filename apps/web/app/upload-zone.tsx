@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, type DragEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { MAX_DURATION_MS, MAX_UPLOAD_BYTES } from '@feedback/shared';
 import { AUDIO_ACCEPT, carriesFiles, fileProblem } from '../lib/upload';
 import { UploadDialog, type UploadTarget } from './upload-dialog';
@@ -18,6 +18,21 @@ export function UploadZone({ target }: { target: UploadTarget }) {
   const [picked, setPicked] = useState<{ file: File; ignored: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // A near miss would otherwise make the browser open the file in this tab, leaving the app.
+  useEffect(() => {
+    function refuse(event: globalThis.DragEvent) {
+      if (event.defaultPrevented || !event.dataTransfer?.types.includes('Files')) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'none';
+    }
+    window.addEventListener('dragover', refuse);
+    window.addEventListener('drop', refuse);
+    return () => {
+      window.removeEventListener('dragover', refuse);
+      window.removeEventListener('drop', refuse);
+    };
+  }, []);
 
   function pick(files: FileList | null) {
     const file = files?.[0];
@@ -92,13 +107,13 @@ export function UploadZone({ target }: { target: UploadTarget }) {
           {...dropEvents}
           className={`flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-md border border-dashed p-4 ${
             dragging
-              ? 'border-accent bg-chrome-lo outline-2 outline-accent outline-dashed'
+              ? 'border-transparent bg-chrome-lo outline-2 outline-accent outline-dashed'
               : 'border-field-edge'
           }`}
         >
           <p className="min-w-0 flex-1 basis-56 text-sm text-muted">
-            <span className="pointer-coarse:hidden">Drop the next version here. </span>A new version
-            plays here once it’s processed.
+            <span className="pointer-coarse:hidden">Drop the next version here. </span>
+            It’s processed before anyone can hear it.
           </p>
           <button type="button" className="btn">
             Choose a file
@@ -117,28 +132,36 @@ export function UploadZone({ target }: { target: UploadTarget }) {
       </h2>
       <div
         {...dropEvents}
-        className={`lcd m-[3px] flex cursor-pointer flex-wrap items-center justify-between gap-4 p-4 ${
-          dragging ? 'lcd-lit' : ''
-        }`}
+        className={`lcd m-[3px] cursor-pointer p-4 ${dragging ? 'lcd-lit' : ''}`}
       >
-        <div className={`min-w-0 flex-1 basis-56 ${dragging ? 'text-lcd-ink' : 'text-lcd-unlit'}`}>
-          <p className="font-lcd text-lg leading-tight">
-            {dragging ? 'DROP TO LOAD' : 'NO FILE LOADED'}
-          </p>
-          <p className="mt-1.5 max-w-[40ch] text-sm">
-            {dragging ? (
-              'Details come next. Nothing uploads until you press Upload.'
-            ) : (
-              <>
-                <span className="pointer-coarse:hidden">Drop a track here. </span>
-                New tracks are private: only you can hear them.
-              </>
-            )}
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div
+            className={`min-w-0 flex-1 basis-56 ${dragging ? 'text-lcd-ink' : 'text-lcd-unlit'}`}
+          >
+            <p className="font-lcd text-lg leading-tight">
+              {dragging ? 'DROP TO LOAD' : 'NO FILE LOADED'}
+            </p>
+            <p className="mt-1.5 text-sm">
+              {dragging ? (
+                'Details come next. Nothing uploads until you press Upload.'
+              ) : (
+                <>
+                  <span className="pointer-coarse:hidden">Drop a track here. </span>
+                  New tracks are private: only you can hear them.
+                </>
+              )}
+            </p>
+          </div>
+          {/* Hidden, not removed, while a file is held: it can't be pressed then, and the deck stays put. */}
+          <button type="button" className={`btn btn-primary ${dragging ? 'invisible' : ''}`}>
+            Choose a file
+          </button>
         </div>
-        <button type="button" className="btn btn-primary">
-          Choose a file
-        </button>
+        {/* The upload bar's empty track: the slot is waiting, and lights with what's held over it. */}
+        <div
+          aria-hidden="true"
+          className={`mt-3 h-3 rounded-[2px] ${dragging ? 'progress-ready' : 'progress-unlit'}`}
+        />
       </div>
       <p className="mt-2 text-sm text-muted">{FORMATS}</p>
       {footer}

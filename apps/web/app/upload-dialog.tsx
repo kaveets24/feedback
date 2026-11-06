@@ -17,6 +17,7 @@ import {
   runUpload,
   titleFromFilename,
   uploadPrivacy,
+  versionPrivacy,
   type UploadProgressState,
 } from '../lib/upload';
 import { SelectField } from './_shell/select-field';
@@ -31,7 +32,8 @@ export type UploadProject = { id: string; title: string; visibility: Visibility 
 
 /** What an upload makes: a new track (optionally in a project), or a track's next version. */
 export type UploadTarget =
-  { kind: 'track'; projects: UploadProject[] } | { kind: 'version'; trackId: string };
+  | { kind: 'track'; projects: UploadProject[] }
+  | { kind: 'version'; trackId: string; visibility: Visibility };
 
 const NOTES_MAX = 2000;
 
@@ -58,7 +60,7 @@ export function UploadDialog({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const firstFieldRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   const changeInputRef = useRef<HTMLInputElement>(null);
-  const cancelUploadRef = useRef<HTMLButtonElement>(null);
+  const uploadingHeadingRef = useRef<HTMLHeadingElement>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   // Read by the dialog's own events, which must not see a stale render.
@@ -83,11 +85,12 @@ export function UploadDialog({
     }
   }, []);
 
-  // The focused control disappears when the form swaps with the progress bar and back.
+  // The focused control disappears when the form swaps with the progress bar and back. The heading
+  // takes focus rather than Cancel upload, so a second press of Enter can't throw the upload away.
   const uploading = progress !== null;
   const wasUploading = useRef(false);
   useEffect(() => {
-    if (uploading) cancelUploadRef.current?.focus();
+    if (uploading) uploadingHeadingRef.current?.focus();
     else if (wasUploading.current) submitRef.current?.focus();
     wasUploading.current = uploading;
   }, [uploading]);
@@ -169,7 +172,7 @@ export function UploadDialog({
   const privacy =
     target.kind === 'track'
       ? uploadPrivacy(target.projects.find((project) => project.id === projectId) ?? null)
-      : null;
+      : versionPrivacy(target.visibility);
   const name = target.kind === 'track' ? title.trim() || titleFromFilename(file.name) : null;
 
   return (
@@ -190,7 +193,12 @@ export function UploadDialog({
     >
       {uploading ? (
         <>
-          <h2 id={headingId} className="mb-3 text-lg font-semibold break-words">
+          <h2
+            ref={uploadingHeadingRef}
+            id={headingId}
+            tabIndex={-1}
+            className="mb-3 text-lg font-semibold break-words outline-none"
+          >
             {name ? `Uploading ${name}` : 'Uploading a new version'}
           </h2>
           <p className="mb-4 border-b border-rule pb-3 text-sm font-medium break-all">
@@ -206,7 +214,6 @@ export function UploadDialog({
           </p>
           <div className="mt-4 flex justify-end">
             <button
-              ref={cancelUploadRef}
               type="button"
               className="btn"
               disabled={progress.step === 'finishing'}
@@ -251,8 +258,10 @@ export function UploadDialog({
             </div>
             {ignoredFiles > 0 && (
               <p className="mt-2 text-sm text-muted">
-                Only this file will upload. Add the {ignoredFiles === 1 ? 'other' : 'others'} one at
-                a time.
+                Only this file will upload.{' '}
+                {ignoredFiles === 1
+                  ? 'Add the other one separately.'
+                  : 'Add the others one at a time.'}
               </p>
             )}
           </div>
@@ -341,11 +350,9 @@ export function UploadDialog({
               />
             </div>
 
-            {privacy && (
-              <p aria-live="polite" className="text-sm break-words text-muted">
-                <span className="font-medium text-ink">{privacy.lead}</span> {privacy.rest}
-              </p>
-            )}
+            <p aria-live="polite" className="text-sm break-words text-muted">
+              <span className="font-medium text-ink">{privacy.lead}</span> {privacy.rest}
+            </p>
             {error && (
               <p role="alert" className="text-sm break-words text-danger">
                 {error}
