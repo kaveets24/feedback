@@ -10,7 +10,7 @@ import type { PlayerItem } from '../../../lib/audio-store';
 import { formatDate, formatDuration, STATUS_LABELS } from '../../../lib/format';
 import { PlayerWithFeedback } from '../../_feedback/player-with-feedback';
 import { SharingSection } from '../../_sharing/sharing-section';
-import { UploadForm } from '../../upload-form';
+import { UploadZone } from '../../upload-zone';
 import { DeleteTrack } from './delete-track';
 import { ProcessingStatus } from './processing-status';
 import { TrackDetails } from './track-details';
@@ -115,7 +115,7 @@ export function TrackView({
       />
 
       <section className="mt-12">
-        <UploadForm trackId={track.id} />
+        <UploadZone target={{ kind: 'version', trackId: track.id, visibility: track.visibility }} />
       </section>
 
       <DeleteTrack trackId={track.id} title={track.title} />

@@ -2,7 +2,7 @@
 version: 1
 slug: 'app-tracks-trackid-page-tsx'
 primary_target: 'app/tracks/[trackId]/page.tsx'
-related_targets: ['app/upload-form.tsx']
+related_targets: ['app/upload-zone.tsx', 'app/upload-dialog.tsx']
 ---
 
 # Track page: listen, version history, new version

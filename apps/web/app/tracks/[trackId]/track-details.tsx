@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useTransition, type FormEvent } from 'react';
 import { GENRE_LABELS, GENRE_OPTIONS, type Genre } from '@feedback/shared';
 import { saveTrackDetails } from '../../../lib/track-details';
 import { audioStore } from '../../_player/store';
-import { DownIcon, EditIcon } from '../../_shell/icons';
+import { EditIcon } from '../../_shell/icons';
+import { SelectField } from '../../_shell/select-field';
 import { setTrackProjectAction } from '../../projects/actions';
 import { updateTrackDetailsAction } from './actions';
 
@@ -141,22 +142,27 @@ export function TrackDetails({
             className="field"
           />
         </div>
-        <Select id="track-project" name="projectId" label="Project" defaultValue={projectId ?? ''}>
+        <SelectField
+          id="track-project"
+          name="projectId"
+          label="Project"
+          defaultValue={projectId ?? ''}
+        >
           <option value="">None</option>
           {projects.map((p) => (
             <option key={p.id} value={p.id}>
               {p.title}
             </option>
           ))}
-        </Select>
-        <Select id="track-genre" name="genre" label="Genre" defaultValue={genre ?? ''}>
+        </SelectField>
+        <SelectField id="track-genre" name="genre" label="Genre" defaultValue={genre ?? ''}>
           <option value="">None</option>
           {GENRE_OPTIONS.map((option) => (
             <option key={option} value={option}>
               {GENRE_LABELS[option]}
             </option>
           ))}
-        </Select>
+        </SelectField>
         {error && (
           <p role="alert" className="text-sm text-danger">
             {error}
@@ -172,40 +178,5 @@ export function TrackDetails({
         </div>
       </form>
     </>
-  );
-}
-
-function Select({
-  id,
-  name,
-  label,
-  defaultValue,
-  children,
-}: {
-  id: string;
-  name: string;
-  label: string;
-  defaultValue: string;
-  children: ReactNode;
-}) {
-  return (
-    <div>
-      <label htmlFor={id} className="mb-1 block text-sm font-medium">
-        {label}
-      </label>
-      <div className="relative">
-        <select
-          id={id}
-          name={name}
-          defaultValue={defaultValue}
-          className="field appearance-none pr-10"
-        >
-          {children}
-        </select>
-        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted">
-          <DownIcon />
-        </span>
-      </div>
-    </div>
   );
 }

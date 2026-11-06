@@ -3,10 +3,11 @@ import Link from 'next/link';
 import { z } from 'zod';
 import { serverApi } from '../../lib/api';
 import { loadOrNotFound } from '../../lib/load';
+import { collectPages } from '../../lib/pages';
 import { TrackLength, TrackSubtitle } from '../_shell/track-meta';
-import { UploadForm } from '../upload-form';
+import { UploadZone } from '../upload-zone';
 
-/** Your tracks, newest first, under the upload form. */
+/** Your tracks, newest first, under where new ones come in. */
 export default async function TracksPage({
   searchParams,
 }: {
@@ -18,15 +19,27 @@ export default async function TracksPage({
   const { cursor } = await searchParams;
   // An invalid cursor (a hand-edited URL) shows the first page rather than an error. Accounts
   // that aren't approved are sent home, which says why.
-  const page = await loadOrNotFound(() =>
-    serverApi().listTracks(z.uuid().safeParse(cursor).success ? { cursor } : {}),
+  const [page, projects] = await loadOrNotFound(() =>
+    Promise.all([
+      serverApi().listTracks(z.uuid().safeParse(cursor).success ? { cursor } : {}),
+      collectPages(async (next) => {
+        const projectPage = await serverApi().listProjects({ cursor: next, limit: 100 });
+        return { items: projectPage.projects, nextCursor: projectPage.nextCursor };
+      }),
+    ]),
   );
 
   return (
     <main className="mx-auto max-w-3xl px-4 pt-6 pb-16">
       <h1 className="text-3xl font-semibold">Your tracks</h1>
       <div className="mt-6">
-        <UploadForm />
+        {/* Only what the dialog shows, not the signed cover URLs that projects come with. */}
+        <UploadZone
+          target={{
+            kind: 'track',
+            projects: projects.map(({ id, title, visibility }) => ({ id, title, visibility })),
+          }}
+        />
       </div>
 
       <section aria-labelledby="tracks-heading" className="mt-12">

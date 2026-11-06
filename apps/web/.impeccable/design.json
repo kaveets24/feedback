@@ -402,7 +402,7 @@
       {
         "name": "shadow-focus-glow",
         "value": "0 0 10px color-mix(in oklab, var(--color-accent) 55%, transparent)",
-        "purpose": "Paired with the 2px accent outline at 2px offset on buttons, links, nav items, the wordmark, the file picker, whole list rows, and player controls; also the primary button hover."
+        "purpose": "Paired with the 2px accent outline at 2px offset on buttons, links, nav items, the wordmark, whole list rows, and player controls; also the primary button hover."
       },
       {
         "name": "nav-underline",
@@ -574,9 +574,25 @@
       "name": "Upload Progress",
       "kind": "custom",
       "refersTo": "upload-progress",
-      "description": "Progressbar in an LCD window: lit drifting lime stripes over still unlit stripes, percent in Silkscreen. Used on home, for a new version on the track page, and (capped at 20rem) for cover art.",
+      "description": "Progressbar in an LCD window: lit drifting lime stripes over still unlit stripes, percent in Silkscreen. Used in the upload dialog and (capped at 20rem) for cover art.",
       "html": "<div class=\"ds-progress\" role=\"progressbar\" aria-label=\"Uploading\" aria-valuemin=\"0\" aria-valuemax=\"100\" aria-valuenow=\"62\"><div class=\"ds-progress-track\"><div class=\"ds-progress-fill\" style=\"width: 62%\"></div></div><span class=\"ds-progress-pct\" aria-hidden=\"true\">62%</span></div>",
       "css": ".ds-progress { display: flex; align-items: center; gap: 12px; margin: 3px; padding: 8px 12px; background: var(--color-lcd); border: 1px solid var(--color-chrome-edge); border-radius: 0.25rem; box-shadow: var(--shadow-lcd), 0 0 0 2px var(--color-chrome-lo), 0 0 0 3px var(--color-chrome-lip); } .ds-progress-track { flex: 1; height: 12px; overflow: hidden; border-radius: 2px; background-image: repeating-linear-gradient(-45deg, var(--color-lcd-ghost) 0 6px, var(--color-lcd-cell) 6px 12px); background-size: 16.97px 16.97px; } .ds-progress-fill { height: 100%; background-image: repeating-linear-gradient(-45deg, var(--color-lcd-ink) 0 6px, var(--color-lcd-dim) 6px 12px); background-size: 16.97px 16.97px; animation: ds-stripes 0.8s linear infinite; } @keyframes ds-stripes { to { background-position: 16.97px 0; } } @media (prefers-reduced-motion: reduce) { .ds-progress-fill { animation: none; } } .ds-progress-pct { width: 3rem; text-align: right; font-family: var(--font-lcd); font-size: 1rem; font-variant-numeric: tabular-nums; color: var(--color-lcd-ink); }"
+    },
+    {
+      "name": "Upload Deck",
+      "kind": "custom",
+      "refersTo": "upload-deck",
+      "description": "Your tracks' drop target, an LCD window drawn as an empty slot on the player: unlit at rest, lit with an accent ring and glow while a file is held over it.",
+      "html": "<div class=\"ds-deck\"><div><p class=\"ds-deck-read\">NO FILE LOADED</p><p class=\"ds-deck-sub\">Drop a track here. New tracks are private: only you can hear them.</p></div><button class=\"ds-deck-btn\" type=\"button\">Choose a file</button></div>",
+      "css": ".ds-deck { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin: 3px; padding: 16px; color: var(--color-lcd-unlit); background: var(--color-lcd); border: 1px solid var(--color-chrome-edge); border-radius: 0.25rem; box-shadow: var(--shadow-lcd), 0 0 0 2px var(--color-chrome-lo), 0 0 0 3px var(--color-chrome-lip); font-family: ui-sans-serif, system-ui, sans-serif; } .ds-deck-read { margin: 0; font-family: var(--font-lcd); font-size: 1.125rem; line-height: 1.25; } .ds-deck-sub { margin: 6px 0 0; max-width: 40ch; font-size: 0.875rem; } .ds-deck-btn { min-height: 2.5rem; padding: 0 1rem; font-size: 0.875rem; font-weight: 500; color: var(--color-canvas); background: var(--color-accent); border: 1px solid var(--color-accent); border-radius: 0.375rem; }"
+    },
+    {
+      "name": "Upload Dialog",
+      "kind": "custom",
+      "refersTo": "upload-dialog",
+      "description": "Every upload's one screen: a native modal dialog with the file, its details, and a privacy line that changes with the project. Fills the screen on phones. While a file goes up, the form gives way to the progress bar and Cancel upload.",
+      "html": "<div class=\"ds-dlg\"><h2>Upload a track</h2><p class=\"ds-dlg-file\"><b>late-night-idea.wav</b> · 10.1 MB</p><p class=\"ds-dlg-priv\"><b>Private.</b> Only you can hear this until you share it.</p></div>",
+      "css": ".ds-dlg { max-width: 32rem; padding: 20px; color: var(--color-ink); background: var(--color-canvas); border: 1px solid var(--color-field-edge); border-radius: 0.5rem; font-family: ui-sans-serif, system-ui, sans-serif; } .ds-dlg h2 { margin: 0 0 12px; font-size: 1.125rem; font-weight: 600; } .ds-dlg-file { margin: 0 0 16px; padding-bottom: 12px; font-size: 0.875rem; color: var(--color-muted); border-bottom: 1px solid var(--color-rule); } .ds-dlg-file b, .ds-dlg-priv b { font-weight: 500; color: var(--color-ink); } .ds-dlg-priv { margin: 0; font-size: 0.875rem; color: var(--color-muted); }"
     },
     {
       "name": "List Row",
