@@ -2,25 +2,30 @@
 
 import { useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from 'react';
 import type { CoverImage, ProjectDetailResponse } from '@feedback/shared';
+import { ArtistLine } from '../../_album/artist-line';
 import { EditIcon } from '../../_shell/icons';
 import { deleteProjectAction, removeCoverAction, updateProjectAction } from '../actions';
 import { visibilitySentence } from '../../../lib/share';
 import { ProjectCover } from '../project-cover';
+import { ReleaseTypeBadge } from '../release-type-badge';
 import { CoverControl } from './cover-control';
 
 /**
  * The project's cover, name, and description. A pencil button beside the name opens an edit mode
  * for the words and, inside it, removing the cover and deleting the project. Escape in the form
- * cancels (unless a save is under way), and focus goes back to the pencil afterwards.
- * `releaseType` is the release type picker, usable in either mode.
+ * cancels (unless a save is under way), and focus goes back to the pencil afterwards. `play` is
+ * the project's Play button, and `releaseType` the release type picker, which is only in the edit
+ * mode: the type reads as a badge otherwise, so the page leads with listening.
  */
 export function ProjectDetails({
   project,
   trackCount,
+  play,
   releaseType,
 }: {
   project: ProjectDetailResponse;
   trackCount: number;
+  play: ReactNode;
   releaseType: ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
@@ -39,20 +44,10 @@ export function ProjectDetails({
     setEditing(false);
   }
 
-  const typeRow = (
-    <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
-      {releaseType}
-      <p className="text-sm text-muted">
-        {visibilitySentence(project.visibility, 'project')}{' '}
-        <a href="#sharing" className="link">
-          Sharing
-        </a>
-      </p>
-    </div>
-  );
-
   if (editing) {
-    return <EditForm project={project} trackCount={trackCount} typeRow={typeRow} onDone={close} />;
+    return (
+      <EditForm project={project} trackCount={trackCount} typeRow={releaseType} onDone={close} />
+    );
   }
   const pending = project.coverUpload;
   return (
@@ -76,6 +71,7 @@ export function ProjectDetails({
               <EditIcon />
             </button>
           </div>
+          <ArtistLine artist={project.artist} />
           {project.description && (
             <p className="mt-2 max-w-[65ch] whitespace-pre-line text-muted">
               {project.description}
@@ -92,7 +88,16 @@ export function ProjectDetails({
           </div>
         </div>
       </div>
-      {typeRow}
+      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
+        {play}
+        <ReleaseTypeBadge releaseType={project.releaseType} fit />
+        <p className="text-sm text-muted">
+          {visibilitySentence(project.visibility, 'project')}{' '}
+          <a href="#sharing" className="link">
+            Sharing
+          </a>
+        </p>
+      </div>
     </div>
   );
 }
@@ -192,7 +197,11 @@ function EditForm({
         </div>
       </form>
 
-      {typeRow}
+      <div>
+        <p className="mb-1 text-sm font-medium">Release type</p>
+        {/* A row, so the picker's error can wrap onto its own line. */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">{typeRow}</div>
+      </div>
 
       {project.cover && <RemoveCover projectId={project.id} cover={project.cover} />}
 

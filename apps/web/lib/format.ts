@@ -1,4 +1,4 @@
-import type { ReleaseType, TrackSummary, VersionStatus } from '@feedback/shared';
+import type { ReleaseType, VersionStatus } from '@feedback/shared';
 
 /** A duration as m:ss (or h:mm:ss), e.g. 210000 → "3:30". */
 export function formatDuration(ms: number): string {
@@ -52,14 +52,6 @@ export const RELEASE_TYPE_LABELS: Record<ReleaseType, string> = {
   album: 'Album',
   compilation: 'Compilation',
 };
-
-/** The combined length of the tracks whose newest version is ready (others have no length yet). */
-export function totalDurationMs(tracks: readonly TrackSummary[]): number {
-  return tracks.reduce(
-    (sum, { latestVersion: v }) => sum + (v.status === 'ready' ? (v.durationMs ?? 0) : 0),
-    0,
-  );
-}
 
 /** "Nov 3" this year, "Nov 3, 2025" before it: the date column stays narrow. */
 export function formatShortDate(iso: string) {

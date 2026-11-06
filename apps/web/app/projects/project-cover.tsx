@@ -4,8 +4,8 @@ import { NoteIcon } from '../_shell/icons';
 const SIZES = {
   /** A thumbnail leading a row of the projects list. */
   list: { box: 'size-12', icon: 20 },
-  /** Beside the title on the project page: 96px on phones, 128px from `sm`. */
-  page: { box: 'size-24 sm:size-32', icon: 32 },
+  /** Beside the title on the project page: 112px on phones, 192px from `sm`. */
+  page: { box: 'size-28 sm:size-48', icon: 32 },
 } as const;
 
 /**

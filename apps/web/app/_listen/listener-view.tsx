@@ -1,44 +1,27 @@
 'use client';
 
 import { SignInButton, useAuth } from '@clerk/nextjs';
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  GENRE_LABELS,
-  type ProjectDetailResponse,
-  type TrackResponse,
-  type VersionResponse,
-} from '@feedback/shared';
-import type { PlayerItem } from '../../lib/audio-store';
+import { GENRE_LABELS, type ProjectDetailResponse, type TrackResponse } from '@feedback/shared';
 import { formatDate, formatDuration } from '../../lib/format';
+import { playerItem, queueItems } from '../../lib/player-item';
+import { sharedTrackFragment } from '../../lib/share';
+import { AlbumRow, PlayAlbumButton, useAlbumQueue } from '../_album/album';
+import { ArtistLine } from '../_album/artist-line';
 import { listenerAction, listListenerFeedbackAction, type Listener } from '../_feedback/actions';
 import { FeedbackPlaceContext } from '../_feedback/context';
 import type { Threads } from '../_feedback/feedback-section';
 import { PlayerWithFeedback } from '../_feedback/player-with-feedback';
 import { ProjectCover } from '../projects/project-cover';
+import { ReleaseTypeBadge } from '../projects/release-type-badge';
 
 // What listeners see of a track or project: on the listen page through a share link, and on the
-// track and project pages, with no link, for anyone but the owner of something public. Plain HTML
-// until styled (CLAUDE.md section 9), apart from the player, cover art and comments.
+// track and project pages, with no link, for anyone but the owner of something public. A track is
+// plain HTML until styled (CLAUDE.md section 9), apart from the player and comments.
 
 const SHARED_BY_LINK =
   'Shared with you by link. You can listen, and read and leave comments once you’re signed in.';
-
-/** A ready version as the player plays it, through the link if there is one. */
-function playerItem(
-  track: TrackResponse,
-  version: VersionResponse,
-  token: string | null,
-): PlayerItem {
-  return {
-    versionId: version.id,
-    trackId: track.id,
-    title: track.title,
-    versionNumber: version.versionNumber,
-    durationMs: version.durationMs ?? 0,
-    peaks: version.waveformPeaks ?? [],
-    ...(token && { shareToken: token }),
-  };
-}
 
 /**
  * The player for a track's current version, with A/B against its other versions, and the comments
@@ -162,7 +145,7 @@ export function ListenerTrack({ track, token }: { track: TrackResponse; token: s
   );
 }
 
-/** A project as a listener sees it, with the tracks they may hear; see `ListenerTrack`. */
+/** A project as a listener sees it: an album to play, with comments on each track's own page. */
 export function ListenerProject({
   project,
   tracks,
@@ -172,42 +155,111 @@ export function ListenerProject({
   tracks: readonly TrackResponse[];
   token: string | null;
 }) {
-  const [selectedId, setSelectedId] = useState(tracks[0]?.id);
-  const selected = tracks.find((t) => t.id === selectedId);
+  const items = useMemo(() => queueItems(tracks, token), [tracks, token]);
+  useAlbumQueue(project.id, items);
+  const total = items.reduce((sum, item) => sum + item.durationMs, 0);
 
   return (
     <>
-      <ProjectCover cover={project.cover} size="page" alt={`Cover art for ${project.title}`} />
-      <h1>{project.title}</h1>
-      {project.description && <p>{project.description}</p>}
-      {token && <p>{SHARED_BY_LINK}</p>}
-      {selected ? (
-        <Player key={selected.id} track={selected} token={token} />
-      ) : (
-        <p>There’s nothing to play yet.</p>
-      )}
-      {tracks.length > 0 && (
-        <>
-          <h2>Tracks</h2>
-          <ol>
-            {tracks.map((track) => {
-              const current = track.versions.find((v) => v.id === track.currentVersionId);
-              return (
-                <li key={track.id}>
-                  <button
-                    type="button"
-                    aria-pressed={track.id === selectedId}
-                    onClick={() => setSelectedId(track.id)}
+      <div className="flex items-start gap-4 sm:gap-6">
+        <ProjectCover cover={project.cover} size="page" alt={`Cover art for ${project.title}`} />
+        <div className="min-w-0 flex-1">
+          <h1 className="text-3xl font-semibold break-words text-balance">{project.title}</h1>
+          <ArtistLine artist={project.artist} />
+          {project.description && (
+            <p className="mt-2 max-w-[65ch] whitespace-pre-line text-muted">
+              {project.description}
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3">
+        {items.length > 0 && (
+          <PlayAlbumButton projectId={project.id} title={project.title} items={items} />
+        )}
+        <ReleaseTypeBadge releaseType={project.releaseType} fit />
+      </div>
+
+      <section aria-labelledby="tracks-heading" className="mt-12">
+        <div className="mb-3 flex items-baseline gap-3">
+          <h2 id="tracks-heading" className="text-lg font-semibold">
+            Tracks
+          </h2>
+          {tracks.length > 0 && (
+            <p className="text-sm text-muted">
+              {tracks.length === 1 ? '1 track' : `${tracks.length} tracks`}
+              {' · '}
+              <span className="font-lcd tabular-nums">{formatDuration(total)}</span>
+            </p>
+          )}
+        </div>
+        {tracks.length === 0 ? (
+          <p className="border-y border-rule py-6 text-muted">There’s nothing to play yet.</p>
+        ) : (
+          <>
+            <ol className="border-t border-rule">
+              {tracks.map((track, index) => {
+                const current = track.versions.find((v) => v.id === track.currentVersionId);
+                const length = current?.durationMs != null && formatDuration(current.durationMs);
+                return (
+                  <AlbumRow
+                    key={track.id}
+                    projectId={project.id}
+                    trackId={track.id}
+                    title={track.title}
+                    number={index + 1}
+                    items={items}
                   >
-                    {track.title}
-                  </button>{' '}
-                  ({formatDuration(current?.durationMs ?? 0)})
-                </li>
-              );
-            })}
-          </ol>
-        </>
-      )}
+                    <div className="min-w-0">
+                      <TrackTitleLink track={track} token={token} />
+                      <p className="text-sm text-muted">
+                        {current && `v${current.versionNumber}`}
+                        {length && (
+                          <span className="sm:hidden">
+                            {' · '}
+                            <span className="font-lcd text-base text-ink tabular-nums">
+                              {length}
+                            </span>
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <span className="hidden text-right font-lcd text-base tabular-nums sm:block">
+                      {length || <span className="text-muted">—</span>}
+                    </span>
+                  </AlbumRow>
+                );
+              })}
+            </ol>
+            <p className="mt-4 max-w-[65ch] text-sm text-muted">
+              {token ? 'Shared with you by link. ' : ''}Open a track to read and leave comments.
+            </p>
+          </>
+        )}
+      </section>
     </>
+  );
+}
+
+/**
+ * A track's title, going to where a listener can read and leave comments on it. Through a share
+ * link that's the same page with the track in the fragment, so it's a plain link: only a real
+ * fragment change tells the page, and the token stays out of anything a server sees.
+ */
+function TrackTitleLink({ track, token }: { track: TrackResponse; token: string | null }) {
+  const className =
+    'link line-clamp-2 font-medium break-words no-underline group-data-playing:text-accent sm:line-clamp-1';
+  return token ? (
+    <a
+      href={sharedTrackFragment(token, track.id)}
+      className={className}
+      onClick={() => document.querySelector('main')?.scrollIntoView()}
+    >
+      {track.title}
+    </a>
+  ) : (
+    <Link href={`/tracks/${track.id}`} className={className}>
+      {track.title}
+    </Link>
   );
 }
