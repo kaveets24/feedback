@@ -3,6 +3,9 @@ import type { ActionResult } from './action-result';
 import {
   createAudioStore,
   EXPIRY_MARGIN_MS,
+  PREPARE_NEXT_MS,
+  queueIndex,
+  RESTART_AFTER_MS,
   type AudioLike,
   type PlayerItem,
   type StreamUrl,
@@ -87,6 +90,8 @@ describe('audio store', () => {
       error: null,
       volume: 1,
       muted: false,
+      queue: [],
+      queueId: null,
     });
   });
 
@@ -472,5 +477,205 @@ describe('volume', () => {
     store.setVolume(0);
     store.toggleMute();
     expect(store.getState()).toMatchObject({ volume: 0.5, muted: false });
+  });
+});
+
+describe('audio store queue', () => {
+  const album = [item(1), item(2), item(3)];
+
+  /** A store playing the album from `index`, with the source loaded and sound coming out. */
+  async function playing(index = 0) {
+    const context = setup();
+    await context.store.playQueue('project', album, index);
+    context.started();
+    return context;
+  }
+
+  it('plays from the chosen track and says where it is', async () => {
+    const { store } = await playing(1);
+    expect(store.getState().item?.versionId).toBe('version-2');
+    expect(queueIndex(store.getState())).toBe(1);
+  });
+
+  it('moves on by itself when a track ends, and stops after the last', async () => {
+    const { store, audio, started } = await playing(1);
+    audio.fire('ended');
+    await vi.waitFor(() => expect(audio.src).toContain('version-3'));
+    expect(store.getState().status).toBe('loading');
+    expect(store.getState().positionMs).toBe(0);
+    started();
+
+    audio.fire('ended');
+    expect(store.getState().item?.versionId).toBe('version-3');
+    expect(store.getState().status).toBe('paused');
+    expect(store.getState().positionMs).toBe(180_000);
+  });
+
+  it('a lone track stops when it ends', async () => {
+    const { store, audio, started } = setup();
+    await store.play(item(1));
+    started();
+    audio.fire('ended');
+    expect(store.getState().status).toBe('paused');
+  });
+
+  it('starts the album over from a finished last track', async () => {
+    const { store, audio, started } = await playing(2);
+    audio.fire('ended');
+    await store.playQueue('project', album, 0);
+    started();
+    expect(store.getState().item?.versionId).toBe('version-1');
+  });
+
+  it('starts a finished track from the top, even when its URL has expired', async () => {
+    const { store, audio, started, advance } = setup();
+    await store.play(item(1));
+    started();
+    audio.fire('ended');
+    advance(MINUTES_10);
+    await store.resume();
+    expect(store.getState().positionMs).toBe(0);
+    audio.currentTime = 99;
+    started();
+    expect(audio.currentTime).toBe(0);
+  });
+
+  it('next plays the next track, and does nothing on the last', async () => {
+    const { store, audio } = await playing(0);
+    await store.next();
+    expect(store.getState().item?.versionId).toBe('version-2');
+    expect(audio.src).toContain('version-2');
+    await store.next();
+    await store.next();
+    expect(store.getState().item?.versionId).toBe('version-3');
+  });
+
+  it('next plays even from paused', async () => {
+    const { store, audio } = await playing(0);
+    store.pause();
+    await store.next();
+    expect(audio.play).toHaveBeenCalledTimes(2);
+    expect(store.getState().status).toBe('loading');
+  });
+
+  it('previous goes back a track near the start, and restarts one that is under way', async () => {
+    const { store, audio, started } = await playing(1);
+    audio.currentTime = (RESTART_AFTER_MS + 1000) / 1000;
+    audio.fire('timeupdate');
+    await store.previous();
+    expect(store.getState().item?.versionId).toBe('version-2');
+    expect(audio.currentTime).toBe(0);
+
+    audio.fire('timeupdate');
+    await store.previous();
+    expect(store.getState().item?.versionId).toBe('version-1');
+    started();
+
+    // The first track has nothing before it, so it stays put.
+    await store.previous();
+    expect(store.getState().item?.versionId).toBe('version-1');
+    expect(store.getState().positionMs).toBe(0);
+  });
+
+  it('a failed stream URL stops the album with an error rather than skipping on', async () => {
+    const { store, audio, fetchStream } = await playing(0);
+    fetchStream.mockResolvedValueOnce({ ok: false, message: 'Not found' });
+    audio.fire('ended');
+    await vi.waitFor(() => expect(store.getState().status).toBe('error'));
+    expect(store.getState().item?.versionId).toBe('version-2');
+    expect(store.getState().error).toContain('Press play');
+    // Next still works from the error.
+    await store.next();
+    expect(store.getState().item?.versionId).toBe('version-3');
+  });
+
+  it('a track outside the queue clears it; one inside keeps it', async () => {
+    const { store } = await playing(0);
+    await store.play(item(2));
+    expect(store.getState().queueId).toBe('project');
+    expect(queueIndex(store.getState())).toBe(1);
+
+    await store.play(item(9));
+    expect(store.getState().queue).toEqual([]);
+    expect(store.getState().queueId).toBeNull();
+    expect(queueIndex(store.getState())).toBe(-1);
+  });
+
+  it('keeps its place while comparing an older version, and next moves on from it', async () => {
+    const { store } = await playing(0);
+    await store.switchTo({ ...item(1), versionId: 'older', versionNumber: 0 });
+    expect(queueIndex(store.getState())).toBe(0);
+    await store.next();
+    expect(store.getState().item?.versionId).toBe('version-2');
+  });
+
+  it('pressing a track that is loaded in an older version carries on with that version', async () => {
+    const { store } = await playing(0);
+    await store.switchTo({ ...item(1), versionId: 'older', versionNumber: 0 });
+    store.pause();
+    await store.playQueue('project', album, 0);
+    expect(store.getState().item?.versionId).toBe('older');
+  });
+
+  it('syncs a reorder without touching playback, and only for its own queue', async () => {
+    const { store, audio } = await playing(0);
+    const plays = audio.play.mock.calls.length;
+    store.syncQueue('other', [item(7)]);
+    expect(store.getState().queue).toEqual(album);
+
+    const reordered = [item(2), item(1), item(3)];
+    store.syncQueue('project', reordered);
+    expect(queueIndex(store.getState())).toBe(1);
+    expect(audio.play.mock.calls.length).toBe(plays);
+    await store.next();
+    expect(store.getState().item?.versionId).toBe('version-3');
+  });
+
+  it('keeps the playing track in place when it is removed, so next goes to what followed', async () => {
+    const { store } = await playing(1);
+    store.syncQueue('project', [item(1), item(3)]);
+    expect(store.getState().queue.map((q) => q.trackId)).toEqual(['track-1', 'track-2', 'track-3']);
+    await store.next();
+    expect(store.getState().item?.versionId).toBe('version-3');
+  });
+
+  it('retitles the track in the queue too', async () => {
+    const { store } = await playing(0);
+    store.retitle('track-3', 'New name');
+    expect(store.getState().item?.title).toBe('Song 1');
+    expect(store.getState().queue[2]?.title).toBe('New name');
+  });
+
+  it('fetches the next stream URL near the end of a track, once, and uses it', async () => {
+    const { store, audio, fetchStream, started } = await playing(0);
+    const seen = () => fetchStream.mock.calls.filter(([id]) => id === 'version-2').length;
+
+    audio.currentTime = (180_000 - PREPARE_NEXT_MS - 1000) / 1000;
+    audio.fire('timeupdate');
+    expect(seen()).toBe(0);
+
+    audio.currentTime = (180_000 - PREPARE_NEXT_MS + 1000) / 1000;
+    audio.fire('timeupdate');
+    audio.fire('timeupdate');
+    expect(seen()).toBe(1);
+    // Let the fetch finish, as it has by the end of the track.
+    await new Promise((resolve) => setTimeout(resolve));
+
+    audio.fire('ended');
+    await vi.waitFor(() => expect(audio.src).toContain('version-2'));
+    started();
+    expect(store.getState().item?.versionId).toBe('version-2');
+    expect(seen()).toBe(1);
+  });
+
+  it('fetches the next stream URL again if the kept one has gone stale', async () => {
+    const { audio, fetchStream, advance } = await playing(0);
+    const seen = () => fetchStream.mock.calls.filter(([id]) => id === 'version-2').length;
+    audio.currentTime = 179;
+    audio.fire('timeupdate');
+    await vi.waitFor(() => expect(seen()).toBe(1));
+    advance(MINUTES_10);
+    audio.fire('timeupdate');
+    await vi.waitFor(() => expect(seen()).toBe(2));
   });
 });

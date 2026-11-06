@@ -7,6 +7,51 @@ const SIZES = {
   md: { button: 'size-11', icon: 18 },
 } as const;
 
+/** The play or pause symbol, also used on the project page's Play button. */
+export function PlayPauseIcon({ active, size }: { active: boolean; size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      {active ? (
+        <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
+      ) : (
+        <path d="M7 3.5v17a.5.5 0 0 0 .77.42l13-8.5a.5.5 0 0 0 0-.84l-13-8.5A.5.5 0 0 0 7 3.5z" />
+      )}
+    </svg>
+  );
+}
+
+/** Previous or next in the queue: a size down from play, so the transport reads as one group. */
+export function SkipButton({
+  direction,
+  disabled,
+  onClick,
+}: {
+  direction: 'previous' | 'next';
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  const label = direction === 'next' ? 'Next track' : 'Previous track';
+  return (
+    <button
+      type="button"
+      className="bevel-button size-10"
+      aria-label={label}
+      title={label}
+      // Not `disabled`: pressing Next onto the last track would drop the focus it has.
+      aria-disabled={disabled || undefined}
+      onClick={disabled ? undefined : onClick}
+    >
+      <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        {direction === 'next' ? (
+          <path d="M4 4l12 8-12 8zM17 4h3v16h-3z" />
+        ) : (
+          <path d="M20 4L8 12l12 8zM4 4h3v16H4z" />
+        )}
+      </svg>
+    </button>
+  );
+}
+
 /** Play/pause for one version. Shows pause while loading, since playback is on its way. */
 export function TransportButton({
   status,
@@ -29,19 +74,7 @@ export function TransportButton({
       aria-busy={status === 'loading'}
       onClick={onClick}
     >
-      <svg
-        width={SIZES[size].icon}
-        height={SIZES[size].icon}
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        aria-hidden="true"
-      >
-        {active ? (
-          <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
-        ) : (
-          <path d="M7 3.5v17a.5.5 0 0 0 .77.42l13-8.5a.5.5 0 0 0 0-.84l-13-8.5A.5.5 0 0 0 7 3.5z" />
-        )}
-      </svg>
+      <PlayPauseIcon active={active} size={SIZES[size].icon} />
     </button>
   );
 }

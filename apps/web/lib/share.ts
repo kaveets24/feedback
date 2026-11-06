@@ -9,6 +9,20 @@ export function shareUrl(origin: string, token: string): string {
   return `${origin}/listen#${token}`;
 }
 
+/**
+ * One track reached through a project's share link. The track is in the fragment beside the token,
+ * so it's kept from servers just the same. A token never contains a slash (it's base64url).
+ */
+export function sharedTrackFragment(token: string, trackId: string): string {
+  return `#${token}/${trackId}`;
+}
+
+/** The token, and any track, from the listen page's fragment (`location.hash`). */
+export function parseShareFragment(hash: string): { token: string; trackId: string | null } {
+  const [token = '', trackId] = decodeURIComponent(hash.slice(1)).split('/');
+  return { token, trackId: trackId || null };
+}
+
 export const EXPIRY_CHOICES = ['never', '1d', '7d', '30d'] as const;
 export type ExpiryChoice = (typeof EXPIRY_CHOICES)[number];
 

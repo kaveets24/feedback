@@ -4,6 +4,7 @@ import { useSyncExternalStore } from 'react';
 import {
   createAudioStore,
   initialPlayerState,
+  queueIndex,
   type AudioStore,
   type PlayerState,
 } from '../../lib/audio-store';
@@ -42,8 +43,17 @@ export function useAudio<T>(select: (state: PlayerState) => T): T {
 if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
   const session = navigator.mediaSession;
   let shownVersionId: string | null = null;
+  let skippable = false;
   audioStore.subscribe(() => {
-    const { item, status } = audioStore.getState();
+    const state = audioStore.getState();
+    const { item, status } = state;
+    // Only offered while there's a queue, so a lone track's lock screen shows its seek controls.
+    const canSkip = queueIndex(state) >= 0 && state.queue.length > 1;
+    if (canSkip !== skippable) {
+      skippable = canSkip;
+      session.setActionHandler('nexttrack', canSkip ? () => void audioStore.next() : null);
+      session.setActionHandler('previoustrack', canSkip ? () => void audioStore.previous() : null);
+    }
     if (item && item.versionId !== shownVersionId) {
       shownVersionId = item.versionId;
       session.metadata = new MediaMetadata({ title: item.title, album: `v${item.versionNumber}` });
