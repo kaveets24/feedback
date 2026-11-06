@@ -97,8 +97,8 @@ export function UploadZone({ target }: { target: UploadTarget }) {
           }`}
         >
           <p className="min-w-0 flex-1 basis-56 text-sm text-muted">
-            <span className="pointer-coarse:hidden">Drop the next version here. </span>
-            A new version plays here once it’s processed.
+            <span className="pointer-coarse:hidden">Drop the next version here. </span>A new version
+            plays here once it’s processed.
           </p>
           <button type="button" className="btn">
             Choose a file
