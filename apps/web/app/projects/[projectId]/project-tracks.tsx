@@ -7,13 +7,18 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
 } from 'react';
 import type { TrackSummary } from '@feedback/shared';
+import type { PlayerItem } from '../../../lib/audio-store';
 import { dragStep, moveItem } from '../../../lib/reorder';
+import { AlbumRow, useAlbumQueue } from '../../_album/album';
+import { useAudio } from '../../_player/store';
 import { GripIcon, RemoveIcon } from '../../_shell/icons';
 import { TrackLength, TrackSubtitle } from '../../_shell/track-meta';
 import {
@@ -33,16 +38,26 @@ interface Drag {
 }
 
 /**
- * A project's tracks in running order. Drag a row by its grip, or focus the grip and press the
- * up or down arrow (the keyboard and screen-reader path); either saves the whole order. Saves run one at a
- * time, in order, so quick moves can't arrive at the API out of sequence.
+ * A project's tracks in running order, to play in place. Arrange swaps the play buttons for the
+ * tools: drag a row by its grip, or focus the grip and press the up or down arrow (the keyboard and
+ * screen-reader path); either saves the whole order. Saves run one at a time, in order, so quick
+ * moves can't arrive at the API out of sequence. The player's queue follows along.
  */
 export function ProjectTracks({
   projectId,
   tracks,
+  playable,
+  summary,
+  addTrack,
 }: {
   projectId: string;
   tracks: TrackSummary[];
+  /** What each track plays, for those with a ready version. */
+  playable: readonly PlayerItem[];
+  /** The count and total length, beside the heading. */
+  summary: ReactNode;
+  /** The add-a-track form, offered while arranging. */
+  addTrack: ReactNode;
 }) {
   const router = useRouter();
   const [order, setOrder] = useState(tracks);
@@ -53,6 +68,15 @@ export function ProjectTracks({
     setOrder(tracks);
   }
 
+  const items = useMemo(() => {
+    const byTrack = new Map(playable.map((item) => [item.trackId, item]));
+    return order.flatMap((track) => byTrack.get(track.id) ?? []);
+  }, [order, playable]);
+  useAlbumQueue(projectId, items);
+  const playedOf = (track: TrackSummary) => items.find((item) => item.trackId === track.id);
+
+  // An empty project opens on the tools, and stays there so several tracks can go in at once.
+  const [arrangeChosen, setArrangeChosen] = useState(tracks.length === 0);
   const [announcement, setAnnouncement] = useState('');
   /**
    * The last track taken out. Its row stays as a same-height slot with Undo, so it's clear the
@@ -226,8 +250,29 @@ export function ProjectTracks({
     </li>
   );
 
+  // With nothing to play, adding a track is the only thing to do here.
+  const arranging = arrangeChosen || (order.length === 0 && !removed);
+
   return (
-    <div>
+    <section aria-labelledby="tracks-heading" className="mt-12">
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h2 id="tracks-heading" className="text-lg font-semibold">
+          Tracks
+        </h2>
+        {summary}
+        {order.length > 0 && (
+          <button
+            type="button"
+            className="btn ml-auto"
+            onClick={() => {
+              setRemoved(null);
+              setArrangeChosen(!arrangeChosen);
+            }}
+          >
+            {arrangeChosen ? 'Done' : 'Arrange'}
+          </button>
+        )}
+      </div>
       <p aria-live="polite" className="sr-only">
         {announcement}
       </p>
@@ -243,6 +288,30 @@ export function ProjectTracks({
         <p className="border-y border-rule py-6 text-muted">
           No tracks in this project yet. Add one below.
         </p>
+      ) : !arranging ? (
+        <ol className="border-t border-rule">
+          {order.map((track, index) => (
+            <AlbumRow
+              key={track.id}
+              projectId={projectId}
+              trackId={track.id}
+              title={track.title}
+              number={index + 1}
+              items={items}
+            >
+              <div className="min-w-0">
+                <Link
+                  href={`/tracks/${track.id}`}
+                  className="link line-clamp-2 font-medium break-words no-underline group-data-playing:text-accent sm:line-clamp-1"
+                >
+                  {track.title}
+                </Link>
+                <TrackSubtitle track={track} played={playedOf(track)} />
+              </div>
+              <TrackLength track={track} played={playedOf(track)} />
+            </AlbumRow>
+          ))}
+        </ol>
       ) : (
         <ol ref={listRef} className="border-t border-rule">
           {order.map((track, index) => (
@@ -250,6 +319,7 @@ export function ProjectTracks({
               {removed?.index === index && removedSlot}
               <TrackRow
                 track={track}
+                played={playedOf(track)}
                 number={index + 1}
                 count={order.length}
                 helpId={`${projectId}-reorder-help`}
@@ -266,7 +336,8 @@ export function ProjectTracks({
           {removed && removed.index >= order.length && removedSlot}
         </ol>
       )}
-    </div>
+      {arranging && addTrack}
+    </section>
   );
 }
 
@@ -274,6 +345,7 @@ type GripHandler = (event: ReactPointerEvent<HTMLElement>) => void;
 
 function TrackRow({
   track,
+  played,
   number,
   count,
   helpId,
@@ -286,6 +358,8 @@ function TrackRow({
   onGripCancel,
 }: {
   track: TrackSummary;
+  /** What it plays, if anything's ready. */
+  played?: PlayerItem;
   number: number;
   count: number;
   /** The element that explains the grip's arrow keys. */
@@ -298,6 +372,9 @@ function TrackRow({
   onGripUp: GripHandler;
   onGripCancel: GripHandler;
 }) {
+  // Arranging doesn't stop the music, so the row in the player stays lit.
+  const inPlayer = useAudio((s) => s.item?.trackId === track.id) && !dragging;
+
   const onGripKey = (event: ReactKeyboardEvent) => {
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
@@ -308,7 +385,9 @@ function TrackRow({
   return (
     <li
       data-track={track.id}
-      className={`relative grid grid-cols-[1.75rem_2rem_1fr_auto] items-center gap-2 border-b border-rule py-2 sm:grid-cols-[2rem_2.5rem_1fr_4rem_auto] sm:gap-3 ${
+      aria-current={inPlayer || undefined}
+      data-playing={inPlayer || undefined}
+      className={`group relative isolate grid grid-cols-[1.75rem_2rem_1fr_auto] items-center gap-2 border-b border-rule py-2 data-playing:before:absolute data-playing:before:inset-y-0 data-playing:before:-inset-x-3 data-playing:before:-z-10 data-playing:before:bg-chrome-lo data-playing:before:shadow-[inset_2px_0_0_var(--color-accent)] sm:grid-cols-[2rem_2.5rem_1fr_4rem_auto] sm:gap-3 ${
         dragging ? 'z-10 rounded-sm bg-chrome-lo outline-2 outline-accent' : ''
       }`}
     >
@@ -336,13 +415,13 @@ function TrackRow({
       <div className="min-w-0">
         <Link
           href={`/tracks/${track.id}`}
-          className="link line-clamp-2 font-medium break-words no-underline sm:line-clamp-1"
+          className="link line-clamp-2 font-medium break-words no-underline group-data-playing:text-accent sm:line-clamp-1"
         >
           {track.title}
         </Link>
-        <TrackSubtitle track={track} />
+        <TrackSubtitle track={track} played={played} />
       </div>
-      <TrackLength track={track} />
+      <TrackLength track={track} played={played} />
       <button
         type="button"
         className="btn btn-ghost btn-icon"

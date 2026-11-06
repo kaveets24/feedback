@@ -23,6 +23,10 @@ export type PlayerState = {
   /** 0 to 1, shared by every player; kept while muted, so unmuting goes back to it. */
   volume: number;
   muted: boolean;
+  /** The tracks playing in order (a project's), with one version of each; empty for a lone track. */
+  queue: readonly PlayerItem[];
+  /** What the queue came from, so that place can keep it up to date. */
+  queueId: string | null;
 };
 
 /** The parts of `HTMLAudioElement` the store uses, so tests can pass a fake. */
@@ -46,6 +50,19 @@ export type AudioStoreDeps = {
 /** Treat a stream URL as expired this long before it really does, so a resume never races it. */
 export const EXPIRY_MARGIN_MS = 30_000;
 
+/** Further into a track than this, "previous" goes back to its start rather than the last track. */
+export const RESTART_AFTER_MS = 3_000;
+
+/**
+ * With this long left of a track, the next one's stream URL is fetched, so it can start straight
+ * from the `ended` event: phones may refuse to start audio after a wait while the screen's locked.
+ * Any earlier and a long track's wait could outlast the URL.
+ */
+export const PREPARE_NEXT_MS = 60_000;
+
+/** How long to wait before fetching the next track's stream URL again, if that failed. */
+const PREPARE_RETRY_MS = 30_000;
+
 export const initialPlayerState: PlayerState = {
   item: null,
   status: 'idle',
@@ -53,7 +70,17 @@ export const initialPlayerState: PlayerState = {
   error: null,
   volume: 1,
   muted: false,
+  queue: [],
+  queueId: null,
 };
+
+/**
+ * Where the loaded track is in the queue, or -1. Goes by track, not version: comparing an older
+ * version (A/B) keeps its place.
+ */
+export function queueIndex({ item, queue }: PlayerState): number {
+  return item ? queue.findIndex((q) => q.trackId === item.trackId) : -1;
+}
 
 /** The remembered volume, or the defaults if there's none (or it's unreadable). */
 function recall(memory: VolumeMemory | undefined): Pick<PlayerState, 'volume' | 'muted'> {
@@ -75,7 +102,8 @@ function recall(memory: VolumeMemory | undefined): Pick<PlayerState, 'volume' | 
  * track ever plays. Stream URLs are short-lived, so it fetches a new one when the current one
  * has expired before a resume, or when playback fails (a later range request with an expired
  * URL), and carries on from the same position. Fresh URLs are kept per version, so switching
- * between versions (A/B) or prefetching the next one skips a round trip.
+ * between versions (A/B) or prefetching the next one skips a round trip. A queue plays tracks in
+ * order, moving on by itself when one ends and stopping after the last.
  */
 export function createAudioStore({ createAudio, fetchStream, now, memory }: AudioStoreDeps) {
   let state: PlayerState = { ...initialPlayerState, ...recall(memory) };
@@ -90,6 +118,8 @@ export function createAudioStore({ createAudio, fetchStream, now, memory }: Audi
   let loadId = 0;
   /** Set after one URL refresh for a playback error, cleared once playback works again. */
   let retried = false;
+  /** When the next track's stream URL was last fetched ahead of time. */
+  let preparedAt = 0;
 
   /** Pressing play again retries: from `error`, a resume fetches a fresh stream URL. */
   function playbackError() {
@@ -119,10 +149,14 @@ export function createAudioStore({ createAudio, fetchStream, now, memory }: Audi
       if (state.status === 'playing') set({ status: 'paused' });
     });
     el.addEventListener('timeupdate', () => {
-      if (pendingSeekMs === null) set({ positionMs: Math.round(el.currentTime * 1000) });
+      if (pendingSeekMs !== null) return;
+      set({ positionMs: Math.round(el.currentTime * 1000) });
+      prepareNext();
     });
     el.addEventListener('ended', () => {
-      set({ status: 'paused', positionMs: state.item?.durationMs ?? state.positionMs });
+      const next = state.queue[queueIndex(state) + 1];
+      if (next && queueIndex(state) >= 0) void start(next);
+      else set({ status: 'paused', positionMs: state.item?.durationMs ?? state.positionMs });
     });
     el.addEventListener('error', () => {
       if (!state.item) return;
@@ -173,6 +207,18 @@ export function createAudioStore({ createAudio, fetchStream, now, memory }: Audi
     if (autoplay) await startPlayback(el);
   }
 
+  /** Near the end of a track, gets the next one's stream URL ready; see `PREPARE_NEXT_MS`. */
+  function prepareNext() {
+    const index = queueIndex(state);
+    const next = index >= 0 ? state.queue[index + 1] : undefined;
+    if (!next || !state.item || state.item.durationMs - state.positionMs > PREPARE_NEXT_MS) return;
+    if (now() - preparedAt < PREPARE_RETRY_MS) return;
+    const kept = urls.get(next.versionId);
+    if (kept && isFresh(kept)) return;
+    preparedAt = now();
+    void streamUrl(next, false);
+  }
+
   async function startPlayback(el: AudioLike) {
     try {
       await el.play();
@@ -194,6 +240,8 @@ export function createAudioStore({ createAudio, fetchStream, now, memory }: Audi
   async function resume() {
     const { item } = state;
     if (!item) return;
+    // Finished: start over, or a new source would pick up at its very end and finish at once.
+    if (state.positionMs >= item.durationMs) seek(0);
     if (state.status === 'error' || now() >= expiresAt - EXPIRY_MARGIN_MS) {
       await loadSource(item, true, { fresh: state.status === 'error' });
       return;
@@ -213,8 +261,8 @@ export function createAudioStore({ createAudio, fetchStream, now, memory }: Audi
     if (state.status === 'playing' || state.status === 'loading') set({ status: 'paused' });
   }
 
-  /** Plays `item` (from `atMs` if given), switching from whatever was playing. */
-  async function play(item: PlayerItem, atMs?: number) {
+  /** Loads and plays `item`, leaving the queue as it is. */
+  async function start(item: PlayerItem, atMs?: number) {
     if (state.item?.versionId === item.versionId && state.status !== 'error') {
       if (atMs !== undefined) seek(atMs);
       await resume();
@@ -225,6 +273,60 @@ export function createAudioStore({ createAudio, fetchStream, now, memory }: Audi
     expiresAt = 0;
     set({ item, status: 'loading', positionMs: atMs ?? 0, error: null });
     await loadSource(item, true);
+  }
+
+  /**
+   * Plays `item` (from `atMs` if given), switching from whatever was playing. A track that isn't
+   * in the queue replaces it: the listener has left that running order.
+   */
+  async function play(item: PlayerItem, atMs?: number) {
+    if (!state.queue.some((q) => q.trackId === item.trackId)) set({ queue: [], queueId: null });
+    await start(item, atMs);
+  }
+
+  /**
+   * Plays `items` in order from `index`. If that track is already loaded it carries on from where
+   * it is, in whichever version is loaded.
+   */
+  async function playQueue(queueId: string, items: readonly PlayerItem[], index: number) {
+    const item = items[index];
+    if (!item) return;
+    const loaded = state.item?.trackId === item.trackId;
+    preparedAt = 0;
+    set({ queue: items, queueId });
+    if (loaded) await resume();
+    else await start(item);
+  }
+
+  /**
+   * Keeps the queue current when its source changes (tracks reordered, added, or removed), without
+   * touching playback, and only if that source's queue is the one in the player. A track that's
+   * playing stays in the queue even if it was removed, so "next" still goes to what followed it.
+   */
+  function syncQueue(queueId: string, items: readonly PlayerItem[]) {
+    if (state.queueId !== queueId) return;
+    const index = queueIndex(state);
+    const playing = state.queue[index];
+    const kept =
+      playing && !items.some((q) => q.trackId === playing.trackId)
+        ? items.toSpliced(index, 0, playing)
+        : items;
+    set({ queue: kept });
+  }
+
+  /** Moves on to the next track, if there is one, and plays it. */
+  async function next() {
+    const index = queueIndex(state);
+    const item = index >= 0 ? state.queue[index + 1] : undefined;
+    if (item) await start(item);
+  }
+
+  /** Back to the start of this track if it's under way, otherwise to the track before. */
+  async function previous() {
+    const index = queueIndex(state);
+    const item = index > 0 ? state.queue[index - 1] : undefined;
+    if (item && state.positionMs <= RESTART_AFTER_MS) await start(item);
+    else seek(0);
   }
 
   /**
@@ -248,7 +350,10 @@ export function createAudioStore({ createAudio, fetchStream, now, memory }: Audi
 
   /** Shows a track's new name if it's the one loaded, without touching playback. */
   function retitle(trackId: string, title: string) {
-    if (state.item?.trackId === trackId) set({ item: { ...state.item, title } });
+    set({
+      ...(state.item?.trackId === trackId && { item: { ...state.item, title } }),
+      queue: state.queue.map((q) => (q.trackId === trackId ? { ...q, title } : q)),
+    });
   }
 
   /** Fetches a version's stream URL ahead of time, so playing or switching to it starts sooner. */
@@ -299,6 +404,10 @@ export function createAudioStore({ createAudio, fetchStream, now, memory }: Audi
       };
     },
     play,
+    playQueue,
+    syncQueue,
+    next,
+    previous,
     switchTo,
     retitle,
     prefetch,

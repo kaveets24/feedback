@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { ShareLinkResponse } from '@feedback/shared';
-import { expiresAtFor, linkState, shareUrl, visibilitySentence } from './share';
+import {
+  expiresAtFor,
+  linkState,
+  parseShareFragment,
+  sharedTrackFragment,
+  shareUrl,
+  visibilitySentence,
+} from './share';
 
 const NOW = new Date('2026-10-20T12:00:00.000Z');
 
@@ -57,5 +64,23 @@ describe('visibilitySentence', () => {
       'Anyone with a share link can listen to this project.',
     );
     expect(visibilitySentence('public', 'track')).toBe('Public: anyone can listen to this track.');
+  });
+});
+
+describe('the listen page fragment', () => {
+  it('reads a link on its own, the address people are sent', () => {
+    expect(parseShareFragment('#abc_-123')).toEqual({ token: 'abc_-123', trackId: null });
+  });
+
+  it('reads a track reached through a link', () => {
+    expect(parseShareFragment(sharedTrackFragment('abc_-123', 'track-1'))).toEqual({
+      token: 'abc_-123',
+      trackId: 'track-1',
+    });
+  });
+
+  it('reads no fragment as no token', () => {
+    expect(parseShareFragment('')).toEqual({ token: '', trackId: null });
+    expect(parseShareFragment('#token/')).toEqual({ token: 'token', trackId: null });
   });
 });

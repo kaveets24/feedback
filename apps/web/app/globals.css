@@ -187,6 +187,13 @@
     outline-offset: 2px;
     box-shadow: var(--shadow-bevel), var(--shadow-focus-glow);
   }
+  /* Nowhere to go: flat, so it no longer looks pressable. */
+  &[aria-disabled='true'] {
+    color: var(--color-field-edge);
+    background: var(--color-chrome-lo);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
 }
 
 /* Browser surfaces carry the theme too. */

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { serverApi, viewerApi } from '../../../lib/api';
 import { loadOrSignIn } from '../../../lib/load';
 import { collectPages } from '../../../lib/pages';
@@ -17,10 +18,23 @@ export default async function TrackPage({
   searchParams: Promise<{ comment?: string }>;
 }) {
   const { trackId } = await params;
-  const track = await loadOrSignIn(async () => (await viewerApi()).getTrack(trackId));
+  const viewer = await viewerApi();
+  const track = await loadOrSignIn(() => viewer.getTrack(trackId));
   if (!track.canManage) {
+    // Listeners come here from the album to comment, so there's a way back. Its name is a nicety:
+    // if it can't be loaded, the track still shows.
+    const project = track.projectId
+      ? await viewer.getProject(track.projectId).catch(() => null)
+      : null;
     return (
       <main className="mx-auto max-w-3xl px-4 py-6">
+        {project && (
+          <p className="mb-3 text-sm">
+            <Link href={`/projects/${project.id}`} className="link text-muted">
+              {project.title}
+            </Link>
+          </p>
+        )}
         <ListenerTrack track={track} token={null} />
       </main>
     );

@@ -64,6 +64,14 @@ export type ProjectResponse = z.infer<typeof projectResponseSchema>;
  */
 export const projectDetailResponseSchema = projectResponseSchema.extend({
   coverUpload: coverResponseSchema.nullable(),
+  /**
+   * Who made it, shown beside the title: their name, and their handle if they have a public page.
+   * Defaults to null so a web build ahead of the API (a preview deploy) still reads older responses.
+   */
+  artist: z
+    .object({ displayName: z.string().nullable(), handle: z.string().nullable() })
+    .nullable()
+    .default(null),
   /** Whether the asker owns the project; see `trackResponseSchema.canManage`. */
   canManage: z.boolean().default(false),
 });

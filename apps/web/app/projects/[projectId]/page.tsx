@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { serverApi, viewerApi } from '../../../lib/api';
-import { formatDuration, totalDurationMs } from '../../../lib/format';
+import { formatDuration } from '../../../lib/format';
 import { loadOrSignIn } from '../../../lib/load';
 import { collectPages } from '../../../lib/pages';
+import { queueItems } from '../../../lib/player-item';
+import { PlayAlbumButton } from '../../_album/album';
 import { ListenerProject } from '../../_listen/listener-view';
 import { SharingSection } from '../../_sharing/sharing-section';
 import { ReleaseTypePicker } from '../release-type-picker';
@@ -33,7 +35,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
   const api = serverApi();
   const { links } = await api.listProjectShareLinks(projectId);
   // Everything the picker can offer: the artist's other tracks, and their projects' names.
-  const [allTracks, allProjects] = await Promise.all([
+  // The list has no waveforms, and the mini-player draws them, so ready tracks need their own.
+  const [allTracks, allProjects, ready] = await Promise.all([
     collectPages(async (cursor) => {
       const page = await api.listTracks({ cursor, limit: 100 });
       return { items: page.tracks, nextCursor: page.nextCursor };
@@ -42,12 +45,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
       const page = await api.listProjects({ cursor, limit: 100 });
       return { items: page.projects, nextCursor: page.nextCursor };
     }),
+    Promise.all(tracks.filter((t) => t.currentVersionId).map((t) => api.getTrack(t.id))),
   ]);
+  const playable = queueItems(ready, null);
   const projectTitles = new Map(allProjects.map((p) => [p.id, p.title]));
   const others = allTracks.filter((t) => t.projectId !== project.id);
 
-  const total = totalDurationMs(tracks);
-  const ready = tracks.filter((t) => t.latestVersion.status === 'ready').length;
+  // What pressing Play plays, which skips any track with nothing ready.
+  const total = playable.reduce((sum, item) => sum + item.durationMs, 0);
   const count = tracks.length === 1 ? '1 track' : `${tracks.length} tracks`;
 
   return (
@@ -60,15 +65,21 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
       <ProjectDetails
         project={project}
         trackCount={tracks.length}
+        play={
+          playable.length > 0 && (
+            <PlayAlbumButton projectId={project.id} title={project.title} items={playable} />
+          )
+        }
         releaseType={<ReleaseTypePicker projectId={project.id} releaseType={project.releaseType} />}
       />
 
-      <section aria-labelledby="tracks-heading" className="mt-12">
-        <div className="mb-3 flex items-baseline gap-3">
-          <h2 id="tracks-heading" className="text-lg font-semibold">
-            Tracks
-          </h2>
-          {tracks.length > 0 && (
+      <ProjectTracks
+        key={project.id}
+        projectId={project.id}
+        tracks={tracks}
+        playable={playable}
+        summary={
+          tracks.length > 0 && (
             <p className="text-sm text-muted">
               {count}
               {total > 0 && (
@@ -76,24 +87,25 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
                   {' · '}
                   <span className="font-lcd tabular-nums">{formatDuration(total)}</span>
                   {/* Only ready versions have a length, so say what the total covers. */}
-                  {ready < tracks.length && ` across ${ready} ready`}
+                  {playable.length < tracks.length && ` across ${playable.length} ready`}
                 </>
               )}
             </p>
-          )}
-        </div>
-        <ProjectTracks key={project.id} projectId={project.id} tracks={tracks} />
-        <AddTrackForm
-          projectId={project.id}
-          hasTracks={allTracks.length > 0}
-          loose={others.filter((t) => t.projectId === null)}
-          elsewhere={others.flatMap((t) =>
-            t.projectId
-              ? [{ ...t, projectTitle: projectTitles.get(t.projectId) ?? 'another project' }]
-              : [],
-          )}
-        />
-      </section>
+          )
+        }
+        addTrack={
+          <AddTrackForm
+            projectId={project.id}
+            hasTracks={allTracks.length > 0}
+            loose={others.filter((t) => t.projectId === null)}
+            elsewhere={others.flatMap((t) =>
+              t.projectId
+                ? [{ ...t, projectTitle: projectTitles.get(t.projectId) ?? 'another project' }]
+                : [],
+            )}
+          />
+        }
+      />
 
       <SharingSection
         target={{ kind: 'project', id: project.id }}
