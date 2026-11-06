@@ -486,7 +486,7 @@
       "name": "Mini-Player",
       "kind": "nav",
       "refersTo": "mini-player",
-      "description": "Graphite bar stuck to the bottom of every page once something has played.",
+      "description": "Graphite bar stuck to the bottom of every page once something has played. While a project plays, previous and next (40px bevels) sit either side of the transport button.",
       "html": "<aside class=\"ds-mini\" aria-label=\"Now playing\"><a class=\"ds-mini-title\" href=\"#\">Night drive</a><p class=\"ds-mini-time\">1:12 <span>/ 3:30 · v2</span></p></aside>",
       "css": ".ds-mini { padding: 8px 16px; background: var(--color-chrome-lo); border-top: 1px solid var(--color-chrome-edge); box-shadow: var(--shadow-panel); } .ds-mini-title { display: block; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--color-ink); text-decoration: none; border-radius: 0.25rem; } .ds-mini-title:hover { color: var(--color-accent); } .ds-mini-title:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: var(--shadow-focus-glow); } .ds-mini-time { margin: 0; font-family: var(--font-lcd); font-size: 0.75rem; color: var(--color-lcd-ink); } .ds-mini-time span { color: var(--color-lcd-cyan); }"
     },
@@ -558,7 +558,7 @@
       "name": "Project Cover",
       "kind": "custom",
       "refersTo": "project-cover-list",
-      "description": "Cover art squares: 48px leading a projects-list row, 96px (128px from sm) on the project page; shown bare with a 1px rule edge on a chrome-lo backing. Shown here empty: the chrome-lo placeholder with a field-edge note.",
+      "description": "Cover art squares: 48px leading a projects-list row, 112px (192px from sm) on the project page; shown bare with a 1px rule edge on a chrome-lo backing. Shown here empty: the chrome-lo placeholder with a field-edge note.",
       "html": "<div class=\"ds-covers\"><div class=\"ds-cover ds-cover-empty\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M14 4h6v4h-4v11H8v-5h6z\"/></svg></div><div class=\"ds-cover ds-cover-page ds-cover-empty\"><svg width=\"32\" height=\"32\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M14 4h6v4h-4v11H8v-5h6z\"/></svg></div></div>",
       "css": ".ds-covers { display: flex; align-items: flex-start; gap: 16px; } .ds-cover { flex-shrink: 0; width: 48px; height: 48px; border: 1px solid var(--color-rule); border-radius: 0.25rem; background: var(--color-chrome-lo); object-fit: cover; } .ds-cover-page { width: 96px; height: 96px; } @media (min-width: 640px) { .ds-cover-page { width: 128px; height: 128px; } } .ds-cover-empty { display: flex; align-items: center; justify-content: center; color: var(--color-field-edge); }"
     },
