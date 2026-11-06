@@ -30,6 +30,7 @@ import { canAccessProject } from '../../auth/authz.ts';
 import type { Actor } from '../../auth/plugin.ts';
 import { httpError } from '../../errors.ts';
 import { coverImages, pendingCoverUpload, type CoverDeps } from '../covers/images.ts';
+import { findAuthors } from '../feedback/repo.ts';
 import { loadTrackFor, toTrackSummaries } from '../tracks/service.ts';
 
 export function toProjectResponse(project: Project, cover: CoverImage | null): ProjectResponse {
@@ -123,11 +124,18 @@ export async function getProject(
 ): Promise<ProjectDetailResponse> {
   const project = await loadProjectFor(deps.db, actor, projectId, 'view');
   const owner = canAccessProject(actor, project, 'manage');
-  const [response, coverUpload] = await Promise.all([
+  const [response, coverUpload, authors] = await Promise.all([
     respond(deps, project),
     owner ? pendingCoverUpload(deps.db, project) : null,
+    findAuthors(deps.db, [project.ownerId]),
   ]);
-  return { ...response, coverUpload, canManage: owner };
+  const artist = authors.get(project.ownerId);
+  return {
+    ...response,
+    coverUpload,
+    canManage: owner,
+    artist: artist ? { displayName: artist.displayName, handle: artist.handle } : null,
+  };
 }
 
 export async function updateProject(

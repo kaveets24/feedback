@@ -9,14 +9,17 @@ import {
   listProjectTracks,
   markVersionProcessing,
   moveTrackToProject,
+  profiles,
   setAccessStatus,
   tracks,
   trackVersions,
+  updateProject,
   upsertUserFromAuth,
   type Db,
 } from '@feedback/db';
 import { resetDb } from '@feedback/db/testing';
 import type {
+  ProjectDetailResponse,
   ProjectListResponse,
   ProjectResponse,
   ProjectTracksResponse,
@@ -182,7 +185,22 @@ describe('project routes', () => {
         cover: null,
         coverUpload: null,
         canManage: true,
+        artist: null,
         createdAt: project.createdAt.toISOString(),
+      });
+    });
+
+    it('says who made a public project, and nothing more about them', async () => {
+      const me = await approvedUser('u1');
+      await db.insert(profiles).values({ userId: me.id, displayName: 'Mara', handle: 'mara' });
+      const project = await createProject(db, { ownerId: me.id, title: 'EP' });
+      await updateProject(db, project.id, { visibility: 'public' });
+
+      const res = await call('GET', `/v1/projects/${project.id}`);
+      expect(res.statusCode).toBe(200);
+      expect(res.json<ProjectDetailResponse>().artist).toEqual({
+        displayName: 'Mara',
+        handle: 'mara',
       });
     });
 
