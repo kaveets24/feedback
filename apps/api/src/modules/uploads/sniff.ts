@@ -1,4 +1,4 @@
-// Recognizes the audio formats we accept (CLAUDE.md section 7) from a file's first bytes, so a
+// Recognizes the audio formats we accept (docs/audio-pipeline.md) from a file's first bytes, so a
 // file isn't trusted for its name or declared type. This is a quick gate before queueing work;
 // the worker's ffmpeg is the real check, and it rejects files that only look right.
 

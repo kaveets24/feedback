@@ -2,8 +2,8 @@
 
 <!-- impeccable:product-schema 1 -->
 
-<!-- Product context for design tools (Impeccable). CLAUDE.md is the source of truth: if the two
-     disagree, CLAUDE.md wins and this file gets fixed. -->
+<!-- Product context for design tools (Impeccable). CLAUDE.md and docs/ (product facts in docs/product.md) are the
+     source of truth: if they disagree, they win and this file gets fixed. -->
 
 ## Platform
 
@@ -49,7 +49,7 @@ SoundCloud meets Google Docs comments, for work-in-progress music. What sets it 
 ## Brand Commitments
 
 - Name: **Feedback**.
-- The visual direction is pinned in CLAUDE.md section 9 ("Visual style: Y2K / Winamp / LimeWire"), including its guardrails. **Styling is deferred** except the player (waveform player and mini-player), the app header, home (the discovery page), your tracks, the track page, the project pages, the profile page, public profiles (`/@handle`), and notifications: no CSS, Tailwind classes, or tokens elsewhere until the owner asks.
+- The visual direction is pinned in docs/frontend.md ("Visual style: Y2K / Winamp / LimeWire"), including its guardrails. **Styling is deferred** except the player (waveform player and mini-player), the app header, home (the discovery page), your tracks, the track page, the project pages, the profile page, public profiles (`/@handle`), and notifications: no CSS, Tailwind classes, or tokens elsewhere until the owner asks.
 - Privacy, sharing, and destructive actions always use plain, serious language. No ironic copy there.
 - Evoke the era without copying it: no Winamp, LimeWire, Microsoft, or Apple names, logos, skins, or assets.
 

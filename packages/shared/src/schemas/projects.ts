@@ -23,7 +23,7 @@ const titleSchema = z.string().trim().min(1).max(200);
 /** Empty (after trimming) is saved as no description. */
 const descriptionSchema = z.string().trim().max(2000).nullable();
 
-/** `POST /v1/projects`. New projects are private (CLAUDE.md section 6, rule 1) and singles. */
+/** `POST /v1/projects`. New projects are private (docs/permissions.md, rule 1) and singles. */
 export const createProjectRequestSchema = z.object({
   title: titleSchema,
   description: descriptionSchema.optional(),

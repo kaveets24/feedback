@@ -82,7 +82,7 @@ export const profiles = pgTable(
     userId: uuid('user_id')
       .primaryKey()
       .references(() => users.id, { onDelete: 'cascade' }),
-    /** Null until handles get format rules (CLAUDE.md section 13); unique once set. */
+    /** Null until the user picks one (rules in docs/domain-model.md); unique once set. */
     handle: text('handle').unique(),
     displayName: text('display_name'),
     bio: text('bio'),
@@ -198,7 +198,7 @@ export const tracks = pgTable(
     visibility: visibility('visibility').notNull().default('private'),
     /**
      * Per-track override of the project's visibility. How it combines with the project's is
-     * settled in Phase 4 (CLAUDE.md section 6, rule 7); until then nothing reads it.
+     * settled in Phase 4 (docs/permissions.md, rule 7); until then nothing reads it.
      */
     visibilityOverride: visibility('visibility_override'),
     /** The artist's pick from `GENRES`, or null for none. Discovery filters by it. */
@@ -318,7 +318,7 @@ export const projectCovers = pgTable(
 export type ProjectCover = typeof projectCovers.$inferSelect;
 
 /**
- * A secret link to a track or a project (CLAUDE.md section 6, rule 6). Only a hash of the token is
+ * A secret link to a track or a project (docs/permissions.md, rule 6). Only a hash of the token is
  * stored; the raw token is shown to the owner once, when the link is made. A link is never
  * deleted: revoking it sets `revoked_at`, so it keeps a record of what was shared. `resource_id` points at a track or a project by `resource_type`, so it has no foreign key;
  * both are only ever soft-deleted, and deleting one revokes its links.
@@ -352,7 +352,7 @@ export const shareLinks = pgTable(
 export type ShareLink = typeof shareLinks.$inferSelect;
 
 /**
- * A comment on one version of a track (CLAUDE.md section 5), at a moment in it or about the whole
+ * A comment on one version of a track (docs/domain-model.md), at a moment in it or about the whole
  * thing. Replies go one level deep: a reply's parent is a top-level comment on the same version
  * (the foreign key enforces the version; the API, the depth). Replies have no timestamp of their
  * own and are never resolved. Everyone who can see the track can read every comment. Comments are only

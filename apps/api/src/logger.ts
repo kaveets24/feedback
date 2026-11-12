@@ -4,7 +4,7 @@ import { SHARE_TOKEN_HEADER } from '@feedback/shared';
 import { scrubUrl } from '@feedback/shared/monitoring';
 import type { Env } from './env.ts';
 
-// Never log tokens, signed URLs, or share-link tokens (CLAUDE.md section 10). Fastify's default
+// Never log tokens, signed URLs, or share-link tokens (docs/conventions.md). Fastify's default
 // request serializer logs the full URL, so ours drops the query string and fragment. The redact
 // paths cover anything that logs raw headers.
 const redact = [

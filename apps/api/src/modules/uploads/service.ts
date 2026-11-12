@@ -29,7 +29,7 @@ export interface UploadDeps {
   queue: JobQueue;
 }
 
-/** How long the browser has to start the PUT (CLAUDE.md section 6, rule 5: at most 15 min). */
+/** How long the browser has to start the PUT (docs/permissions.md, rule 5: at most 15 min). */
 export const UPLOAD_URL_SECONDS = 15 * 60;
 
 // Shown to the artist on a failed version, so plain words and what to do next.

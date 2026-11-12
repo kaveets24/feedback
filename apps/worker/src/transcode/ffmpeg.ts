@@ -1,6 +1,6 @@
 // Runs ffprobe and ffmpeg on an uploaded original. Originals are untrusted input, so ffmpeg may
 // only read local files (no URLs, so a crafted playlist can't make it fetch anything) and only
-// with the demuxers for the formats we accept (CLAUDE.md section 7).
+// with the demuxers for the formats we accept (docs/audio-pipeline.md).
 import { z } from 'zod';
 import { MAX_DURATION_MS, WAVEFORM_PEAK_COUNT } from '@feedback/shared';
 import { run } from '../process.ts';

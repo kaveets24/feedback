@@ -86,7 +86,7 @@ export async function listMyTracks(
 /**
  * A track and the live project it's in, if the actor may perform `action` on the track (judged
  * by its effective visibility). Anything else, including a track that exists but isn't theirs, is
- * a 404, so existence never leaks (CLAUDE.md section 6, rule 9).
+ * a 404, so existence never leaks (docs/permissions.md, rule 9).
  */
 export async function loadTrackAccess(
   db: Db,

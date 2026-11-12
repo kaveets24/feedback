@@ -28,7 +28,7 @@ export function startTranscodeWorker(
   const worker = new Worker<unknown, TranscodeOutcome>(
     TRANSCODE_QUEUE,
     async (job) => {
-      // Job data crosses a trust boundary (CLAUDE.md section 10), so check it like a request.
+      // Job data crosses a trust boundary (docs/conventions.md), so check it like a request.
       const parsed = transcodeJobSchema.safeParse(job.data);
       if (!parsed.success) {
         const err = new UnrecoverableError('invalid transcode job payload');

@@ -71,9 +71,9 @@ function trackAccess(
 }
 
 /**
- * Whether the actor may perform `action` on a track, judged by its effective visibility (CLAUDE.md
- * section 6, rule 7; pass the live project it's in, or null for a loose track), counting a share
- * link made for the track or for its project.
+ * Whether the actor may perform `action` on a track, judged by its effective visibility
+ * (docs/permissions.md, rule 7; pass the live project it's in, or null for a loose track),
+ * counting a share link made for the track or for its project.
  */
 export function canAccessTrack(
   actor: Actor,

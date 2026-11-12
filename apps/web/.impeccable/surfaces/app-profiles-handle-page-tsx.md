@@ -31,4 +31,4 @@ Play from the row, as on home: the transport button plays the track in the mini-
 
 ## Unresolved
 
-- No follower or play counts anywhere (CLAUDE.md section 1). Tab labels carry how many public tracks and projects there are, which is a content count, not a popularity number.
+- No follower or play counts anywhere (docs/product.md). Tab labels carry how many public tracks and projects there are, which is a content count, not a popularity number.

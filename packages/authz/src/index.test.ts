@@ -47,7 +47,7 @@ const ALL = 'view listen comment manage download';
 const NONE = '';
 
 /**
- * The permission matrix (CLAUDE.md section 6), written out by hand: what each actor may do at each
+ * The permission matrix (docs/permissions.md), written out by hand: what each actor may do at each
  * visibility. Change a cell only alongside the rule it encodes.
  */
 const MATRIX: Record<Visibility, Record<ActorCase, string>> = {
@@ -319,7 +319,7 @@ describe('canAccessFeedback', () => {
 
   /**
    * What each person may do to the comment, given they can view the track. Written out by hand;
-   * change a cell only alongside the rule it encodes (CLAUDE.md section 6, rules 8 and 11).
+   * change a cell only alongside the rule it encodes (docs/permissions.md, rules 8 and 11).
    */
   const FEEDBACK_MATRIX: Record<FeedbackActor, string> = {
     artist: 'read reply delete resolve',

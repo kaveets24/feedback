@@ -59,7 +59,7 @@ const description = (value: string | null | undefined) =>
 
 /**
  * A project, if the actor may perform `action` on it. Anything else, including a project that
- * exists but isn't theirs, is a 404, so existence never leaks (CLAUDE.md section 6, rule 9).
+ * exists but isn't theirs, is a 404, so existence never leaks (docs/permissions.md, rule 9).
  */
 export async function loadProjectFor(
   db: Db,

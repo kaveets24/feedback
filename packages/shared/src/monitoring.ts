@@ -1,5 +1,5 @@
 // Error-reporting privacy settings shared by the api, worker, and web app. Never send tokens,
-// cookies, signed URLs, share-link tokens, or request bodies to monitoring (CLAUDE.md section 10).
+// cookies, signed URLs, share-link tokens, or request bodies to monitoring (docs/conventions.md).
 // These are plain data and pure functions so they're testable without a vendor SDK; each app
 // passes them to its Sentry init. Import from `@feedback/shared/monitoring`, not the package root,
 // so the browser bundle doesn't pull in the zod schemas.

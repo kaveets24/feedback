@@ -10,7 +10,7 @@ import {
 } from '@feedback/shared';
 import { completeUpload, startUpload, startVersionUpload, type UploadDeps } from './service.ts';
 
-// The upload flow (CLAUDE.md section 7): POST /uploads, then the browser PUTs the file straight
+// The upload flow (docs/audio-pipeline.md): POST /uploads, then the browser PUTs the file straight
 // to storage, then POST /uploads/:versionId/complete hands it to the worker.
 export function uploadRoutes(deps: UploadDeps): FastifyPluginAsyncZod {
   return async (app) => {

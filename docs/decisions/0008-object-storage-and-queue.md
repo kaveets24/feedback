@@ -50,7 +50,7 @@ the same image and config as local dev.
 - Uploads use presigned **PUT** with the exact size and type signed in; B2 (like R2) doesn't
   support presigned POST, so this is how the size limit is enforced. The API also checks the
   stored size when the upload is completed.
-- Presigned URLs live at most 15 minutes (CLAUDE.md section 6, rule 5): 15 for uploads, 10 for
+- Presigned URLs live at most 15 minutes (docs/permissions.md, rule 5): 15 for uploads, 10 for
   playback. They're bearer credentials and are never logged.
 - The S3 client sends checksums only when an operation requires them. The SDK's default signs a
   CRC32 of the empty body into presigned PUT URLs, which makes every real upload fail with

@@ -127,7 +127,7 @@ export async function removeOwnAvatar(db: Db, user: User): Promise<void> {
 }
 
 /**
- * The user's picture as a short-lived signed URL (CLAUDE.md section 6, rule 5), and their newest
+ * The user's picture as a short-lived signed URL (docs/permissions.md, rule 5), and their newest
  * upload if it's still processing or failed, for the profile response.
  */
 export async function avatarForProfile(

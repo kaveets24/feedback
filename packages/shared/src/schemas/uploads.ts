@@ -2,14 +2,14 @@ import { z } from 'zod';
 import { genreSchema } from './genres.ts';
 import { changeNotesSchema, trackTitleSchema } from './tracks.ts';
 
-/** Largest original we accept (CLAUDE.md section 7). Signed into the upload URL. */
+/** Largest original we accept (docs/audio-pipeline.md). Signed into the upload URL. */
 export const MAX_UPLOAD_BYTES = 200 * 1024 * 1024;
 
-/** Longest audio we accept (CLAUDE.md section 7). The worker fails longer versions. */
+/** Longest audio we accept (docs/audio-pipeline.md). The worker fails longer versions. */
 export const MAX_DURATION_MS = 20 * 60 * 1000;
 
 /**
- * Content types accepted for originals: mp3, wav, m4a, aac, flac, ogg (CLAUDE.md section 7),
+ * Content types accepted for originals: mp3, wav, m4a, aac, flac, ogg (docs/audio-pipeline.md),
  * under the names browsers report for them. The API also checks the file's first bytes once
  * it's uploaded, so a renamed file that isn't audio is rejected anyway.
  */
@@ -75,7 +75,7 @@ export const createUploadRequestSchema = z.object({
   ...uploadFileFields,
   /**
    * One of the artist's own projects; the track joins at the end. It stays private whatever the
-   * project's visibility (CLAUDE.md section 6, rule 7). Anything else is a 404.
+   * project's visibility (docs/permissions.md, rule 7). Anything else is a 404.
    */
   projectId: z.uuid().optional(),
   genre: genreSchema.optional(),

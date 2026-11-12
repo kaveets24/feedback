@@ -18,7 +18,7 @@ type Target = { kind: 'track' | 'project'; id: string };
 
 /**
  * Who can listen to a track or project, and its share links. Privacy settings, so the words are
- * plain and every change is a deliberate press (CLAUDE.md section 9: trust comes first).
+ * plain and every change is a deliberate press (docs/frontend.md: trust comes first).
  */
 export function SharingSection({
   target,

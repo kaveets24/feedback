@@ -44,7 +44,7 @@ export function formatFileSize(bytes: number): string {
 /**
  * Who can hear a new track, given the project picked for it. A track never gets wider than private
  * by joining a wider project, but one in a private project follows that project from then on
- * (CLAUDE.md section 6, rule 7), so "private" alone would overpromise there.
+ * (docs/permissions.md, rule 7), so "private" alone would overpromise there.
  */
 export function uploadPrivacy(project: { title: string; visibility: Visibility } | null): {
   lead: string;
@@ -104,7 +104,7 @@ const COMPLETE_ATTEMPTS = 3;
 /**
  * Takes a file up: asks the API where to put it, sends it straight to storage, then hands it to
  * the worker. Aborting `signal` stops it wherever it is. A track or version left behind that way
- * is cleaned up by the worker's sweep (CLAUDE.md section 7), so nothing else needs undoing.
+ * is cleaned up by the worker's sweep (docs/audio-pipeline.md), so nothing else needs undoing.
  */
 export async function runUpload({
   signal,

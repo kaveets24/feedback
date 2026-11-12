@@ -1,6 +1,6 @@
 // Re-encodes an uploaded image (cover art or a profile picture) with ffprobe and ffmpeg. Like
 // audio originals, uploaded images are untrusted input: ffmpeg may only read local files, with only the demuxers for the image
-// types we accept (CLAUDE.md section 7), and every bit of metadata is dropped, since a photo's
+// types we accept (docs/audio-pipeline.md), and every bit of metadata is dropped, since a photo's
 // EXIF can carry GPS location and the camera's details.
 import { z } from 'zod';
 import { COVER_MAX_SIZE } from '@feedback/shared';
