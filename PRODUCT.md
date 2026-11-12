@@ -44,7 +44,7 @@ SoundCloud meets Google Docs comments, for work-in-progress music. What sets it 
 - Audio plays from short-lived signed URLs. Only one track plays at a time, through a single global mini-player that keeps playing across page changes. A project plays like an album through it, track after track, with previous and next.
 - The waveform player is the centerpiece: it draws peaks, supports click-to-seek, and shows comment markers that jump to their comments.
 - Out of scope: maps and location features (a profile may name a city, as a label only), audio ML (apart from detecting tempo, Phase 10, and later key and genre, Phase 13), reputation or leaderboards, payments, direct messages between users (a help chat with the team is planned, Phase 14), live streaming.
-- Open product questions are tracked in CLAUDE.md section 13.
+- Open product questions are tracked in docs/plan.md, Open questions.
 
 ## Brand Commitments
 

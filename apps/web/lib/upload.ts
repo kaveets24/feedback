@@ -73,7 +73,7 @@ export function uploadPrivacy(project: { title: string; visibility: Visibility }
 /**
  * Who will hear a new version, given who can hear its track. A version is live for all of them as
  * soon as it's processed, and on a public track it also brings the track back to the top of
- * discovery and followers' lists (CLAUDE.md section 11, Phase 6).
+ * discovery and followers' lists (docs/plan.md, Phase 6).
  */
 export function versionPrivacy(visibility: Visibility): { lead: string; rest: string } {
   switch (visibility) {
