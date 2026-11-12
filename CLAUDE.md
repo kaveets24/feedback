@@ -7,19 +7,19 @@ Read this file fully before making changes, then the docs below for the area you
 
 ## Docs
 
-| Doc                                                                | What's in it                                                                     |
-| ------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| [docs/product.md](docs/product.md)                                 | Pitch, core loop, principles, and the full out-of-scope list                     |
-| [docs/domain-model.md](docs/domain-model.md)                       | Every table, its columns and rules, and the names to use                         |
-| [docs/permissions.md](docs/permissions.md)                         | Visibility, roles, the numbered privacy rules, the approval gate, required tests |
-| [docs/audio-pipeline.md](docs/audio-pipeline.md)                   | Uploads, transcoding, covers and pictures, cleanup of stuck uploads              |
-| [docs/frontend.md](docs/frontend.md)                               | Web conventions, the player and app shell, link previews, visual style           |
-| [docs/conventions.md](docs/conventions.md)                         | API, code, delivery, and monitoring conventions                                  |
-| [docs/development.md](docs/development.md)                         | Env files, local URLs, test databases                                            |
-| [docs/plan.md](docs/plan.md)                                       | Roadmap: phases and what shipped in each, backlog, parking lot, open questions   |
-| [docs/staging.md](docs/staging.md)                                 | Deploys, rollback, secrets, setup                                                |
-| [docs/decisions/](docs/decisions/)                                 | ADRs                                                                             |
-| [PRODUCT.md](PRODUCT.md), [apps/web/DESIGN.md](apps/web/DESIGN.md) | Context for the Impeccable design tool; these docs win on conflicts              |
+| Doc                                                                                  | What's in it                                                                     |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| [docs/product.md](docs/product.md)                                                   | Pitch, core loop, principles, and the full out-of-scope list                     |
+| [docs/domain-model.md](docs/domain-model.md)                                         | Every table, its columns and rules, and the names to use                         |
+| [docs/permissions.md](docs/permissions.md)                                           | Visibility, roles, the numbered privacy rules, the approval gate, required tests |
+| [docs/audio-pipeline.md](docs/audio-pipeline.md)                                     | Uploads, transcoding, covers and pictures, cleanup of stuck uploads              |
+| [docs/frontend.md](docs/frontend.md)                                                 | Web conventions, the player and app shell, link previews, visual style           |
+| [docs/conventions.md](docs/conventions.md)                                           | API, code, delivery, and monitoring conventions                                  |
+| [docs/development.md](docs/development.md)                                           | Env files, local URLs, test databases                                            |
+| [docs/plan.md](docs/plan.md)                                                         | Roadmap: phases and what shipped in each, backlog, parking lot, open questions   |
+| [docs/staging.md](docs/staging.md)                                                   | Deploys, rollback, secrets, setup                                                |
+| [docs/decisions/](docs/decisions/)                                                   | ADRs                                                                             |
+| [apps/web/PRODUCT.md](apps/web/PRODUCT.md), [apps/web/DESIGN.md](apps/web/DESIGN.md) | Context for the Impeccable design tool; these docs win on conflicts              |
 
 "Rule N" anywhere means rule N in [docs/permissions.md](docs/permissions.md).
 
@@ -77,12 +77,11 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 ```
 .
 ├── CLAUDE.md
-├── PRODUCT.md          # product context for design tools (Impeccable); CLAUDE.md and docs/ win on conflicts
 ├── docker-compose.yml
 ├── turbo.json
 ├── pnpm-workspace.yaml
 ├── apps/
-│   ├── web/            # Next.js app
+│   ├── web/            # Next.js app (PRODUCT.md and DESIGN.md here are Impeccable design context; CLAUDE.md and docs/ win on conflicts)
 │   ├── api/            # Fastify HTTP API
 │   ├── worker/         # BullMQ consumers (ffmpeg pipeline)
 │   └── mobile/         # Expo app (Phase 12, not yet created)
