@@ -208,6 +208,7 @@ Requested 2026-11-12, and where each one lives:
 | Profile URLs without the `@`                           | Small changes, below                            |
 | Space plays and pauses anywhere                        | Player, below                                   |
 | New-version upload beside the versions list            | Small changes, below                            |
+| Getting started page in the app                        | Small changes, below                            |
 
 ### Fixes
 
@@ -220,6 +221,7 @@ Like fixes, these can land any time as their own PR.
 - [ ] **Track count on your tracks page:** `/tracks` shows how many tracks you have, in the page's existing style (styled surface, [frontend.md](frontend.md)). The count is all of yours, not just the page of results loaded, so it likely needs a `total` on the list response or a count from the API; decide which at its PR
 - [ ] **Profile URLs without the `@`:** public profiles move from `/@handle` to `/handle`. Old `/@handle` links keep working with a permanent redirect in `next.config.ts`, and the rewrite to `/profiles/[handle]` changes to match. A top-level `/:handle` sits beside the app's own routes, so every top-level route must be in `RESERVED_HANDLES` (`packages/shared/src/schemas/profiles.ts`): `debug` exists and isn't there yet, and planned ones are `crews` (Phase 9) and `embed` (Phase 8). Check staging for handles that already collide before shipping, add a test that every top-level folder in `apps/web/app` is reserved so a new route can't shadow a profile, and update the links (`/@${handle}` in discover, comments, the artist line, settings, and the profile tabs) and the docs that say `/@handle` (domain-model, frontend, getting-started)
 - [ ] **New-version upload beside the versions list:** on the track page (`apps/web/app/tracks/[trackId]/track-view.tsx`), the owner's drop zone for a new version moves next to the version history it adds to, rather than where it sits today. Styled surface, so check the layout with the track page's brief in `apps/web/.impeccable/surfaces/`
+- [ ] **Getting started page:** `/getting-started` in the web app, with what [getting-started.md](getting-started.md) says (getting in, uploading, versions, the three sharing choices with the warning about Anyone, and feedback). To keep one copy, the page becomes the source and the doc shrinks to a link to it; the facts it repeats (formats, the 200 MB and 20 minute limits, link expiries, the 10-minute signed URLs) come from the constants in `packages/shared` where they exist, so a limit changed in Phase 7 can't leave the page wrong. Linked from the header and the "you're on the list" screen, and open to everyone, signed in or not. Not a styled surface, so plain semantic HTML until asked ([frontend.md](frontend.md)). Handles can't contain hyphens, so the route can't collide with profile URLs. Phase 14's `/help` answers can link to it rather than repeat it
 
 ### Player
 
