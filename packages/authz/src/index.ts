@@ -1,5 +1,5 @@
 // Pure permission logic. No I/O: callers pass already-loaded data in and get a decision back.
-// Every authorization decision goes through canAccess() (CLAUDE.md section 6, rule 2).
+// Every authorization decision goes through canAccess() (docs/permissions.md, rule 2).
 
 /** Narrowest first: each level lets in everyone the one before it does, and more. */
 export const VISIBILITIES = ['private', 'unlisted', 'public'] as const;
@@ -124,7 +124,7 @@ export function roleFor(actor: Actor, resource: Resource, context?: AccessContex
 }
 
 /**
- * Whether `actor` may perform `action` on `resource` (CLAUDE.md section 6).
+ * Whether `actor` may perform `action` on `resource` (docs/permissions.md).
  *
  * - The owner may do anything.
  * - `public`: anyone may view and listen.

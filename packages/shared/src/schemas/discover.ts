@@ -46,7 +46,7 @@ export type DiscoverItem = z.infer<typeof discoverItemSchema>;
 /**
  * Public tracks, the most recently updated first: by when their current version was uploaded, so
  * a new version brings a track back to the top. Nothing is ranked by plays or popularity
- * (CLAUDE.md section 1). `nextCursor` is null on the last page.
+ * (docs/product.md). `nextCursor` is null on the last page.
  */
 export const discoverResponseSchema = z.object({
   items: z.array(discoverItemSchema),

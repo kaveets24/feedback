@@ -2,7 +2,7 @@
 
 > A social app for sharing unfinished music: upload rough song ideas, organize them into projects, control exactly who can hear them, and collect feedback pinned to specific moments in a track.
 
-**Status:** Phase 0 (foundation) is complete: the web app, API, worker, and database run locally, with Clerk sign-in and the invite-only approval gate. Phase 1 (staging and continuous delivery) is complete too. Phase 2 (upload and playback) is in progress. See [CLAUDE.md](CLAUDE.md) for the full product spec, architecture, and roadmap.
+**Status:** Phase 0 (foundation) is complete: the web app, API, worker, and database run locally, with Clerk sign-in and the invite-only approval gate. Phase 1 (staging and continuous delivery) is complete too. Phase 2 (upload and playback) is in progress. See [CLAUDE.md](CLAUDE.md) and the docs it links for the full product spec and architecture, and [docs/plan.md](docs/plan.md) for the roadmap.
 
 ## Access: invite only
 

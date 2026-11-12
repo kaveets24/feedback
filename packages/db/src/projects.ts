@@ -29,7 +29,7 @@ async function lockOwnerProjects(tx: Tx, ownerId: string): Promise<void> {
 
 const isLive = (projectId: string) => and(eq(projects.id, projectId), isNull(projects.deletedAt));
 
-/** Creates a project. New projects are private (CLAUDE.md section 6, rule 1) singles. */
+/** Creates a project. New projects are private (docs/permissions.md, rule 1) singles. */
 export async function createProject(
   db: Db,
   input: {
@@ -102,7 +102,7 @@ export async function updateProject(
 }
 
 /**
- * Soft-deletes a project and revokes its share links (CLAUDE.md section 6, rule 10). Its tracks
+ * Soft-deletes a project and revokes its share links (docs/permissions.md, rule 10). Its tracks
  * become loose and keep their versions, and their own links: deleting a folder never deletes
  * songs. Each keeps the visibility it had in the project, so who can hear it doesn't change
  * (rule 7). Null if it doesn't exist or was already deleted.
@@ -153,7 +153,7 @@ export async function listProjectTracks(db: Queryable, projectId: string): Promi
 
 /**
  * Where a track goes when it joins a project: at the end, and never audible to more people than
- * `current` (CLAUDE.md section 6, rule 7), with an override if the project is wider. Null if the
+ * `current` (docs/permissions.md, rule 7), with an override if the project is wider. Null if the
  * project doesn't exist, was deleted, or isn't `ownerId`'s. Call it holding the owner's lock.
  */
 async function placementInProject(
@@ -195,7 +195,7 @@ export async function createTrackInProject(
 
 /**
  * Moves a track to the end of a project, or out of any project when `projectId` is null. Moving
- * never lets more people hear it (CLAUDE.md section 6, rule 7): leaving a project, it keeps the
+ * never lets more people hear it (docs/permissions.md, rule 7): leaving a project, it keeps the
  * visibility it had there as its own; joining a project with a wider visibility, it gets an
  * override at its old one. Moving a track into the project it's already in leaves it where it is.
  *
@@ -314,7 +314,7 @@ export async function setTrackVisibility(
 }
 
 /**
- * Soft-deletes a track and revokes its share links (CLAUDE.md section 6, rule 10). Its versions,
+ * Soft-deletes a track and revokes its share links (docs/permissions.md, rule 10). Its versions,
  * comments, and files stay, like every soft delete, but every read leaves them out with the
  * track. Runs under the owner's project lock, since it takes the track out of its project's
  * list; the gap it leaves in positions is fine. Null if it doesn't exist or was already deleted.

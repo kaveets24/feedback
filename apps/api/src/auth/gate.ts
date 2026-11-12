@@ -9,7 +9,7 @@ declare module 'fastify' {
 }
 
 /**
- * Invite-only gate (CLAUDE.md section 6). Signed-in users whose account isn't approved get a 403
+ * Invite-only gate (docs/permissions.md). Signed-in users whose account isn't approved get a 403
  * on every route unless it opts out with `config: { allowUnapproved: true }`. Anonymous requests
  * pass through; routes decide what anonymous callers can see. Register after `registerAuth`.
  */

@@ -3,7 +3,7 @@ import { VISIBILITIES } from '@feedback/authz';
 import { genreSchema } from './genres.ts';
 
 /**
- * Lifecycle of a track version (CLAUDE.md section 7). A version is created `uploading` when the
+ * Lifecycle of a track version (docs/audio-pipeline.md). A version is created `uploading` when the
  * API hands out the presigned upload URL, moves to `processing` once the upload is confirmed, and
  * ends `ready` (immutable from then on) or `failed` (with a reason). A failed version is never
  * retried: the artist uploads again, which makes a new version.
@@ -95,7 +95,7 @@ export const streamResponseSchema = z.object({
 export type StreamResponse = z.infer<typeof streamResponseSchema>;
 
 /**
- * Who can hear a track (CLAUDE.md section 6, rule 7): `visibility` is the effective one, and
+ * Who can hear a track (docs/permissions.md, rule 7): `visibility` is the effective one, and
  * `inheritsVisibility` says it comes from the track's project rather than the track itself.
  */
 const trackVisibilityFields = {

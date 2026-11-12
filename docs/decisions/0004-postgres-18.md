@@ -20,7 +20,7 @@ Why 18 rather than recreating the Neon project on 16:
 
 - **Support window.** Each major gets five years of fixes: 16 ends November 2028, 18 ends
   November 2030. Starting on 18 puts the first major upgrade years further out.
-- **Native `uuidv7()`.** Our IDs are UUIDv7 (CLAUDE.md section 5). Today the app generates them
+- **Native `uuidv7()`.** Our IDs are UUIDv7 (docs/domain-model.md). Today the app generates them
   with the `uuid` package; 18 can generate them in the database if we ever want that (not changed
   here).
 - **Performance.** 18 adds asynchronous I/O (faster sequential scans, bitmap heap scans and

@@ -3,40 +3,38 @@
 > Name: **Feedback**
 > A social app for sharing unfinished music: upload rough song ideas, organize them into projects, control exactly who can hear them, and collect feedback pinned to specific moments in a track.
 
-Read this file fully before making changes. If something here conflicts with a request, ask before deviating. Update this file whenever a decision changes.
+Read this file fully before making changes, then the docs below for the area you're touching. If anything in them conflicts with a request, ask before deviating. When a decision changes, update the doc it belongs in (or add an ADR) in the same PR.
 
----
+## Docs
 
-## 1. Product summary
+| Doc                                                                | What's in it                                                                     |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| [docs/product.md](docs/product.md)                                 | Pitch, core loop, principles, and the full out-of-scope list                     |
+| [docs/domain-model.md](docs/domain-model.md)                       | Every table, its columns and rules, and the names to use                         |
+| [docs/permissions.md](docs/permissions.md)                         | Visibility, roles, the numbered privacy rules, the approval gate, required tests |
+| [docs/audio-pipeline.md](docs/audio-pipeline.md)                   | Uploads, transcoding, covers and pictures, cleanup of stuck uploads              |
+| [docs/frontend.md](docs/frontend.md)                               | Web conventions, the player and app shell, link previews, visual style           |
+| [docs/conventions.md](docs/conventions.md)                         | API, code, delivery, and monitoring conventions                                  |
+| [docs/development.md](docs/development.md)                         | Env files, local URLs, test databases                                            |
+| [docs/plan.md](docs/plan.md)                                       | Roadmap: phases and what shipped in each, backlog, parking lot, open questions   |
+| [docs/staging.md](docs/staging.md)                                 | Deploys, rollback, secrets, setup                                                |
+| [docs/decisions/](docs/decisions/)                                 | ADRs                                                                             |
+| [PRODUCT.md](PRODUCT.md), [apps/web/DESIGN.md](apps/web/DESIGN.md) | Context for the Impeccable design tool; these docs win on conflicts              |
 
-**Pitch:** SoundCloud meets Google Docs comments, for work-in-progress music.
+"Rule N" anywhere means rule N in [docs/permissions.md](docs/permissions.md).
 
-**Core user loop**
+## Product in brief
 
-1. Artist uploads a rough track (private by default).
-2. Artist groups tracks into a **project** (album/EP/idea folder) and uploads new **versions** as the song evolves.
-3. Artist shares privately (secret link) or publicly, and says what feedback they want.
-4. Listeners leave **timestamped comments** on the waveform.
-5. Artist works through feedback (resolve/unresolved), then ships the next version.
+SoundCloud meets Google Docs comments, for work-in-progress music. Artists upload rough tracks, group them into projects, upload new versions as a song evolves, share by secret link or publicly, and collect timestamped comments on a specific version.
 
-**Product principles**
+- **Trust first:** private is the default everywhere, and privacy controls must be obvious and reliable.
+- **Versions are first-class:** feedback attaches to a version, never just "the track."
+- **Feedback quality over vanity metrics:** no follower counts, play counts, or leaderboards.
+- **Rough is fine:** upload and capture stay fast and low-friction.
 
-- **Trust first.** People only upload unfinished work if privacy controls are obvious and reliable. Private is the default everywhere.
-- **Versions are first-class.** Feedback attaches to a specific version, never just "the track."
-- **Feedback quality over vanity metrics.** Optimize for useful comments, not play counts.
-- **Rough is fine.** Upload and capture flows must be fast and low-friction.
+**Out of scope** (don't build or scaffold; exceptions in [docs/product.md](docs/product.md)): geolocation and maps, audio ML beyond tempo and later key and genre, reputation and credits, payments, direct messages between users, live streaming, mobile apps before Phase 12, and desktop apps.
 
-**Explicitly out of scope for now** (do not build or scaffold these)
-
-- Geolocation, maps, places, PostGIS, location-based discovery or ranking. The one exception is a profile's optional city, a label the user picks from a fixed list that nothing filters, sorts, or ranks by (see `profiles` in section 5)
-- Audio feature extraction / ML / embeddings. The exceptions are a track's tempo (BPM, Phase 9) and, much later, its key and genre (Phase 12), each editable by the artist; anything else, such as embeddings or similarity, stays out (decided 2026-11-04)
-- Reputation scores, leaderboards, give-to-get credits
-- Payments and monetization (the app starts free; $1 artist donations are parked, section 11), plus direct messaging between users (Phase 13's help chat is only ever with the team) and live streaming
-- Mobile apps (planned for Phase 11; keep the API client-agnostic so it's easy later) and desktop apps (a folder-sync app is an idea in the parking lot, section 11)
-
----
-
-## 2. Tech stack
+## Tech stack
 
 | Concern          | Choice                                                                                                           |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------- |
@@ -66,14 +64,20 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 
 **Pinned versions** (see [ADR 0001](docs/decisions/0001-runtime-and-toolchain-versions.md) and [0005](docs/decisions/0005-node-24.md)): Node 24 LTS (`.nvmrc`; Vercel doesn't support 26 yet), pnpm 12 (installed via `npm i -g pnpm`, not corepack, which Node 25+ drops), TypeScript 6.0 (typescript-eslint doesn't support 7 yet), ESLint 9 (eslint-config-next isn't ready for 10). API and worker have no build step: Node runs `.ts` directly via type stripping, so use only erasable TS syntax (no `enum`/`namespace`) and `.ts` extensions in relative imports.
 
----
+If a choice above becomes painful, propose an alternative and record it in `docs/decisions/` as a short ADR before switching.
 
-## 3. Repo layout
+**Auth** ([ADR 0002](docs/decisions/0002-auth-provisioning.md)): users are created as `pending` on their first authenticated API request; the Clerk session token carries an `email` claim. The web app reads its env from `apps/web/.env.local`, not the root `.env`.
+
+**Domain** ([ADR 0009](docs/decisions/0009-feedback-community-domain.md)): the app is at https://feedback.community. It's the one deployed environment; the tooling calls it staging (decided 2026-10-20).
+
+**Pinned versions** ([ADR 0001](docs/decisions/0001-runtime-and-toolchain-versions.md), [0005](docs/decisions/0005-node-24.md)): Node 24 LTS (`.nvmrc`), pnpm 12 (via `npm i -g pnpm`, not corepack), TypeScript 6.0, ESLint 9. API and worker have no build step: Node runs `.ts` directly via type stripping, so use only erasable TS syntax (no `enum`/`namespace`) and `.ts` extensions in relative imports.
+
+## Repo layout
 
 ```
 .
 ├── CLAUDE.md
-├── PRODUCT.md          # product context for design tools (Impeccable); CLAUDE.md wins on conflicts
+├── PRODUCT.md          # product context for design tools (Impeccable); CLAUDE.md and docs/ win on conflicts
 ├── docker-compose.yml
 ├── turbo.json
 ├── pnpm-workspace.yaml
@@ -81,16 +85,16 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 │   ├── web/            # Next.js app
 │   ├── api/            # Fastify HTTP API
 │   ├── worker/         # BullMQ consumers (ffmpeg pipeline)
-│   └── mobile/         # Expo app (Phase 11, not yet created)
+│   └── mobile/         # Expo app (Phase 12, not yet created)
 ├── packages/
 │   ├── db/             # Drizzle schema, migrations, seed, query helpers
 │   ├── shared/         # zod schemas, shared types, constants, API client
 │   ├── authz/          # canAccess() and permission logic (pure, heavily tested)
 │   └── config/         # shared tsconfig, eslint config
 └── docs/
+    ├── *.md            # the spec, split by area (see Docs, above)
     ├── decisions/      # ADRs
-    ├── learning/       # owner's study notes (not a spec; don't rely on them)
-    └── api.md          # generated or hand-maintained API notes
+    └── learning/       # owner's study notes (not a spec; don't rely on them)
 ```
 
 **Rules**
@@ -99,13 +103,13 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 - `apps/web` and future `apps/mobile` talk to the API only through the typed client in `packages/shared`. They never import from `packages/db`.
 - Validation schemas live in `packages/shared` and are used by both API and clients.
 
----
+- `packages/authz` has **no I/O**. It takes already-loaded data and returns a decision.
+- `apps/web` and future `apps/mobile` talk to the API only through the typed client in `packages/shared`, never `packages/db`.
+- Validation schemas live in `packages/shared` and are used by both API and clients.
 
-## 4. Commands
+## Commands
 
-Every command a developer needs to run (starting services, migrating, seeding, admin tasks, tests) must be a script in the root `package.json`, so `pnpm <script>` is the only interface. Don't document raw `docker`, `node`, or tool commands as steps; wrap them in a script first. Keep the scripts below accurate.
-
-(Not yet implemented: `test:e2e` (with Playwright, Phase 7). DB tests use a `feedback_test_<package>` database per package on the compose Postgres, created and migrated automatically by each package's vitest global setup; point `TEST_DATABASE_URL` at a different server to override. Worker tests run real ffmpeg, so install it locally (`brew install ffmpeg`); CI installs it, and the server image has its own static build.)
+Every developer command (services, migrations, seeding, admin tasks, tests) is a script in the root `package.json`, so `pnpm <script>` is the only interface. Don't document raw `docker`, `node`, or tool commands; wrap them in a script first, and keep this list accurate. Env files, local URLs, and test databases: [docs/development.md](docs/development.md).
 
 ```bash
 pnpm install
@@ -130,448 +134,38 @@ pnpm staging:admin reject <email>
 pnpm staging:redis:deploy     # redeploy staging Redis by hand after its config changes merge (not part of CI deploys); starts it if left stopped
 ```
 
-Staging (deploys, rollback, secrets, setup) is documented in [docs/staging.md](docs/staging.md).
-
-Env vars: each app reads its own env file (`.env` for api, worker, and db scripts; `apps/web/.env.local` for web). Turbo runs tasks in strict env mode, so a var exported only in your shell (e.g. `FOO=1 pnpm dev`) never reaches the app; put it in the env file. `turbo.json` declares only what the web build reads from the process env on Vercel (see the comment there).
-
-Local URLs: web http://localhost:3000, API http://localhost:4000 (`/v1/health`, `/v1/health/queue`, `/v1/openapi.json`), pgweb http://localhost:8081 (browses the `feedback` database; its connect screen can switch to a `feedback_test_*` database), object storage (S3 API) http://localhost:8333 with a file browser at http://localhost:8888/buckets/.
-
 Before saying a task is done: `pnpm lint && pnpm typecheck && pnpm test` must pass.
 
----
+## Non-negotiables
 
-## 5. Domain model
+The short version; the full rules are in [docs/permissions.md](docs/permissions.md) and [docs/conventions.md](docs/conventions.md).
 
-Use these names consistently. IDs are UUIDv7 (time-sortable) unless noted. All tables have `created_at`, `updated_at`. Use soft delete (`deleted_at`) for user content.
+- **All authorization goes through `canAccess` / `canAccessFeedback`** in `packages/authz`. Every route validates input with zod, calls `canAccess`, then does the work, in that order. No ad-hoc permission checks in handlers or UI.
+- **Private by default.** Someone who can't see a non-public resource gets a `404`, never a `403`.
+- **Audio, covers, and pictures only through short-lived signed URLs** (10 minutes), issued after `canAccess`. Originals never reach non-owners.
+- **Share-link tokens** are stored hashed, travel in the `x-share-token` header, and live in the URL fragment, never a query string.
+- **Any permission change updates the table-driven tests in the same commit.** A permissions bug is a P0.
+- **Never log or send to monitoring** tokens, signed URLs, share-link tokens, or audio.
+- **Database changes only via migrations** (`pnpm db:generate`), expand first and contract later, so the running release keeps working.
+- **Worker jobs are idempotent**, and nothing transcodes in a request handler.
 
-**Identity**
+## Roadmap and workflow
 
-- `users`: id, auth_provider_id, email, access_status (`pending | approved | rejected`, default `pending`), approved_at, approved_by, created_at
-- `profiles`: user_id, handle (unique, nullable; 3 to 20 lowercase letters, digits, or underscores, and not one of `RESERVED_HANDLES` in `packages/shared`, decided 2026-10-21; typed in any case and kept lowercase. Setting one gives an approved account a public page at `/@handle`, and clearing it takes the page down), display_name (what others see, e.g. on comments), bio, current_avatar_id (the newest `ready` picture, see `avatars`), city (nullable; one of `CITIES` in `packages/shared`, decided 2026-10-20; the picker groups them by region with `CITY_REGIONS`, and new ones are appended since Postgres adds enum values at the end), avatar_url (never used; a later migration drops it), links. A user has no profile row until they first save `/settings/profile` or a picture finishes processing. `/settings/profile` is theirs alone; the public page shows the handle, display name, bio, city and picture, and lists only their public tracks and projects (decided as nobody in particular, so the owner sees the same page as everyone). Comments show the display name and picture, linked to the public page when there's a handle.
-- `avatars`: id, user_id, status (`uploading | processing | ready | failed`, the cover lifecycle), failure_reason, original_key, original_content_type, original_size_bytes, image_key (the re-encoded JPEG). A profile picture upload; it becomes the profile's current picture only if it's newer than the current one, and removing the picture clears `current_avatar_id` and keeps the rows (decided 2026-10-20).
+The phases, the backlog, and open questions are in [docs/plan.md](docs/plan.md). Read the current phase there before starting work, and keep it current: tick items as they ship, and record decisions in the phase they belong to.
 
-**Music**
+- Work **one phase at a time**. Don't start a phase until the previous one's checklist is complete and I've confirmed; start each with a short task breakdown for approval.
+- **All work happens on a short-lived feature branch off `main`**, named `<type>/<slug>` with the conventional-commit type (`feat/presigned-uploads`, `fix/me-route-gate`), and lands through a reviewed PR. Never commit to `main`.
+- **A phase is usually several PRs**, each one coherent slice. Every merge to `main` deploys, so each PR leaves `main` working; hide unfinished features (an unlinked route or a flag) rather than holding them on a long-lived branch.
+- **Every PR has a detailed description:** Summary (what and why, which phase), What changed (by area: db, api, web, tooling, docs; new dependencies and why), Decisions (anything that differs from the docs or the approved plan, new ADRs), How to test (exact `pnpm` commands and manual steps), and Checklist (the phase items it completes and what's left). Keep it current as commits land.
 
-- `projects`: id, owner_id, title, description, current_cover_id (the newest `ready` cover, see `project_covers`), release_type (`single | ep | album | compilation`, default `single`; replaced the `idea | demo | mixing | done` status on 2026-10-20, and the old `status` column is dropped), visibility, deleted_at. Deleting a project soft-deletes it and leaves its tracks loose, with their versions; it never deletes songs.
-- `tracks`: id, owner_id, project_id (nullable: a track without one is a "loose" track), title (up to 200 characters; the owner renames it with the track page's pencil button, which edits the title, project, and genre in one form; `PATCH /v1/tracks/:trackId`, decided 2026-11-03), notes, position (nullable, only meaningful in a project), visibility (default `private`; a loose track's own visibility), current_version_id (the newest `ready` version), visibility_override (nullable; for a track in a project, see rule 7 in section 6), genre (nullable; one of `GENRES` in `packages/shared`, a fixed list rather than free tags so the discovery filter isn't split by spellings and there's no free text to moderate, decided 2026-11-03; new ones are appended, and pickers show `GENRE_OPTIONS`, alphabetical with Other last. Set with `PATCH /v1/tracks/:trackId` and shown to everyone who can see the track), deleted_at. Deleting a track (owner only: `DELETE /v1/tracks/:trackId`, from the track page) soft-deletes it and revokes its share links; its versions, comments, and files stay in the database but every read leaves them out with it, and it drops out of its project, leaving a gap in positions (decided 2026-11-02). Track lists leave out tracks whose versions are all still `uploading` (the file never arrived); the worker's cleanup fails those uploads after a day and deletes such tracks (section 7). A track can only join a project with the same owner (a composite foreign key on `(project_id, owner_id)` enforces it). Positions sort ascending and may have gaps; they aren't unique in the database, so changes to an owner's project membership and order take a lock on that owner's `users` row (`packages/db/src/projects.ts`).
-- `project_covers`: id, project_id, status (`uploading | processing | ready | failed`, the same lifecycle as versions), failure_reason, original_key, original_content_type, original_size_bytes, cover_key (the re-encoded JPEG). A cover becomes the project's current cover only if it's newer than the current one; removing the cover clears `current_cover_id` and keeps the rows.
-- `track_versions`: id, track_id, version_number, change_notes, feedback_prompt (what the artist wants feedback on), status (`uploading | processing | ready | failed`), failure_reason (shown to the artist), original_key, original_filename, original_content_type, original_size_bytes, stream_key, duration_ms, waveform_peaks (jsonb `number[]`), created_at
-- Versions are **immutable** once `ready`. New edits = new version.
-- A version belongs to its track, never directly to a project. `(track_id, version_number)` is unique; numbers count up per track and are **never reused** (a failed v3 stays v3, the next upload is v4). Everything else refers to a version by its `id`.
-- Status moves `uploading -> processing -> ready`, or to `failed` from either of the first two; `ready` and `failed` are terminal. The transition table is `canTransition()` in `packages/shared`, and the status updates in `packages/db` are compare-and-set, so repeats are harmless.
-
-**Sharing**
-
-- Sharing is by link only for now. Invites to specific people (a `shares` table with grantees, and a visibility level for it) are parked; see "Later / parking lot" in section 11.
-- `share_links`: id, resource_type (`project | track`), resource_id, token_hash (store a hash, never the raw token: SHA-256 hex, which a check constraint enforces), role (no longer read: every link lets signed-in holders comment, decided 2026-10-20; new links take its default, and a later migration drops it), expires_at (null = never), revoked_at, created_by. Links are never deleted, only revoked, so they keep a record of what was shared. `resource_id` has no foreign key since it points at either table; both are only soft-deleted, and deleting a project revokes its links (`packages/db/src/projects.ts`)
-
-**Feedback**
-
-- `feedback`: id, track_version_id, author_id, parent_id (nullable, for replies), timestamp_ms (nullable, null = general comment), body (up to 2000 characters, not blank), visibility (`public | artist_only`), status (`open | resolved`), resolved_at (set exactly when resolved), deleted_at. No per-comment visibility: everyone signed in who can see the track can read its comments (artist-only comments were dropped on 2026-10-21 as more than we need). Replies go one level deep: a reply's parent is a top-level comment on the same version (a composite foreign key on `(parent_id, track_version_id)` enforces the version; the API, the depth). Replies have no timestamp and are never resolved (a check constraint enforces both). Comments are soft-deleted; deleting a version or an account removes them (decided 2026-10-21)
-- `feedback_votes`: feedback_id, user_id (a "helpful" mark)
-
-**Social**
-
-- `follows`: id, follower_id, followee_id (unique together; nobody follows themselves, a check constraint enforces it). You follow someone through their public page, so only approved accounts with a handle can be followed, and someone who clears their handle (or loses approval) drops out of their followers' lists and feeds until they have a page again. No follower counts anywhere (section 1: no vanity metrics), and following notifies no one (decided 2026-10-21)
-- `notifications`: id, user_id (who it's for), type (`comment | reply`), feedback_id (the comment it's about; it points rather than copying a payload, so an edit shows and a deleted comment, version, or account takes its notifications with it), read_at. For now only the artist is notified, of someone else's comment or reply on their track; listeners who came by link can't be sent back to it (the token isn't stored), so reply notifications for them wait (decided 2026-10-21)
-
-Index for the hot paths: `tracks(project_id, position)`, `tracks(current_version_id)` (discovery's newest-first list), trigram (`pg_trgm`) indexes on `tracks.title`, `profiles.handle`, and `profiles.display_name` (search), `track_versions(track_id, version_number)`, `feedback(track_version_id, timestamp_ms)`, `share_links(token_hash)`.
-
----
-
-## 6. Permissions and privacy (most important section)
-
-### Visibility levels
-
-Applied to projects (and optionally overridden per track):
-
-- `private`: owner only. Share links do nothing: making something private shuts its links off without revoking them
-- `unlisted`: anyone holding an active share link
-- `public`: anyone; appears on profile and in discovery
-
-### Roles
-
-- `owner`: full control
-- `listener`: anyone else who can see it (by visibility or a share link): view and listen, and read and write comments if signed in. **If you can see it, you can give feedback on it** (decided 2026-10-20; links used to carry a `listen` or `comment` role)
-
-### Rules
-
-1. **Default is `private`.** New projects and tracks are private unless the user changes it.
-2. **All authorization goes through `canAccess(actor, resource, action)` in `packages/authz`.** No route handler or UI component makes its own ad-hoc permission decisions.
-3. Actions: `view`, `listen`, `comment`, `manage`, `download`.
-4. **Downloads are off by default** and require an explicit per-project setting. Never expose original files to non-owners. Until that setting exists (it's not part of Phase 4), only the owner can download.
-5. **Audio is served via short-lived signed URLs** (target: 5 to 15 minutes). The API issues a signed URL only after `canAccess(..., 'listen')` passes. Never return permanent public URLs for non-public audio.
-6. Share links: unguessable (at least 128 bits of entropy), stored hashed, support expiry and revocation. Revoking takes effect immediately. A link never makes anyone an owner, and is made for a track or a project; a project's link reaches only those of its tracks that aren't private (decided 2026-10-20). Tokens are 32 random bytes (base64url) and travel in the `x-share-token` request header, never a query string; the API hashes and looks up the link on every request (`apps/api/src/auth/share-link.ts`), so revoking takes effect on the next one. A malformed or unknown token is ignored, not refused. A share URL is `/listen#<token>`: the token sits in the fragment, which browsers never send to a server, so it stays out of request logs and referrers; a project's link reaches one of its tracks at `/listen#<token>/<trackId>`, the same way, which is where that track's comments are (decided 2026-11-06). The page reads it in the browser and opens the link through server actions that call the API with only the token, never the visitor's session (`sharedApi()` in `apps/web/lib/api.ts`), so a link works the same for everyone who holds it. Comments are the one exception, since a comment needs an author: an approved, signed-in visitor's comment calls carry their session as well as the token (`sharedApiAs()`), and signing in on the listen page is a Clerk modal, so the link never leaves the fragment (decided 2026-10-21). The web app turns off Next's dev logging of server action arguments for the same reason.
-7. A track inherits its project's visibility unless `visibility_override` is set. An override can only be **more restrictive** than the project unless the owner explicitly widens it. A loose track (no project) uses its own `visibility`; a project track's own `visibility` is ignored (`effectiveVisibility()`). **Moving a track never widens who can hear it:** joining a project with a wider visibility gives the track an override at its old visibility (`overrideOnJoin()`), and leaving a project sets its own `visibility` to the effective one it had (decided 2026-10-20).
-8. Everyone signed in who can see a track can read all of its comments (signed-in only since 2026-11-05); there are no private or artist-only comments (decided 2026-10-21). Listing a version's comments is `canAccess(..., 'comment')` on the track, and a signed-out visitor who can see the track gets a `401`. Decisions about one comment go through `canAccessFeedback(actor, track, feedback, action)` in `packages/authz`, which gives anonymous actors nothing and first requires `canAccess(..., 'view')` on the track: losing access to a track (a revoked link, say) takes away its comments too, your own included. Its actions: `read`; `reply` (may comment on the track); `edit` (the author only); `delete` (the author, or the track owner); `resolve` and reopen (the track owner only).
-9. Unauthenticated access to a non-public resource returns `404`, not `403`, to avoid leaking existence.
-10. Deleting a project or track revokes all share links and invalidates outstanding signed URLs as soon as practical. Today that's when they expire: the API refuses new stream URLs at once, but one already issued keeps working until its 10 minutes run out (the same holds after revoking a link or making something private).
-11. Comments need an account, to read them as well as to write them: anonymous visitors, with a link or on something public, can view and listen only, and so can accounts the approval gate refuses (pending or rejected). They still see the artist's feedback prompt, which isn't a comment. There are no guest comments.
-12. **Listeners see finished work only.** Anyone but the owner gets only `ready` versions (others are a 404), never file names, the track's own notes, or cover upload progress, and a track's `project_id` only if they may view that project. Owner-only details are decided with `canAccess(..., 'manage')` (`canManage()` in `apps/api/src/auth/authz.ts`).
-
-### Invite-only access (launch mode)
-
-The service starts invite only. Anyone can create an account, but it stays `pending` until an admin approves it by hand.
-
-- The approval gate lives in **our** `users.access_status`, not in the auth provider, so it survives swapping `AuthPort`.
-- The API's auth plugin checks it: non-approved users get `403` with code `ACCOUNT_PENDING` (or `ACCOUNT_REJECTED`) on every route except `GET /v1/me`, which reports their status. Anonymous access to public or link-shared resources is unaffected.
-- The web app shows a plain "you're on the list" screen to pending users.
-- Admin approval starts as a CLI script (`pnpm admin:approve <email>` / `admin:reject`) that records `approved_at` and `approved_by`. An admin UI comes later if the queue gets big.
-- Gate tests cover pending, approved, and rejected users on a protected route and on `/v1/me`.
-- The gate is a root `onRequest` hook (`apps/api/src/auth/gate.ts`) that runs right after auth, so it covers every route by default. A route opts out only with `config: { allowUnapproved: true }` (today: `/v1/me`, `/v1/health`, `/v1/openapi.json`).
-
-### Testing requirement
-
-`packages/authz` must have exhaustive table-driven tests covering every combination of visibility x action x (owner / link-holder / stranger / anonymous), and for feedback, action x (artist / author / other listener / anonymous) at every track visibility, with and without a link. Any change to permission logic requires test updates in the same commit. Treat a permissions bug as a P0.
-
----
-
-## 7. Audio pipeline
-
-```
-Client                API                      B2/S3              Worker
-  | POST /uploads       |                         |                  |
-  |-------------------->| create version row      |                  |
-  |   presigned PUT URL |  (status=uploading)     |                  |
-  |<--------------------|                         |                  |
-  | PUT file ----------------------------------->| (original, private)
-  | POST /uploads/:id/complete                   |                  |
-  |-------------------->| enqueue job ------------------------------>|
-  |                     | status=processing       |  ffmpeg: AAC + peaks + duration
-  |                     |<------------------------------------------| status=ready
-```
-
-- **Uploading on the web** (decided 2026-11-05): a dropped or chosen file opens one dialog (`apps/web/app/upload-dialog.tsx`) that asks for everything once, and nothing goes up until it's confirmed there, since a soft-deleted track keeps its files, so a wrong file sent straight away couldn't really be taken back. Cancelling mid-upload stops the transfer and leaves the rest to the cleanup below.
-- `POST /v1/uploads` can also take a `projectId` (one of the artist's own, or a 404), `genre`, and `feedbackPrompt`, all saved with the track in one transaction, so nothing has to be entered twice. A track that joins a wider project this way stays private, through the same override as moving one in (rule 7). `POST /v1/tracks/:trackId/versions` takes `feedbackPrompt` beside `changeNotes` (decided 2026-11-05).
-- Accepted inputs: mp3, wav, m4a, aac, flac, ogg. Enforce max size (start at 200 MB) and max duration (start at 20 min). Validate by sniffing, not only by extension.
-- Output: AAC (m4a) stream file, plus waveform peaks (about 1000 points, normalized 0 to 1) and `duration_ms`.
-- Originals live in a **private** bucket/prefix. Stream files likewise; both only reachable via signed URLs.
-- Worker jobs must be **idempotent** and retry-safe. Failed jobs set `status=failed` with a user-visible reason.
-- Uploads must never block the API process. No transcoding in request handlers.
-- Start with progressive AAC. Move to HLS only if there's a concrete need.
-- How the worker does it (`apps/worker/src/transcode/`): one ffmpeg pass writes the stream (192 kbps stereo AAC, resampled to 48 kHz only if higher, at `streams/<versionId>`) and pipes mono samples for the peaks and the exact duration (counted from decoded samples, since headers can lie). Peaks are absolute: each point is the loudest sample in its slice as a fraction of full scale, so a quiet demo draws as quiet and the player can scale it for display.
-- ffmpeg treats originals as hostile: it may read only local files (no URLs, so a crafted playlist can't fetch anything) with only the demuxers for the accepted formats, keeps only the first audio stream, and drops all metadata (tags can hold things the artist didn't mean to share).
-- A file that can't be used fails at once with a reason; any other error is retried (3 attempts, set by the API when it queues the job), and the last failed attempt marks the version failed and reports to Sentry.
-- **Stuck uploads are cleaned up** by a sweep in the worker (`apps/worker/src/cleanup/`), every 15 minutes on a `maintenance` queue whose BullMQ job scheduler keeps one schedule however many workers run. Uploads (versions, covers, pictures) still `uploading` a day after they started are marked failed ("The upload didn't finish") and whatever reached storage of them is deleted; tracks whose every version was abandoned that way are soft-deleted like an owner's deletion. Uploads `processing` for over an hour are checked against their job: a missing one is queued again (the job id is the upload id, so it can't double up), and one that failed or completed without them (a worker killed mid-job until BullMQ gave up, which skips the last-attempt handling) is marked failed and reported to Sentry. A job still waiting or running is left alone. Every change is compare-and-set, and the job options are shared (`JOB_OPTIONS` in `packages/shared`), so a requeued job runs like the API's.
-- **Cover art** uses the same flow on its own `cover` queue: the browser PUTs a JPEG, PNG, or WebP (up to 10 MB) to `cover-originals/<coverId>`, the API sniffs its bytes on complete, and the worker (`apps/worker/src/cover/`) re-encodes it with ffmpeg, with the same input guards (only the three image demuxers, only local files), refusing anything over 50 megapixels before decoding. ffmpeg applies EXIF orientation, centre-crops to a square, scales down to at most 1024px, and writes `covers/<coverId>.jpg` with no metadata at all (photo EXIF can hold GPS location), then deletes the original. Covers are served like audio: short-lived signed URLs (10 minutes) in project responses.
-- **Profile pictures** go through the same steps on an `avatar` queue (`avatar-originals/<avatarId>` in, `avatars/<avatarId>.jpg` out, at most 512px), with the same image job in `apps/worker/src/cover/`. Only the user's own profile response carries the signed URL for now; others will see it next to comments.
-
----
-
-## 8. API conventions
-
-- REST, JSON, versioned under `/v1`. OpenAPI generated from zod schemas.
-- Auth: `Authorization: Bearer <jwt>`; verified in a Fastify plugin that populates `request.actor` (or anonymous).
-- Every route: validate input with zod, call `canAccess`, then do work. In that order.
-- Errors use a consistent shape: `{ error: { code, message, details? } }`.
-- Pagination: cursor-based (`?cursor=&limit=`), never offset for feed-like lists.
-- No business logic in route handlers beyond orchestration; put it in service modules (`apps/api/src/modules/<domain>/`).
-- Each module: `routes.ts`, `service.ts`, `repo.ts`, `*.test.ts`. Queries the worker also runs (tracks, versions, and projects, whose cover art it processes) live in `packages/db` instead, and those modules have no `repo.ts`.
-
----
-
-## 9. Frontend conventions (web)
-
-- App Router; server components by default, client components only where interactivity requires it.
-- **Keep the client light.** Prefer what React and Next.js already provide over new libraries; justify any client-side dependency by what it saves us.
-- Data fetching through the typed client in `packages/shared`. Fetch in server components by default; mutate with server actions or route handlers, then `router.refresh()` / `revalidatePath()`. For the few client-side needs (e.g. polling a version until it's `ready`), use a small hook in the app. No TanStack Query unless client-side caching becomes a real pain point (revisit in Phase 5).
-- Waveform player is a reusable component: renders peaks, supports click-to-seek, shows comment markers at their timestamps, and clicking a marker scrolls to that comment.
-- Global audio player persists across navigation (mini-player), controlled by a single audio store: a small module that owns the one `HTMLAudioElement`, exposed to components through `useSyncExternalStore` so only subscribers to a changed value re-render. No Zustand. Only one track plays at a time.
-- **A project plays like an album** (decided 2026-11-06): the store holds a queue of each track's current version, in running order, and the mini-player and lock screen get previous and next while one's playing. It moves on when a track ends and stops after the last; previous restarts a track more than 3 seconds in. A failed stream URL stops it with an error rather than skipping on. Playing a track outside the queue clears it. Only project pages set a queue so far; home and public profile lists still play one track at a time.
-- The app is a fixed shell: a `h-dvh` grid in the root layout with the page in one row (`PageScroller`, `apps/web/app/_shell/page-scroller.tsx`) and the mini-player in the row below, and the document itself never scrolls. A scrolling document hides iOS Safari's toolbar, which can leave a sticky or fixed player floating where the toolbar was (reported on iOS 26), so this trades the toolbar collapsing for a player that stays put (decided 2026-11-04). `PageScroller` does what the browser did for the document: back and forward restore the position, and keys scroll it. Don't add `position: sticky` or `fixed` bars to the bottom of the screen, or scroll `window`; use `scrollIntoView`.
-- Accessibility: keyboard controls for play/pause/seek, visible focus states, semantic HTML, labelled controls.
-- **Link previews and icons are generic on every page** (decided 2026-11-05). The root layout sets the title template, description, and Open Graph and Twitter tags, and `apps/web/app/` holds the icons (the F from the wordmark's Silkscreen, on a whole-pixel grid) and the preview image. A preview goes to whatever service a link is pasted into, so no page adds a track, project, or comment to its metadata, and `/listen` says nothing about what was shared. A page's `<title>` takes a bare name (`Notifications`), and the template adds the rest. `robots.ts` lets the link preview crawlers in (X, LinkedIn, Facebook, Slack, Discord) while everything else stays blocked until `ALLOW_INDEXING` is set, so search engines still can't crawl the site.
-- Mobile-first responsive layouts. Many users will open share links on a phone.
-- Keep components small, colocate styles, avoid premature abstraction.
-
-### Visual style: Y2K / Winamp / LimeWire
-
-> **Styling is deferred, except the player, the app header, home (discovery), your tracks, the track page, the project pages (for listeners too, on the listen page as well, 2026-11-06), the profile page, public profiles, and notifications.** The waveform player and mini-player (`apps/web/app/_player/`) were styled in Phase 2 (2026-10-19) and gained a volume fader (one level for the app, remembered in the browser; mute only on touch screens, since iOS ignores page volume) and an LCD comment line that shows the pinned comment at the playhead or under the pointer (2026-11-03), with the first tokens and primitives in `globals.css` and the system recorded in `apps/web/DESIGN.md`. The shared app header (`apps/web/app/_shell/`) and the project pages (`apps/web/app/projects/`) followed in Phase 3 (2026-10-19), adding the working-screen primitives (buttons, fields, links) and the LCD segment picker (now the release type picker). Home (all four states, with the striped upload bar) followed the same day; its signed-in state moved to `/tracks` on 2026-10-22, when the feed became the signed-in home page, and home became the discovery page for everyone on 2026-11-03 (a genre rail beside the results, rows that play in the mini-player), then the track page (version history and new-version upload, 2026-10-20; its Feedback section and waveform markers, 2026-10-21), and the profile page (`/settings/profile`, with a preview of how your name signs a comment, 2026-10-20), and public profiles (`/@handle`, 2026-11-03: who they are and Follow over Tracks and Projects tabs, tracks playable in place), and notifications (`/notifications`, 2026-11-05: rows under day headings in the viewer's own time zone). The upload form gave way to a drop zone and a one-screen dialog on 2026-11-05: an LCD deck on your tracks, a flat zone on the track page (`apps/web/app/upload-zone.tsx`), and a privacy line in the dialog that says what the chosen project means for who can hear the track. Signing in and up is Clerk's modal, unstyled (decided 2026-11-05): the buttons open it in place, and a visit to `/sign-in` or `/sign-up`, including a redirect from a page that needs an account, opens it over home and returns to that page afterwards (a return URL to another site is ignored). Those routes stay for Clerk's own steps. Everything else stays plain semantic HTML until asked: don't add CSS, Tailwind classes, design tokens, or themed primitives elsewhere (accessibility rules above still apply). The direction below is the plan for the rest.
-
-**Design tooling:** design work uses the [Impeccable](https://impeccable.style) agent skill, installed per developer as a Claude Code plugin (nothing vendored in the repo). Its product context lives in `PRODUCT.md`, which repeats this file's product facts; keep the two in sync. Its `apps/web/DESIGN.md` describes the styled parts so far and must follow the direction below; per-surface briefs live in `apps/web/.impeccable/surfaces/`. The plugin's detector hook checks UI files as they're edited.
-
-The app should feel like a late-90s/early-2000s desktop music app reimagined for Gen Z and Gen Alpha: nostalgic and playful, but clean enough to use every day. It's a nod to that era, not a costume.
-
-**References and what to borrow**
-
-- **Winamp:** the player is the hero. Use skinned "hardware" chrome around the player, an LCD-style time/track readout (green or cyan on near-black), a scrolling track title, a spectrum/oscilloscope-style visualizer, and chunky transport buttons. The waveform player and mini-player should look like this.
-- **LimeWire:** lime green as the signature accent, glossy gradient toolbars, dense sortable results tables for lists (tracks, versions, feedback), and striped progress bars for uploads and processing.
-- **Y2K / early Windows and Mac:** chrome and iridescent gradients, glossy "bubble" buttons, bevelled window panels with title bars, pixel icons, sparkles/stars, and the occasional holographic or translucent "Aqua" surface.
-
-**Guardrails** (these come before the aesthetic)
-
-- **Privacy and permission UI stays clear and serious.** Share dialogs, visibility settings, and destructive actions use plain, unambiguous language and states. No ironic copy, novelty icons, or hidden meaning there. Trust comes first (section 1).
-- **Accessibility still applies.** Text and controls meet WCAG AA contrast. Gradients and chrome never sit behind body text without a solid backing. Focus states stay clearly visible (a bright glow outline fits the theme). Respect `prefers-reduced-motion`: no scrolling marquees, sparkles, or animated visualizers when it's set.
-- **Readable type.** Pixel or bitmap-style fonts are for display only: logos, headings, LCD readouts, short labels. Body text, comments, and forms use a clean sans-serif.
-- **Mobile-first still holds.** Desktop-window motifs (title bars, bevels) must collapse gracefully at phone width; no fake windows that need horizontal scrolling.
-- **Evoke, don't copy.** No Winamp, LimeWire, Microsoft, or Apple logos, names, skins, or copied assets. Build original components and icons in the spirit of the era.
-- **Restraint.** Pick one or two signature moments per screen (usually the player plus one accent). Not every surface should be chrome.
-
-**Implementation**
-
-- Define the theme as design tokens (CSS variables) in `apps/web/app/globals.css` and expose them through Tailwind's `@theme`. Components use tokens, never one-off hex values.
-- Core palette to start from: near-black base, lime green primary accent, LCD green/cyan for readouts, chrome/silver neutrals, with hot pink or electric blue as secondary accents. Tune for contrast before shipping.
-- Support dark mode first (it fits the era). Light mode can come later through the same tokens.
-- Build a small set of themed primitives (window panel, bevel button, LCD display, progress bar, results table) and reuse them instead of styling ad hoc.
-- Room to grow: user-selectable "skins" (Winamp-style) are a natural future feature. Keep tokens structured so a skin is just a different token set, but don't build skin switching until it's asked for.
-
----
-
-## 10. Code conventions
-
-- TypeScript `strict: true`; no `any` without a comment explaining why.
-- Prefer pure functions and explicit types at module boundaries.
-- Validate at every trust boundary (HTTP input, job payloads, env vars). Env vars are parsed through a zod schema at startup; the app should fail fast if invalid.
-- No secrets in the repo. `.env.example` is maintained; real values never committed.
-- Database changes only via migrations (`pnpm db:generate`); never hand-edit applied migrations.
-- Conventional commits (`feat:`, `fix:`, `chore:`, `test:`, `docs:`). Small, focused commits.
-- Log with a structured logger (pino). Never log tokens, signed URLs, or share-link tokens.
-- Write tests alongside code. Prioritize: authz, audio pipeline state machine, share-link lifecycle, feedback visibility.
-
-### Delivery and monitoring
-
-These apply from Phase 1 on.
-
-- **`main` is always deployable.** Every merge to `main` deploys to staging automatically. If `main` breaks, fixing or reverting it comes before anything else merges.
-- **Deploys only come from CI**, never from a laptop. Build each image once and promote that same image from staging to production; never rebuild per environment. The one exception is Redis: a stock, pinned image in its own Fly app, set up once and redeployed by hand (`pnpm staging:redis:deploy`) only when its tag or flags change, like provisioning Neon or B2.
-- **Migrations must work with the release that's already running** (expand first, contract in a later deploy), so a deploy or rollback never breaks the live version.
-- **Monitoring starts cheap.** Datadog does the job but gets expensive quickly (per-host and per-GB pricing). Start with tools that have free or low-cost tiers, such as Sentry (errors), Grafana Cloud (logs, metrics, traces), or Better Stack (logs, uptime). Move to Datadog or similar only if we outgrow them.
-- **Stay vendor-neutral.** Log JSON to stdout with pino and use OpenTelemetry for traces and metrics, so changing monitoring vendors is a config change, not a code change (same idea as `AuthPort`).
-- **Never send secrets or private content to monitoring.** The logging rule above applies: no tokens, signed URLs, share-link tokens, or audio. Scrub auth headers and query strings from error reports.
-
----
-
-## 11. Phased roadmap and definitions of done
-
-Work **one phase at a time**. Do not start a phase until the previous one's checklist is complete and I've confirmed. At the start of each phase, propose a short task breakdown for approval.
-
-**Feature branches with detailed PRs.** All work, phase or not, happens on a short-lived feature branch off `main` and lands through a reviewed PR. Never commit directly to `main`.
-
-- **A phase is usually several PRs.** Each PR is one coherent slice that works on its own (for example: the upload endpoint, then the worker job, then the player). Because every merge to `main` deploys to staging, each PR must leave `main` working. Keep unfinished user-facing features hidden (an unlinked route or a flag) rather than holding them back on a long-lived branch.
-- **Name branches `<type>/<slug>`**, using the conventional-commit type (e.g. `feat/presigned-uploads`, `fix/me-route-gate`, `docs/staging-phase`). Keep them short-lived and up to date with `main`.
-- **Every PR has a detailed description** covering:
-  - **Summary:** what it delivers and why, and which phase it belongs to
-  - **What changed:** grouped by area (db, api, web, tooling, docs), noting new dependencies and why
-  - **Decisions:** anything that differs from this file or the approved plan, and new ADRs
-  - **How to test:** exact `pnpm` commands and manual steps
-  - **Checklist:** the phase's definition-of-done items this PR completes or moves forward, and what's left
-- Keep the PR description current as more commits land on the branch.
-
-### Phase 0: Foundation
-
-**Complete.** Two items moved to later phases: the `test:e2e` script (Playwright) to Phase 7's e2e suite, and the S3 stand-in to Phase 2, where uploads first need it.
-
-- [x] Monorepo (pnpm + Turborepo), shared tsconfig/eslint, scripts from section 4 _(except `test:e2e`, moved to Phase 7)_
-- [x] docker-compose with Postgres, Redis, and pgweb _(S3 stand-in moved to Phase 2; MinIO no longer publishes free images)_
-- [x] `packages/db` with Drizzle set up, first migration (users, profiles), seed script
-- [x] Env validation, structured logging, health check endpoint
-- [x] CI running lint, typecheck, tests (with a Postgres service)
-- [x] Auth wired end to end: sign in on web, API verifies JWT, `GET /v1/me` works
-- [x] Invite-only gate: new users are `pending`; the API rejects everything except `GET /v1/me` for non-approved users; web shows a waiting screen; an admin can approve or reject (see "Invite-only access" in section 6). Routes opt out with `config: { allowUnapproved: true }`.
-- **Done when:** a fresh clone can run `pnpm i && pnpm services:up && pnpm db:migrate && pnpm dev` and sign in locally.
-
-### Phase 1: Staging and continuous delivery
-
-Get the app onto a staging environment as early as possible, so every later phase ships in small, deployed steps instead of one big launch. Staging uses the providers planned for production, so it also rehearses the production deploy in Phase 7. See "Delivery and monitoring" in section 10 for the rules that apply from here on.
-
-- [x] Hosting picked and recorded in an ADR ([0003](docs/decisions/0003-staging-hosting-and-monitoring.md)): Vercel (web), one Fly.io app with `api` and `worker` process groups, Neon (Postgres), and a separate Clerk instance. Redis is added in Phase 2 with the first queue. Staging never shares a database, bucket, or keys with local dev or production.
-- [x] One container image for api and worker (Node runs `.ts` directly, so no build step), built once in CI and tagged with the commit SHA.
-- [x] Continuous deployment: every merge to `main` deploys to staging automatically, only after CI passes. Order: run migrations, deploy api + worker, deploy web, smoke test (`/v1/health` and the web home page). A failure at any step stops the deploy and fails the workflow.
-- [x] Preview deploys of the web app for each PR (Vercel), pointed at the staging API. Previews are signed out ([ADR 0007](docs/decisions/0007-signed-out-previews.md)); a `Preview` check loads each one.
-- [x] Secrets live in the hosts' secret stores and GitHub Environments, never in the repo or CI logs. Staging env vars are validated at startup, same as local.
-- [x] Rollback is one documented step (redeploy the previous image), tested once (2026-10-13: `3c4233f` and back to `cf6c297`, about 2.5 minutes each way).
-- [x] Branch protection on `main`: PR required, CI (`check`, `image`) must pass on an up-to-date branch, enforced for admins too. Repo made public to get it on the free plan.
-- [x] Monitoring baseline: error tracking for web, api, and worker; an uptime check on `/v1/health`; pino logs shipped and searchable; alerts on new errors and downtime. All on Sentry's free tier ([ADR 0006](docs/decisions/0006-monitoring-on-sentry.md)).
-- [x] Staging is invite-only (the approval gate), holds no real user data, and is excluded from search engines.
-- Object storage (B2, see ADR 0008) and ffmpeg in the worker image are added to staging in Phase 2, alongside uploads.
-- **Done when:** merging a PR to `main` puts it on staging with no manual steps; a failing test or migration blocks the deploy; I can sign in on staging and be approved; a deliberately thrown error shows up in monitoring and triggers an alert; and a rollback has been done once.
-
-### Phase 2: Upload and playback (vertical slice)
-
-**Complete** (2026-10-19).
-
-- [x] S3-compatible object storage in docker-compose (SeaweedFS, stands in for B2 locally; moved from Phase 0)
-- [x] Presigned upload flow, `track_versions` state machine _(API: `POST /v1/uploads`, `POST /v1/uploads/:versionId/complete`, `GET /v1/versions/:versionId`; the web upload form comes with the track page)_
-- [x] Worker: ffmpeg to AAC, duration, waveform peaks _(BullMQ consumer; ffmpeg ships in the server image as a pinned static build)_
-- [x] Waveform player component, global mini-player _(API: `GET /v1/versions/:versionId/stream` issues a 10-minute signed URL after `canAccess(..., 'listen')`; the player fetches a new one before resuming on an expired URL, or when playback fails, and carries on from the same spot. One audio store in `apps/web/lib/audio-store.ts`; the mini-player sits in the root layout. First styled surface, see section 9)_
-- [x] Track page (owner only; everything private) _(`/tracks` lists your tracks and has the upload form (it was the home page until 2026-10-22); `/tracks/[trackId]` shows versions and polls while one processes. API: `GET /v1/tracks`, `GET /v1/tracks/:trackId`. The player sits on the track page)_
-- **Done when:** I can upload a file, watch it go `processing` to `ready`, and play it with a waveform. Pipeline has integration tests including a failure case.
-
-### Phase 3: Projects and versions
-
-- [x] Projects CRUD, cover art upload, status field _(the status field became a release type, Single, EP, Album or Compilation, on 2026-10-20; deleting a project leaves its tracks loose. Cover art is re-encoded by ffmpeg in the worker: cropped square, resized, and stripped of all metadata, since photo EXIF can hold GPS location. Decided 2026-10-19. Shipped: JPEG/PNG/WebP up to 10 MB in, a square JPEG of at most 1024px out, shown beside the title and as list thumbnails; API `POST /v1/projects/:projectId/covers`, `.../covers/:coverId/complete`, `GET .../covers/:coverId`, `DELETE /v1/projects/:projectId/cover`. API: `POST /v1/projects`, `GET /v1/projects`, `GET`/`PATCH`/`DELETE /v1/projects/:projectId`; visibility isn't editable until Phase 4. Pages: `/projects` and `/projects/[projectId]`, with the release type as a clickable LCD segment picker, moved into the pencil's Edit mode on 2026-11-06. `GET /v1/projects/:projectId` also carries `artist`, the owner's display name and handle. The project page is now the same album for everyone: cover, who made it, a Play button, and tracks that play in place through the mini-player, with no player or comments on the page, decided 2026-11-06)_
-- [x] Add/reorder tracks in a project _(pages: behind Arrange on the project page since 2026-11-06, drag a track by its grip, or focus the grip and use the up and down arrow keys, and an add-a-track picker, and on the track page the project as a link, changed with the pencil button that edits the track's details. API: `GET`/`POST`/`PUT /v1/projects/:projectId/tracks` (list, add to the end, set the full order; a stale order is a 409) and `DELETE /v1/projects/:projectId/tracks/:trackId`, which leaves the track loose)_
-- [x] Upload new version of a track, version history UI, change notes _(API: `POST /v1/tracks/:trackId/versions` starts the next version's upload, finished by the same `POST /v1/uploads/:versionId/complete`; `PATCH /v1/versions/:versionId` edits a version's change notes, which stay editable while the audio is immutable. Decided 2026-10-20. Pages: the track page shows the version history newest first, each with its original file name and date, with notes edited in place, and an "Upload a new version" form with change notes)_
-- [x] A/B switch between versions in the player _(on the track page, once a track has two ready versions: A is the current version, B the previous one, or any older version picked with "Compare with". Switching carries on at the same moment (capped at the shorter length), playing or paused as before; the A and B keys flip it. The audio store keeps each version's fresh stream URL and prefetches the other side's while playing, so a switch usually skips a round trip. Still one audio element, so a switch has a short gap. Decided 2026-10-20)_
-- **Done when:** I can build a 5-track project, upload v2 of a song, and compare v1 vs v2.
-
-### Phase 4: Sharing and permissions
-
-**Complete** (2026-10-20). The manual pass ran every read and write route against a scratch database as anonymous and with live, revoked, expired, deleted, and private-resource links (track and project), and checked storage directly; nothing private was reachable. Signed-in strangers are covered by the API's route tests rather than by hand.
-
-- [x] `packages/authz` with `canAccess` and exhaustive tests (write these **first**) _(the matrix in `packages/authz/src/index.test.ts` is written out by hand: every visibility x actor (owner, signed-in stranger, anonymous, each with and without a link) x action x resource kind, plus link expiry and revocation, project links on tracks, `effectiveVisibility`, and `overrideOnJoin`)_
-- [x] Visibility settings, roles on share links _(links stopped carrying roles on 2026-10-20: every link allows comments from signed-in holders. Visibility done: `PATCH /v1/projects/:projectId` takes `visibility`, and `PATCH /v1/tracks/:trackId` sets a loose track's own or a project track's override, null following the project. Every route judges tracks by their effective visibility, so public things are open to anyone signed in or not)_
-- [x] Share links with expiry and revoke _(API: `POST`/`GET /v1/tracks/:trackId/share-links` and `/v1/projects/:projectId/share-links` (create returns the token once; optional `expiresAt`, which must be in the future), `DELETE /v1/share-links/:linkId` revokes. All owner-only)_
-- [x] Signed audio URLs gated by `canAccess` _(by effective visibility and any share link presented, for owners, public listeners, and link holders)_
-- [x] Share dialog UI; public listen page that works for logged-out link holders _(listen page done: `/listen#<token>` shows a shared track (player with A/B, its ready versions) or project (cover, description, tracks to pick and play), signed out or in, and a plain "This link doesn't work" for anything else. API: `GET /v1/share-links/current`. A project is the styled album page, and opening one of its tracks shows that track's player, versions, and comments (2026-11-06). A track is plain HTML apart from the player and comments until it's styled. Sharing settings done: a "Sharing" section on the track and project pages sets who can listen (only you, anyone with a link, anyone, or for a project track the same as the project) with an explicit Save, makes links (never, 1, 7 or 30 days) and shows a new link once to copy, and turns links off after a confirm. Making a link on something private says so and makes it link-only in the same press. The line under a project's title says who can listen)_
-- **Done when:** every row of the permission matrix is tested, and a manual pass confirms a stranger cannot reach private audio by any URL.
-
-### Phase 5: Feedback
-
-**Complete** (2026-10-21).
-
-- [x] Profile settings, so comments can show who wrote them _(page: `/settings/profile`, linked from the header as Profile, only for the signed-in user: display name, bio, an optional city, and an optional picture. API: `GET`/`PATCH /v1/me/profile`; the first save creates the profile. Pictures: `POST /v1/me/avatars`, `.../avatars/:avatarId/complete`, `GET /v1/me/avatars/:avatarId`, `DELETE /v1/me/avatar`, processed like cover art. Styled, with a live preview of how the name signs a comment)_
-- [x] Timestamped comments on the waveform, threaded replies _(permissions and table done: `canAccessFeedback` with its hand-written matrix, and the `feedback` table, see section 5. API done: `GET`/`POST /v1/versions/:versionId/feedback` (list in threads, pinned comments in timeline order then general ones; comment at a moment up to the version's length, or generally; ready versions only), `POST /v1/feedback/:feedbackId/replies`, `PATCH /v1/feedback/:feedbackId` (the author edits the body, the artist resolves or reopens a thread), `DELETE /v1/feedback/:feedbackId` (soft; a deleted comment with replies keeps its place without its words or author). Each comment carries its author's display name and picture, never their id, and what the asker may do with it (`can`), so the UI never decides permissions itself. Reading and writing are a 401 until you sign in (reading worked signed out until 2026-11-05). Track page done: a Feedback section under the player shows the comments on the version it's showing (A or B), with a comment box whose moment follows the playhead until you type, replies, edit, delete, and resolve or reopen; ticks under the waveform jump to their comments. Listen page done: the same section under the player for approved, signed-in visitors with the link; others see only the artist's prompt and a Sign in to read and leave comments button (a modal) or a line saying their account is waiting for approval)_
-- [x] Per-version "what I want feedback on" prompt _(`track_versions.feedback_prompt`, set with `PATCH /v1/versions/:versionId` (`feedbackPrompt`, beside `changeNotes`) and returned on every version. The artist writes it in the Feedback section on the track page; listeners read it above the comment box)_
-- [x] Open/resolved status _(the artist resolves and reopens threads on the track page; artist-only comments dropped 2026-10-21: every comment is visible to everyone signed in who can see the track)_
-- [x] Notifications (in-app first, email digest optional) _(in-app done: someone else's comment or reply on your track notifies you. API: `GET /v1/notifications` (newest first, cursor pages), `GET /v1/notifications/unread-count`, `POST /v1/notifications/read`. A notification whose comment or track is gone is left out. Web: a bell in the header with the unread count (Profile is your picture, or a person icon until you have one, and an approved account signs out from the profile page, at every width since 2026-11-04; pending and rejected accounts, who can't reach it, keep Sign out in the header), and `/notifications`, which groups them under day headings, marks what it shows read and links each to the track page at its comment (`?comment=`, which shows that version and lights the thread). Email digest not built: its provider is an open question, section 13)_
-- **Done when:** a listener can comment at 1:23, the artist is notified, replies, and marks it resolved.
-
-### Phase 6: Social layer
-
-**Complete** (2026-11-03).
-
-- [x] Public profiles, follows, activity feed of followed artists' public updates _(the track and project pages open to anyone for public things, showing everyone but the owner the listen page's listener view (for a track: player, versions, comments, plain HTML apart from those; for a project, the styled album page, and a track in one links back to it), and a signed-out visitor who can't see one is sent to sign in, since it may be theirs. Track and project responses carry `canManage`, so the page knows whose controls to show. Unapproved accounts read public things as nobody (`viewerApi()` in `apps/web/lib/api.ts`), since the approval gate refuses their session. Public profiles done: a handle on `/settings/profile` (a taken one is a 409 `HANDLE_TAKEN`) gives an approved account a page at `/@handle`, which a rewrite in `next.config.ts` serves from `/profiles/[handle]`, plain HTML until styled. API: `GET /v1/profiles/:handle`, and `/tracks` and `/projects` under it (cursor pages, public only); anything else is a 404. Comment authors carry their handle. Follows and the feed done: Follow or Unfollow on `/@handle` (Sign in to follow when signed out; nothing for accounts waiting for approval), and the feed, now home's Following view (`/?view=following`; it was the signed-in home page from 2026-10-22, then `/feed`, until it joined home on 2026-11-03, and `/feed` redirects there; the nav is Tracks and Projects): the people you follow's new public tracks and new versions, newest first, then who you follow. The feed is computed when it's read (ready versions of tracks that are public by effective visibility, checked with `canAccess` as nobody in particular, like the public page), so making a track private takes it out at once. API: `PUT`/`DELETE /v1/profiles/:handle/follow` (repeats change nothing; following yourself is a 400 `CANNOT_FOLLOW_SELF`), `GET /v1/me/following`, `GET /v1/feed` (cursor pages), and `following` on `GET /v1/profiles/:handle`)_
-- [x] Basic discovery: recent public, filter by genre/tag, search _(genre done: one per track from a fixed list, set with the track page's pencil button, and shown on the listener view; free tags are parked. Recent public and the genre filter done: `GET /v1/discover?genre=` (cursor pages, open to anyone) lists live public tracks of approved accounts by effective visibility, one row per track with its current version, the most recently updated first (by current version id, so a new version brings a track back to the top; nothing ranks by plays), each checked with `canAccess` as nobody in particular, so everyone gets the same list and making a track private takes it out at once. Artists without a handle are listed too, unlinked. Page: home (`/`) since 2026-11-03, open to everyone and styled: a genre rail beside the results from `md` (a Genre select beside the results' heading on phones), search, People above the first page of a search, and rows whose transport button plays the version in the mini-player without leaving the list (the row lights while it's in the player). Signed out, a line says what this is; pending and rejected accounts see their status above the list. `/discover` redirects there. Approved accounts get Everyone and Following tabs above the search: Following is `GET /v1/discover?view=following` (a 401 signed out), the same rows narrowed to the people you follow who still have a public page, combinable with search and genre, with who you follow at the top of the rail (under the results on phones). `GET /v1/feed`, which the old feed page used, stays until a later PR removes it, since deploys update the API before the web. Search done (2026-11-03): `q` on `GET /v1/discover` (2 to 100 characters, combinable with `genre`) keeps tracks whose title, or artist's display name or handle, contains it, case-insensitively, with `%` and `_` matching themselves and a leading `@` ignored; `GET /v1/profiles?q=` finds people with a public page (approved, with a handle) by handle or display name, an exact handle first then by handle, at most 10, so names that have only shown on comments are never searchable. Both are substring matches served by `pg_trgm` trigram indexes (migration `0017_search_trgm` turns the extension on). The search box sits on `/discover`, with People above the first page of tracks)_
-- Playlists and likes were dropped from this phase on 2026-10-22: projects already group an artist's own work, and follows and the feed cover keeping up with artists. Both are in the parking lot.
-- Reporting and blocking were moved to the parking lot on 2026-11-03.
-- **Done when:** a new user can sign up, follow artists, and discover public work.
-
-### Phase 7: Hardening and launch prep
-
-Order agreed 2026-11-03, one PR each: stuck-upload cleanup, rate limits, upload quotas (10 GB per account, decided 2026-11-03), lossless streaming, account deletion and data export, privacy and terms pages, the e2e suite, monitoring and backups, a launch checklist (feedback.community is already the one deployed environment), then a performance pass.
-
-- [ ] Rate limiting, abuse controls, upload quotas, and cleanup of uploads that were started but never completed (versions left `uploading`, and their partial originals), and of versions left `processing` because their job was lost (e.g. Redis lost it, or it stalled past BullMQ's limit) _(cleanup done, 2026-11-03: a worker sweep every 15 minutes, see section 7)_
-- [ ] Upload quotas: **10 GB per account** (decided 2026-11-03), counting originals and lossless streams (AAC streams, covers, and pictures don't count), checked when an upload starts so nobody uploads a file only to have it refused. The per-file limit rises from 200 MB to **500 MB (proposed, to confirm)** so lossless masters fit: 20 minutes of 24-bit/48 kHz stereo WAV is about 345 MB
-- [ ] Lossless streaming (planned 2026-11-03): for a lossless original (WAV or FLAC), the worker also writes a FLAC stream at the original's sample rate and bit depth (`track_versions` gains its key and size); lossy originals (MP3, AAC, M4A, Ogg) get none, since there's nothing to gain. The stream route takes a quality (standard or lossless) behind the same `canAccess(..., 'listen')` and short-lived signed URLs, and the player gets a Standard / Lossless switch, remembered in the browser like the volume and Standard by default to spare mobile data. Downloads stay owner-only (rule 4)
-- [ ] Observability beyond the Phase 1 baseline (dashboards, metrics, alert tuning), backups
-- [ ] Privacy policy/ToS pages, account deletion and data export
-- [ ] Performance pass, e2e suite for critical flows (Playwright, run with `pnpm test:e2e`; moved from Phase 0)
-- [ ] Production environment, deployed by promoting the same images that passed staging. Its B2 bucket needs the CORS rule set with the CLI, allowing only the production web origin (see "Backblaze B2" in docs/staging.md)
-- [x] SSO sign-in on Clerk: Google, plus any other providers we pick. Set up on each Clerk instance (staging and production) with our own OAuth credentials, and confirm the `email` session claim is still populated _(Google and Discord, set up by the owner on the one Clerk instance; confirming Discord sign-ins carry the `email` claim is on the launch checklist)_
-
-### Phase 8: Crews
-
-Planned 2026-11-03: groups of artists you can follow as one and share work with. The design below is the starting point for this phase's task breakdown; schema and permission changes are shown before any UI, as always.
-
-- [ ] Crews, members, and crew follows. Tables: `crews` (id, slug, unique, for a page at `/crews/<slug>`; name; description; cities, from `CITIES`; a picture, processed like avatars; status `pending | approved | rejected`; created_by; approved_at and approved_by; deleted_at), `crew_members` (crew_id, user_id, role `owner | manager | member`, status `invited | active`, invited_by; unique per crew and user), and `crew_follows` (follower_id, crew_id; unique). The first crew is **Meer Music** (slug `meer`, so `/crews/meer`; Chicago and Amsterdam), led by the owner, djkrucial
-- [ ] Who may start a crew: a per-account permission an admin grants by hand (`pnpm admin:allow-crews <email>`, recorded in our `users` table like the approval gate, not in the auth provider). Only those accounts see the intake form
-- [ ] Crew intake form (`/crews/new`): name, handle, cities, description. It creates a `pending` crew that an admin approves or rejects by hand (`pnpm admin:approve-crew <slug>` / `admin:reject-crew`), like accounts. Nobody else sees a crew until it's approved
-- [ ] Managing members (`/crews/<slug>/manage`): the owner and managers invite people by handle and remove them; only the owner edits the crew, transfers it, or deletes it. Joining takes the invitee's acceptance (nobody is added to a crew without agreeing), and members can leave any time. Inviting, joining, and following notify no one, like follows
-- [ ] Permissions in `packages/authz` (a crew counterpart to `canAccess`, no I/O), with a hand-written table of every role (owner, manager, member, invited, stranger, anonymous) x action (view a pending crew, invite, remove, edit, delete, leave)
-- [ ] Joining a crew grants no access by itself: what a crew gathers for its page and followers is its active members' **public** tracks only (by effective visibility, checked with `canAccess` as nobody in particular), so private and link-only work never shows. Members hear more only where an artist chose crew-only, below
-- [ ] Crew-only visibility (moved from the parking lot 2026-11-05): a new `crew` level for projects and tracks, naming one crew (`crew_id`, set exactly when the visibility is `crew`), so an artist can limit their work to people they trust. The artist picks an approved crew they're an active member of, with plain wording in the Sharing section, and private stays the default (rule 1)
-  - **Who gets in:** the owner and that crew's active members, who can view, listen, and comment like any listener. Invited members, ex-members, followers, other accounts, and anonymous visitors get a 404 (rule 9). Decided on every request, so removing someone takes effect at once, apart from a signed URL's remaining minutes (rule 10)
-  - **Where it shows:** to the crew's active members on the crew page, and never in discovery, feeds, follows, public profiles, or search
-  - **Share links do nothing on it,** like `private`, since a link would let in people outside the crew. Making a link says so
-  - **It only ever falls back to narrower:** if the artist leaves or is removed, or the crew is deleted or no longer approved, the work is owner-only until they choose again. It never becomes wider on its own
-  - **Permissions first:** `canAccess` receives crew membership as already-loaded data (no I/O), and the hand-written tables gain active member, invited, and ex-member, with and without a link, for every action and for comments (`canAccessFeedback`). How `crew` fits the visibility order is settled with them: it lets in people `unlisted` doesn't, so it isn't simply narrower, and rule 7 (an override is more restrictive, moving a track never widens who can hear it) has to hold, including for a track moving between projects shared with different crews
-- [ ] Following a crew: a crew page (`/crews/<slug>`: name, cities, description, members, their public tracks, Follow; no follower counts), and home's Following view (and `GET /v1/discover?view=following`) includes the active members (with public pages) of approved crews you follow
-- [ ] Crew projects (planned 2026-11-03): a crew can have projects, and its owner and managers add **public** tracks by active members to them. Unlike a personal project, a crew project doesn't own its tracks: it lists them (`crew_projects`, and `crew_project_tracks` with a position and who added each), so a track stays in its own project, keeps its own visibility, and stays its artist's; it never widens who can hear it (rule 7). A track that turns private (or whose artist leaves the crew) drops out for listeners at once, computed when read like the feed. Its artist is notified when it's added (a new notification type) and can take it out. A crew project is a draft (the crew's owner and managers only) or public
-- **Done when:** djkrucial submits Meer Music, an admin approves it, members accept their invitations, someone who follows the crew sees its members' public tracks on home, a crew project lists tracks from more than one member, and a project set crew-only plays for an active member while being a 404 for everyone else, including someone who just left the crew.
-
-### Phase 9: BPM
-
-Planned 2026-11-04: detect each upload's tempo, let the artist correct it, and let people filter and sort discovery by it. The design below is the starting point for this phase's task breakdown; schema changes are shown before any UI, as always. Permissions don't change: BPM is shown to everyone who can see the track, like genre, and editing it is `manage` through the existing `PATCH /v1/tracks/:trackId`.
-
-- [ ] Detection in the worker: no ML and no new dependency to start. The transcode pass already pipes 16 kHz mono samples for the peaks (`apps/worker/src/transcode/ffmpeg.ts`), so a pure TypeScript module alongside `peaks.ts` builds an onset-strength envelope from the same stream, so nothing decodes twice, and picks the strongest tempo by autocorrelation, whole BPM, 60 to 200. Without a clear beat (spoken word, ambient) it reports nothing rather than a guess. Detection can never fail a version: an error logs and leaves the BPM empty. If it proves too inaccurate on real songs, propose a library in an ADR before adding one
-- [ ] Schema: `track_versions.detected_bpm` (smallint, nullable; what the detector found for that version), `track_versions.bpm_analyzed_at` (when it looked, so "found nothing" differs from "not looked yet"), `tracks.bpm` (smallint, nullable; what everyone sees, stored on the track so discovery can sort and page on it), `tracks.bpm_edited` (boolean, default false), and an index on `tracks(bpm, current_version_id)`. All additive, so the running release is unaffected. Detected fields are analysis, not audio, so filling them on a `ready` version doesn't break version immutability
-- [ ] Which number a track shows: when a version becomes current, `markVersionReady` copies its `detected_bpm` to `tracks.bpm` unless `bpm_edited` is set, in the same transaction, so a new version's tempo follows it automatically. An artist's edit sticks across later versions, since half-time and double-time mistakes would otherwise come back on every upload
-- [ ] Editing: BPM joins title, project, and genre in the track page's pencil form (whole numbers, 40 to 300). `PATCH /v1/tracks/:trackId` takes `bpm`, a number or null, and sets `bpm_edited`; null means no BPM, and it stays empty. The owner also sees the latest detected value, with a "Use detected" button that clears `bpm_edited` and restores it. Listeners see only the track's `bpm`, on the track and listen pages
-- [ ] Existing tracks: the worker's maintenance sweep (`apps/worker/src/cleanup/`) analyzes a small batch of `ready` versions with no `bpm_analyzed_at` on each run, decoding their stream files under the same ffmpeg guards, until none are left. No manual step and no load spike
-- [ ] Discovery: `GET /v1/discover` gains `bpmMin` and `bpmMax` (a range, either end optional, combinable with `q`, `genre`, and `view`; set both to the same number for an exact match; tracks with no BPM are left out) and `sort` (`recent`, the default, or `bpm_asc` or `bpm_desc`, with tracks that have no BPM last and ties newest first). A BPM sort pages on `(bpm, current_version_id)`, so `cursor` and `nextCursor` become opaque strings instead of UUIDs; `recent` cursors stay valid, so the web version running during a deploy keeps working. Each item gains `track.bpm`. The search box still searches names only
-- [ ] Home: a BPM range and a sort control beside search and genre, kept in the URL like the other filters, and BPM on each row (blank when there is none), in home's existing style
-- **Done when:** an uploaded song gets a BPM without the artist doing anything; on at least 20 of the owner's real songs, most land within 2 BPM of the true tempo or at exactly half or double it (synthetic click tracks cover this in tests, since real songs can't be committed); the artist can correct it and the correction survives a new version; existing tracks are filled in on their own; and home filters and sorts by BPM across pages, with tracks that have none handled as above.
-
-### Phase 10: Discord feed
-
-Planned 2026-11-04: post to a Discord channel when an artist shares a new track, so the community sees new work. One channel to start, ours, through a Discord webhook; channels belonging to artists or crews can come later if they're wanted. A post goes to another company's service and can't be fully taken back once people have seen it, so the rules below are careful about what goes out (section 1, trust first). The design below is the starting point for this phase's task breakdown; schema changes are shown before any UI, as always.
-
-- [ ] What posts: an upload alone never does, since everything starts private. A track posts once it's public by effective visibility, with a ready version, from an approved account that opted in, checked with `canAccess` as nobody in particular. Private and link-only tracks never post. Each track posts once: new versions don't post for now, and going private and public again doesn't repost
-- [ ] Opting in: a per-account setting, off by default, on `/settings/profile`, saying plainly that new public tracks are posted to Discord. Public today means your profile and discovery (section 6), not another service, so making a track public isn't taken as agreeing to this. Turning it on doesn't post what's already public
-- [ ] How it runs: a recurring job on the worker's `maintenance` queue (`apps/worker/src/cleanup/`) every few minutes finds tracks to post, with a cap per run. Asking the database covers every way a track can turn public (an upload finishing, its visibility changing, its project's changing) without hooks in each, and the wait leaves a moment to undo a mistake. Schema: `tracks.discord_posted_at` and `tracks.discord_message_id`, and the opt-in on `profiles`. It can never affect an upload: a failed post is simply tried again on a later run, honouring Discord's rate limits
-- [ ] What a post says: the track's title, the artist's display name, its genre, and a link to its public page. Never audio, signed URLs, file names, notes, or share links. Titles are free text, so a post sets Discord's `allowed_mentions` to none and escapes formatting, so a track called `@everyone` pings nobody
-- [ ] Taking posts down: when a track stops being public, is deleted, or its artist opts out, the same job deletes its message using the stored id. This is best effort: it can't remove what people already saw, and the track's link stops working either way. The moderation question in section 13 applies, since this sends public titles somewhere new
-- [ ] The webhook URL contains a token, so it's a secret: a Fly secret and an optional variable in the worker's env schema, where leaving it unset turns the feed off (local, CI). It's never logged or sent to monitoring (section 10). Plain `fetch`, no new dependency, and tests use a fake server rather than Discord
-- **Done when:** an opted-in artist's new public track appears in the channel once, within a few minutes, with a working link; private, link-only, and opted-out tracks never appear; making a posted track private removes its post; and a title containing `@everyone` pings nobody.
-
-### Phase 11: Mobile (Expo)
-
-- [ ] Reuse `packages/shared` client and zod schemas
-- [ ] Background playback + lock-screen controls (`react-native-track-player`)
-- [ ] Push notifications
-- [ ] **Quick-capture recording** straight into a new private track
-- [ ] Share-link deep linking
-
-### Phase 12: Key and genre detection
-
-Planned 2026-11-04 and deliberately near the end: nothing here should come ahead of the phases above. Whether to build each one gets decided when the phase starts, based on how well Phase 9's detection did and whether artists are correcting it. Both follow Phase 9's approach: detection runs in the worker, can never fail a version, stays blank rather than guess, and the artist's edit wins.
-
-- [ ] Key detection: the musical key of each upload from one fixed list of 24 major and minor keys, stored and edited like BPM (a detected value per version, the value everyone sees on the track, and the pencil form). Plain signal processing should do, since it needs no trained model. Whether discovery filters by key is decided here
-- [ ] Auto genre tagging: fills in a track's genre from `GENRES`, only when it's blank and the detector is confident, and never replaces one the artist chose (genres already set count as theirs). A wrong guess would put a public track under the wrong discovery filter, so the owner can see it was detected and change it. Whether it also fills in existing tracks is decided here
-- [ ] The genre model: this likely needs a trained model, which would be the app's first ML, so an ADR picks one and checks its license, accuracy against our genre list, and cost on the worker before anything is added. It runs on our own worker: unfinished audio is never sent to a third-party service (section 1, trust first)
-- **Done when:** the detectors that were chosen fill in new uploads without the artist doing anything, on the owner's real songs they're right often enough that correcting them is the exception, and an artist's edit is never overwritten.
-
-### Phase 13: Help and feature requests
-
-Planned 2026-11-04 and deliberately last: a simple place in the app to get help or ask for a feature, and hear back. It's a private conversation between one person and the team: not an AI assistant, not messages between users (section 1), and not a public request board with votes (section 1: no vanity metrics). The design below is the starting point for this phase's task breakdown; schema and permission changes are shown before any UI, as always.
-
-- [ ] Conversations and messages. Tables: `help_conversations` (id, user_id, topic `help | feature_request`, status `open | closed`) and `help_messages` (id, conversation_id, sender `user | team`, body, up to 2000 characters and not blank). Text only, with no attachments. The words "help" and "request" are used throughout, since `feedback` already means comments on a track
-- [ ] Permissions in `packages/authz` (a help counterpart to `canAccess`, no I/O), with a hand-written table of every actor (the conversation's author, another approved account, pending or rejected account, anonymous) x action (view, send). Only the author and the team can read a conversation, and anyone else gets a 404 (rule 9). Approved accounts only to start: the approval gate stays as it is, so a pending account still can't write in
-- [ ] Web: `/help`, linked from the header, with short answers to common questions (who can hear my track, how share links work, what versions are), a form to start a conversation with its topic picked, and your past conversations with their replies. Refreshing is plain polling (section 2). Plain semantic HTML until asked (section 9)
-- [ ] The team's side starts as admin scripts, like approvals: `pnpm admin:help-list` and `pnpm admin:help-reply <conversationId> <message>`, closing with `pnpm admin:help-close <conversationId>`, with the same through `pnpm staging:admin` for the deployed app. A web inbox, and an admin role for it, come later if the queue gets big
-- [ ] Notifications: a team reply notifies the person through the existing bell, with a new `help_reply` type. A notification points at a comment today (`feedback_id` is required), so this needs a nullable pointer to the conversation as well, added expand-first
-- [ ] How the team hears about a new message: settled in this phase's task breakdown. Email is the natural answer, so this may settle the email provider question in section 13. Until then the list script is the only way to see them, which is easy to miss
-- [ ] Limits and privacy: Phase 7's rate limits apply, with a cap on how many conversations one account can have open. Messages are private content, so they're never logged or sent to monitoring (section 10), and account deletion and data export (Phase 7) cover them
-- **Done when:** a signed-in artist asks for a feature on `/help`, the owner sees it and replies, the artist gets a notification and reads the reply, and nobody else can reach that conversation by any URL.
-
-### Later / parking lot
-
-Reputation and give-to-get credits, local/geo features and place-based listening, audio analysis beyond tempo, key, and genre, collaboration (stems, co-owners), embeds, invites to specific users or emails (a `shares` table plus a visibility level between `private` and `unlisted`; dropped from Phase 4 on 2026-10-15), playlists (curated collections that can include other people's tracks) and likes (a private list of tracks you liked), both dropped from Phase 6 on 2026-10-22. Free-form tags on tracks (genre is a fixed list for now; decided 2026-11-03). Reporting and blocking (moved from Phase 6 on 2026-11-03): blocking would touch `canAccess` and `canAccessFeedback`, and reporting waits on the moderation question in section 13.
-
-**$1 artist donations (parked 2026-10-22: the app starts free).** If they come back, the earlier plan still holds: a $1 cap enforced server-side, a provider that handles cards and payouts (Stripe Connect was the proposal), artists opt in and pass the provider's identity checks, donations attach to a track and version, no self-donations, webhooks verified and handled idempotently, and no public totals. Card fees (roughly 30¢ + ~3%) take about a third of a $1 donation, so who covers them is the first question.
-
-**City filter on discovery (idea, 2026-11-04).** Narrow home's list to artists in a city, from the fixed `CITIES` list, and maybe one day pick the city on an interactive map. Not planned yet, and it would reverse section 1, where a city is a label nothing filters by and maps are out of scope, so that line changes first. Things to settle before building it:
-
-- **Privacy:** an artist's city only shows on their public page today, but discovery also lists artists without one, so a filter that included them would reveal their city. Count only artists with a public page, and decide whether people who picked a city as just a label need to opt in.
-- **City level only:** the map shows the fixed cities and never anyone's precise location, and nothing asks for the browser's location. No PostGIS.
-- **Thin cities:** a filter on a city with one or two artists points straight at them, and an empty one looks dead. Decide what the list and the map show in those cases.
-- **Keep the client light:** a map library and map tiles are a real dependency and possibly a cost (section 9), so the plain filter ships first and the map has to earn its place.
-
-**Desktop sync app (idea, 2026-10-20).** A small Mac and Windows app that watches the music folders you pick (a DAW's bounce or export folder, say) and uploads new bounces as new versions automatically, so shipping v4 is just exporting it. Not planned yet; things to settle before building it:
-
-- **Matching files to tracks:** how a new file becomes the next version of the right track rather than a new one (a file-name convention, a per-folder mapping, or asking the first time), and what happens to files it can't place.
-- **Privacy:** everything it uploads is private, like any upload (rule 1 in section 6). It never changes visibility or makes links, and you choose the folders; it never scans the whole disk.
-- **Auth:** long-lived, revocable device sign-in through `AuthPort`, not a pasted session token.
-- **Same API, no special paths:** it uses the presigned upload flow (section 7) and the typed client in `packages/shared`, like web and mobile. Duplicate and half-written files (a bounce still being exported) need care, plus quotas and rate limits (Phase 7).
-- **Stack:** pick one (e.g. Tauri or Electron) in an ADR when the time comes.
-
-**Caching to cut B2 downloads (idea, 2026-11-04).** Every signing makes a new URL for a song's stream, a cover, or a profile picture, and nothing sets a cache lifetime, so browsers download files again instead of reusing them. Each download counts against B2's daily transaction caps, and egress is free only up to 3x the data stored (ADR 0008). Not planned yet; things to settle before building it:
-
-- **Measure first:** B2's transaction and egress numbers should show which files cost the most before anything changes.
-- **Reusable signed URLs:** URLs that stay the same for a few minutes, with a short cache lifetime, would let browsers reuse a file and keep everything private. They have to stay within the 15-minute limit on signed URLs (rule 5 in section 6). Confirm that B2 and SeaweedFS both honour this on signed URLs.
-- **Songs:** caching has to work with range requests (seeking), and a cached copy shouldn't outlast the short window after someone loses access (rule 10).
-- **Pictures only:** a public bucket or CDN for profile pictures is the bigger option. It needs an ADR, since ADR 0008 says nothing is public, and real deletion when a picture is removed. Audio and covers stay private.
-
----
-
-## 12. How to work with me (Claude Code)
+## How to work with me (Claude Code)
 
 - **Plan before coding** on anything non-trivial: summarize the approach and affected files, then wait for a go-ahead.
 - Make **small, reviewable changes**. Prefer several focused PRs/commits over one giant one.
-- **Work on feature branches**, one PR per coherent change, each with a detailed description (see section 11). Never commit to `main` directly.
 - **Schema and authz first.** Show me migrations and `canAccess` changes before building UI on top of them.
-- **No styling yet, beyond the player, the app header, home (discovery), your tracks, the track page, the project pages (for listeners too), the profile page, public profiles, and notifications.** Other web pages are plain semantic HTML until I ask for styling (see "Visual style" in section 9).
-- **Every developer command is a root `package.json` script** (see section 4). Add the script when you add the need.
+- **No styling beyond the surfaces listed in [docs/frontend.md](docs/frontend.md)** (the player, header, home, your tracks, track, project, profile, public profile, and notifications pages). Everything else is plain semantic HTML until I ask.
 - **Write tests with the code**, and run `pnpm lint && pnpm typecheck && pnpm test` before declaring done.
 - Don't add dependencies without saying why. Prefer well-maintained, widely used packages.
-- Don't build anything from the out-of-scope list in section 1.
+- Don't build anything from the out-of-scope list.
 - If requirements are ambiguous, ask a specific question rather than guessing.
-- Keep this file current: when we make a decision, add it here or in `docs/decisions/`.
-- `docs/learning/` holds my personal study notes, digested from this file and the ADRs. They aren't a source of truth: don't use them to decide anything, and don't update them unless I ask.
-
-## 13. Open questions (resolve before or during the relevant phase)
-
-- Max upload size: 500 MB per file is proposed for lossless masters (Phase 7); the per-account quota is decided, 10 GB
-- Email provider for notification digests (Resend or Postmark)
-- Moderation approach for public content
+- `docs/learning/` holds my personal study notes. They aren't a source of truth: don't use them to decide anything, and don't update them unless I ask.

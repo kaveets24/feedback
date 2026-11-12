@@ -3,7 +3,7 @@ import { formatDate } from './format';
 
 /**
  * A share link's address: the token in the fragment, which browsers never send to a server
- * (CLAUDE.md section 6, rule 6).
+ * (docs/permissions.md, rule 6).
  */
 export function shareUrl(origin: string, token: string): string {
   return `${origin}/listen#${token}`;

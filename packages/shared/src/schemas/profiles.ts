@@ -4,7 +4,7 @@ import { coverImageSchema } from './covers.ts';
 
 /**
  * The cities a profile can name. Only a label the user picks for themselves: nothing filters,
- * sorts, or ranks by it (location features are out of scope, CLAUDE.md section 1). Optional.
+ * sorts, or ranks by it (location features are out of scope, docs/product.md). Optional.
  * New cities go at the end, since Postgres adds enum values there; `CITY_REGIONS` sets the order
  * people see.
  */

@@ -3,7 +3,7 @@ import type { CoverImage, CoverResponse } from '@feedback/shared';
 import type { Storage } from '@feedback/storage';
 
 /**
- * How long a cover's signed URL lives (CLAUDE.md section 6, rule 5: 5 to 15 minutes). A page
+ * How long a cover's signed URL lives (docs/permissions.md, rule 5: 5 to 15 minutes). A page
  * loads the image right away, and the browser keeps it after the URL expires.
  */
 export const COVER_URL_SECONDS = 10 * 60;
@@ -15,7 +15,7 @@ export interface CoverDeps {
 
 /**
  * Signed URLs for these projects' covers, by project id. Callers pass only projects the actor may
- * view; covers are never public, so every URL is short-lived (CLAUDE.md section 6, rule 5).
+ * view; covers are never public, so every URL is short-lived (docs/permissions.md, rule 5).
  */
 export async function coverImages(
   { db, storage }: CoverDeps,

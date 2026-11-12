@@ -18,7 +18,7 @@ import { loadVersionFor } from '../versions/service.ts';
 import { insertNotification } from '../notifications/repo.ts';
 import { findAuthors, findFeedback, insertFeedback, listFeedback, updateFeedback } from './repo.ts';
 
-// Comments on a track's versions (CLAUDE.md section 5). Every decision about a comment goes
+// Comments on a track's versions (docs/domain-model.md). Every decision about a comment goes
 // through canAccessTrackFeedback, which first requires viewing the track: anyone who can't gets
 // the usual 404, so a comment never reveals a track. An anonymous visitor who can see the track
 // gets a 401, since comments need an account even to read, and someone who can see a comment but

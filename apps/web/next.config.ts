@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   // Workspace packages ship TypeScript source; let Next compile them.
   transpilePackages: ['@feedback/shared', '@feedback/authz'],
   // The dev server logs each server action call with its arguments, which can include share-link
-  // tokens (CLAUDE.md section 10: never log them).
+  // tokens (docs/conventions.md: never log them).
   logging: { serverFunctions: false },
   // Public pages live at /@handle. App Router folders can't start with @ (that's a parallel
   // route slot), so the page sits at /profiles/[handle] and this shows it at the shorter address.

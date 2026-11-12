@@ -98,7 +98,7 @@ function recall(memory: VolumeMemory | undefined): Pick<PlayerState, 'volume' | 
 }
 
 /**
- * The app's one audio player (CLAUDE.md section 9): owns a single audio element, so only one
+ * The app's one audio player (docs/frontend.md): owns a single audio element, so only one
  * track ever plays. Stream URLs are short-lived, so it fetches a new one when the current one
  * has expired before a resume, or when playback fails (a later range request with an expired
  * URL), and carries on from the same position. Fresh URLs are kept per version, so switching

@@ -32,7 +32,7 @@ export function toVersionResponse(version: TrackVersion, owner: boolean): Versio
 }
 
 /**
- * How long a playback URL lives (CLAUDE.md section 6, rule 5: 5 to 15 minutes; ADR 0008: 10).
+ * How long a playback URL lives (docs/permissions.md, rule 5: 5 to 15 minutes; ADR 0008: 10).
  * A track can be longer than this, so the player fetches a new URL when one stops working.
  */
 export const PLAYBACK_URL_SECONDS = 10 * 60;
@@ -41,7 +41,7 @@ export const PLAYBACK_URL_SECONDS = 10 * 60;
  * A version, its track and the track's live project, if the actor may perform `action` on the track (judged by its
  * effective visibility), and whether they own it. Listeners only ever see ready versions; one
  * that's uploading, processing or failed is the owner's alone. Anything else, including a version
- * that exists but isn't theirs, is a 404, so existence never leaks (CLAUDE.md section 6, rule 9).
+ * that exists but isn't theirs, is a 404, so existence never leaks (docs/permissions.md, rule 9).
  */
 export async function loadVersionFor(
   db: Db,
@@ -94,7 +94,7 @@ export async function getVersion(
 
 /**
  * A short-lived URL for a ready version's stream file, issued only once `canAccess(..., 'listen')`
- * passes (CLAUDE.md section 6, rule 5). A version that isn't ready yet is a 409 for its owner;
+ * passes (docs/permissions.md, rule 5). A version that isn't ready yet is a 409 for its owner;
  * anyone else gets the usual 404.
  */
 export async function getStream(

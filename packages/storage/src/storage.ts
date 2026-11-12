@@ -18,7 +18,7 @@ import { pipeline } from 'node:stream/promises';
 import type { StorageConfig } from './config.ts';
 
 /**
- * Longest a presigned URL may live (CLAUDE.md section 6, rule 5: 5 to 15 minutes). Presigned
+ * Longest a presigned URL may live (docs/permissions.md, rule 5: 5 to 15 minutes). Presigned
  * URLs are bearer credentials: never log them or send them to monitoring.
  */
 export const MAX_PRESIGN_SECONDS = 15 * 60;

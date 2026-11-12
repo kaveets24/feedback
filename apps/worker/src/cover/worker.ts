@@ -50,7 +50,7 @@ function startImageWorker(
   const worker = new Worker<unknown, CoverOutcome>(
     queue,
     async (job) => {
-      // Job data crosses a trust boundary (CLAUDE.md section 10), so check it like a request.
+      // Job data crosses a trust boundary (docs/conventions.md), so check it like a request.
       const id = idFrom(job.data);
       if (!id) {
         const err = new UnrecoverableError(`invalid ${kind.name} job payload`);

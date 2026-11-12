@@ -2,14 +2,14 @@
 
 <!-- impeccable:product-schema 1 -->
 
-<!-- Product context for design tools (Impeccable). CLAUDE.md is the source of truth: if the two
-     disagree, CLAUDE.md wins and this file gets fixed. -->
+<!-- Product context for design tools (Impeccable). CLAUDE.md and docs/ (product facts in docs/product.md) are the
+     source of truth: if they disagree, they win and this file gets fixed. -->
 
 ## Platform
 
 web
 
-A native mobile app (Expo) is planned for Phase 11. Until then, the web app has to work well on phones, because many listeners open share links there.
+A native mobile app (Expo) is planned for Phase 12. Until then, the web app has to work well on phones, because many listeners open share links there.
 
 ## Users
 
@@ -43,13 +43,13 @@ SoundCloud meets Google Docs comments, for work-in-progress music. What sets it 
 - Visibility levels: private, unlisted (link holders), public. Anyone who can see a track can comment on it, if signed in; links carry no roles. Downloads are off by default.
 - Audio plays from short-lived signed URLs. Only one track plays at a time, through a single global mini-player that keeps playing across page changes. A project plays like an album through it, track after track, with previous and next.
 - The waveform player is the centerpiece: it draws peaks, supports click-to-seek, and shows comment markers that jump to their comments.
-- Out of scope: maps and location features (a profile may name a city, as a label only), audio ML (apart from detecting tempo, Phase 9, and later key and genre, Phase 12), reputation or leaderboards, payments, direct messages between users (a help chat with the team is planned, Phase 13), live streaming.
-- Open product questions are tracked in CLAUDE.md section 13.
+- Out of scope: maps and location features (a profile may name a city, as a label only), audio ML (apart from detecting tempo, Phase 10, and later key and genre, Phase 13), reputation or leaderboards, payments, direct messages between users (a help chat with the team is planned, Phase 14), live streaming.
+- Open product questions are tracked in docs/plan.md, Open questions.
 
 ## Brand Commitments
 
 - Name: **Feedback**.
-- The visual direction is pinned in CLAUDE.md section 9 ("Visual style: Y2K / Winamp / LimeWire"), including its guardrails. **Styling is deferred** except the player (waveform player and mini-player), the app header, home (the discovery page), your tracks, the track page, the project pages, the profile page, public profiles (`/@handle`), and notifications: no CSS, Tailwind classes, or tokens elsewhere until the owner asks.
+- The visual direction is pinned in docs/frontend.md ("Visual style: Y2K / Winamp / LimeWire"), including its guardrails. **Styling is deferred** except the player (waveform player and mini-player), the app header, home (the discovery page), your tracks, the track page, the project pages, the profile page, public profiles (`/@handle`), and notifications: no CSS, Tailwind classes, or tokens elsewhere until the owner asks.
 - Privacy, sharing, and destructive actions always use plain, serious language. No ironic copy there.
 - Evoke the era without copying it: no Winamp, LimeWire, Microsoft, or Apple names, logos, skins, or assets.
 

@@ -69,8 +69,7 @@ pnpm staging:deploy <sha>
 
 This starts the same workflow for an earlier commit on `main`, redeploying the image CI built
 for it (and the web app at that commit). Pick the last good commit from `git log origin/main`.
-Migrations are not rolled back; they're written to work with the previous release (CLAUDE.md
-section 10), so the older code runs against the newer schema.
+Migrations are not rolled back; they're written to work with the previous release ([conventions.md](conventions.md)), so the older code runs against the newer schema.
 
 To confirm what's running, check the image tag in `fly status -a feedback-staging`. GitHub's
 `staging` deployment history isn't reliable for this: a run started by `pnpm staging:deploy` is

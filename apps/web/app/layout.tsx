@@ -12,7 +12,7 @@ const DESCRIPTION =
 
 // What a shared link shows, the same for every page on purpose: a link can open private work, and
 // a preview goes to whatever service it's pasted into, so no page adds a track, project, or person
-// to it (CLAUDE.md section 6). The icons and preview image are the files beside this one.
+// to it (docs/permissions.md). The icons and preview image are the files beside this one.
 export const metadata: Metadata = {
   metadataBase: new URL('https://feedback.community'),
   title: { default: 'Feedback', template: '%s · Feedback' },

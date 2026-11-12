@@ -18,7 +18,7 @@ import { ReleaseTypeBadge } from '../projects/release-type-badge';
 
 // What listeners see of a track or project: on the listen page through a share link, and on the
 // track and project pages, with no link, for anyone but the owner of something public. A track is
-// plain HTML until styled (CLAUDE.md section 9), apart from the player and comments.
+// plain HTML until styled (docs/frontend.md), apart from the player and comments.
 
 const SHARED_BY_LINK =
   'Shared with you by link. You can listen, and read and leave comments once you’re signed in.';

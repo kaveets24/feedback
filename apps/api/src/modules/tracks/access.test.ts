@@ -30,7 +30,7 @@ import { buildTestApp, tokenFor } from '../../testing/app.ts';
 
 /**
  * What people other than the owner get from the track, version and project routes, by effective
- * visibility (CLAUDE.md section 6). Share links arrive in a later PR; until then unlisted is as
+ * visibility (docs/permissions.md). Share links arrive in a later PR; until then unlisted is as
  * closed as private to everyone but the owner.
  */
 describe('access by visibility', () => {
