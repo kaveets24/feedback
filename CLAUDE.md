@@ -29,10 +29,10 @@ Read this file fully before making changes. If something here conflicts with a r
 **Explicitly out of scope for now** (do not build or scaffold these)
 
 - Geolocation, maps, places, PostGIS, location-based discovery or ranking. The one exception is a profile's optional city, a label the user picks from a fixed list that nothing filters, sorts, or ranks by (see `profiles` in section 5)
-- Audio feature extraction / ML / embeddings. The exceptions are a track's tempo (BPM, Phase 9) and, much later, its key and genre (Phase 12), each editable by the artist; anything else, such as embeddings or similarity, stays out (decided 2026-11-04)
+- Audio feature extraction / ML / embeddings. The exceptions are a track's tempo (BPM, Phase 10) and, much later, its key and genre (Phase 13), each editable by the artist; anything else, such as embeddings or similarity, stays out (decided 2026-11-04)
 - Reputation scores, leaderboards, give-to-get credits
-- Payments and monetization (the app starts free; $1 artist donations are parked, section 11), plus direct messaging between users (Phase 13's help chat is only ever with the team) and live streaming
-- Mobile apps (planned for Phase 11; keep the API client-agnostic so it's easy later) and desktop apps (a folder-sync app is an idea in the parking lot, section 11)
+- Payments and monetization (the app starts free; $1 artist donations are parked, section 11), plus direct messaging between users (Phase 14's help chat is only ever with the team) and live streaming
+- Mobile apps (planned for Phase 12; keep the API client-agnostic so it's easy later) and desktop apps (a folder-sync app is an idea in the parking lot, section 11)
 
 ---
 
@@ -81,7 +81,7 @@ If a choice above becomes painful, propose an alternative and record it in `docs
 │   ├── web/            # Next.js app
 │   ├── api/            # Fastify HTTP API
 │   ├── worker/         # BullMQ consumers (ffmpeg pipeline)
-│   └── mobile/         # Expo app (Phase 11, not yet created)
+│   └── mobile/         # Expo app (Phase 12, not yet created)
 ├── packages/
 │   ├── db/             # Drizzle schema, migrations, seed, query helpers
 │   ├── shared/         # zod schemas, shared types, constants, API client
@@ -450,7 +450,19 @@ Order agreed 2026-11-03, one PR each: stuck-upload cleanup, rate limits, upload 
 - [ ] Production environment, deployed by promoting the same images that passed staging. Its B2 bucket needs the CORS rule set with the CLI, allowing only the production web origin (see "Backblaze B2" in docs/staging.md)
 - [x] SSO sign-in on Clerk: Google, plus any other providers we pick. Set up on each Clerk instance (staging and production) with our own OAuth credentials, and confirm the `email` session claim is still populated _(Google and Discord, set up by the owner on the one Clerk instance; confirming Discord sign-ins carry the `email` claim is on the launch checklist)_
 
-### Phase 8: Crews
+### Phase 8: Chat embeds
+
+Planned 2026-11-12: a public track's link, pasted into Discord or iMessage, shows a player you can press play on in the chat instead of the generic card. Neither runs a site's own player: Discord plays iframes only from sites it allow-lists, and both play an `og:video` that points straight at an MP4 file. So the embed is **an MP4 of the song's audio over a still frame**, and the work is mostly in the worker and the preview tags. The design below is the starting point for this phase's task breakdown; schema changes are shown before any UI, as always.
+
+- **Public tracks only.** A share link can never get an embed: the token is in the fragment (`/listen#<token>`), which crawlers and iMessage never send, so the preview can't know what was shared. That's the privacy model working, and it stays. A track's page (`/tracks/<id>`) gets embed tags only when the track is public by effective visibility, checked with `canAccess` as nobody in particular (never as the viewer, so a signed-in owner's preview can't expose private work). `/listen` and everything not public keep the generic tags
+- **Decisions this phase changes, recorded in an ADR (0010) when it starts, not yet in effect:** section 9's "link previews are generic on every page" gains the public-track exception (title, artist, cover, embed video). Rule 5 already bars permanent URLs only for non-public audio, so a stable embed URL for public audio is allowed: it redirects to a fresh 10-minute signed URL and never serves a permanent file URL. The ADR says plainly that Discord's media proxy and iMessage keep their own copy, so making a track private stops new plays but can't pull back what a chat app already fetched (as with Phase 11's posts)
+- [ ] Embed video in the worker (`apps/worker/src/transcode/`): after the stream is written, a second small ffmpeg pass muxes the finished AAC stream (copied, not re-encoded) with one still frame into `embeds/<versionId>.mp4`: H.264 still-image encoding, 1 fps, `yuv420p`, `+faststart`. The frame is the waveform drawn from the peaks already computed, plus the wordmark, and no title, since titles change and the file can't. The same ffmpeg guards apply. It can never fail a version: an error logs and leaves the embed missing. Schema (additive): `track_versions.embed_key`, nullable. Existing ready versions are filled in by the maintenance sweep, a small batch per run. Embed files don't count toward the quota, like AAC streams. Full song or a capped clip is an open question (section 13)
+- [ ] Stable embed URL in the API: `GET` (and `HEAD`) `/v1/embed/tracks/:trackId.mp4` follows the track's current version, checks `canAccess(..., 'listen')` as nobody in particular, and 302s to a 10-minute signed URL of its embed file (`Cache-Control: no-store` on the redirect), like `getStream()` in `apps/api/src/modules/versions/service.ts`. Anything not public, deleted, or without an embed is a 404 (rule 9), whatever session or share token comes with it. If Discord won't follow the redirect to B2, the route streams the bytes instead
+- [ ] Per-track preview tags on the web: `generateMetadata` on `apps/web/app/tracks/[trackId]/page.tsx` fetches the track as nobody; a public one with an embed gets `og:type` `video.other`, `og:video` (the URL above, `video/mp4`, with width and height), its title and "by <artist>", and `twitter:card` `player`. Anything else, or a failed fetch, returns nothing, so the root layout's generic tags stand. A per-track `opengraph-image.tsx` (Next's `ImageResponse`, no new dependency) draws the cover or waveform, title, and artist, since Discord requires an image; it stays generic for tracks that aren't public. `robots.ts` already lets Discordbot in, and iMessage fetches from the sender's device
+- [ ] Later, only if asked: an iframe player for X and Slack (`twitter:player` → a bare `/embed/tracks/[id]` page outside the app shell, with `frame-ancestors` opened for that route only). Discord and iMessage wouldn't use it
+- **Done when:** a public track's link pasted into Discord (desktop and mobile) and iMessage plays the song in the chat; a private track's link and a `/listen#…` link show the generic card, including for the signed-in owner; the embed URL is a 404 the moment a track stops being public; and a new version's embed replaces the old one on the same link.
+
+### Phase 9: Crews
 
 Planned 2026-11-03: groups of artists you can follow as one and share work with. The design below is the starting point for this phase's task breakdown; schema and permission changes are shown before any UI, as always.
 
@@ -470,7 +482,7 @@ Planned 2026-11-03: groups of artists you can follow as one and share work with.
 - [ ] Crew projects (planned 2026-11-03): a crew can have projects, and its owner and managers add **public** tracks by active members to them. Unlike a personal project, a crew project doesn't own its tracks: it lists them (`crew_projects`, and `crew_project_tracks` with a position and who added each), so a track stays in its own project, keeps its own visibility, and stays its artist's; it never widens who can hear it (rule 7). A track that turns private (or whose artist leaves the crew) drops out for listeners at once, computed when read like the feed. Its artist is notified when it's added (a new notification type) and can take it out. A crew project is a draft (the crew's owner and managers only) or public
 - **Done when:** djkrucial submits Meer Music, an admin approves it, members accept their invitations, someone who follows the crew sees its members' public tracks on home, a crew project lists tracks from more than one member, and a project set crew-only plays for an active member while being a 404 for everyone else, including someone who just left the crew.
 
-### Phase 9: BPM
+### Phase 10: BPM
 
 Planned 2026-11-04: detect each upload's tempo, let the artist correct it, and let people filter and sort discovery by it. The design below is the starting point for this phase's task breakdown; schema changes are shown before any UI, as always. Permissions don't change: BPM is shown to everyone who can see the track, like genre, and editing it is `manage` through the existing `PATCH /v1/tracks/:trackId`.
 
@@ -483,7 +495,7 @@ Planned 2026-11-04: detect each upload's tempo, let the artist correct it, and l
 - [ ] Home: a BPM range and a sort control beside search and genre, kept in the URL like the other filters, and BPM on each row (blank when there is none), in home's existing style
 - **Done when:** an uploaded song gets a BPM without the artist doing anything; on at least 20 of the owner's real songs, most land within 2 BPM of the true tempo or at exactly half or double it (synthetic click tracks cover this in tests, since real songs can't be committed); the artist can correct it and the correction survives a new version; existing tracks are filled in on their own; and home filters and sorts by BPM across pages, with tracks that have none handled as above.
 
-### Phase 10: Discord feed
+### Phase 11: Discord feed
 
 Planned 2026-11-04: post to a Discord channel when an artist shares a new track, so the community sees new work. One channel to start, ours, through a Discord webhook; channels belonging to artists or crews can come later if they're wanted. A post goes to another company's service and can't be fully taken back once people have seen it, so the rules below are careful about what goes out (section 1, trust first). The design below is the starting point for this phase's task breakdown; schema changes are shown before any UI, as always.
 
@@ -495,7 +507,7 @@ Planned 2026-11-04: post to a Discord channel when an artist shares a new track,
 - [ ] The webhook URL contains a token, so it's a secret: a Fly secret and an optional variable in the worker's env schema, where leaving it unset turns the feed off (local, CI). It's never logged or sent to monitoring (section 10). Plain `fetch`, no new dependency, and tests use a fake server rather than Discord
 - **Done when:** an opted-in artist's new public track appears in the channel once, within a few minutes, with a working link; private, link-only, and opted-out tracks never appear; making a posted track private removes its post; and a title containing `@everyone` pings nobody.
 
-### Phase 11: Mobile (Expo)
+### Phase 12: Mobile (Expo)
 
 - [ ] Reuse `packages/shared` client and zod schemas
 - [ ] Background playback + lock-screen controls (`react-native-track-player`)
@@ -503,16 +515,16 @@ Planned 2026-11-04: post to a Discord channel when an artist shares a new track,
 - [ ] **Quick-capture recording** straight into a new private track
 - [ ] Share-link deep linking
 
-### Phase 12: Key and genre detection
+### Phase 13: Key and genre detection
 
-Planned 2026-11-04 and deliberately near the end: nothing here should come ahead of the phases above. Whether to build each one gets decided when the phase starts, based on how well Phase 9's detection did and whether artists are correcting it. Both follow Phase 9's approach: detection runs in the worker, can never fail a version, stays blank rather than guess, and the artist's edit wins.
+Planned 2026-11-04 and deliberately near the end: nothing here should come ahead of the phases above. Whether to build each one gets decided when the phase starts, based on how well Phase 10's detection did and whether artists are correcting it. Both follow Phase 10's approach: detection runs in the worker, can never fail a version, stays blank rather than guess, and the artist's edit wins.
 
 - [ ] Key detection: the musical key of each upload from one fixed list of 24 major and minor keys, stored and edited like BPM (a detected value per version, the value everyone sees on the track, and the pencil form). Plain signal processing should do, since it needs no trained model. Whether discovery filters by key is decided here
 - [ ] Auto genre tagging: fills in a track's genre from `GENRES`, only when it's blank and the detector is confident, and never replaces one the artist chose (genres already set count as theirs). A wrong guess would put a public track under the wrong discovery filter, so the owner can see it was detected and change it. Whether it also fills in existing tracks is decided here
 - [ ] The genre model: this likely needs a trained model, which would be the app's first ML, so an ADR picks one and checks its license, accuracy against our genre list, and cost on the worker before anything is added. It runs on our own worker: unfinished audio is never sent to a third-party service (section 1, trust first)
 - **Done when:** the detectors that were chosen fill in new uploads without the artist doing anything, on the owner's real songs they're right often enough that correcting them is the exception, and an artist's edit is never overwritten.
 
-### Phase 13: Help and feature requests
+### Phase 14: Help and feature requests
 
 Planned 2026-11-04 and deliberately last: a simple place in the app to get help or ask for a feature, and hear back. It's a private conversation between one person and the team: not an AI assistant, not messages between users (section 1), and not a public request board with votes (section 1: no vanity metrics). The design below is the starting point for this phase's task breakdown; schema and permission changes are shown before any UI, as always.
 
@@ -575,3 +587,4 @@ Reputation and give-to-get credits, local/geo features and place-based listening
 - Max upload size: 500 MB per file is proposed for lossless masters (Phase 7); the per-account quota is decided, 10 GB
 - Email provider for notification digests (Resend or Postmark)
 - Moderation approach for public content
+- Chat embeds (Phase 8): the full song, or a capped clip (say the first 60 seconds), depending on Discord's embed size limit and whether iMessage plays full-length files
