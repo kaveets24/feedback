@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TrackResponse } from '@feedback/shared';
-import { queueItems } from './player-item';
+import { listItem, queueItems } from './player-item';
 
 const track = (id: string, current: string | null): TrackResponse =>
   ({
@@ -30,5 +30,20 @@ describe('queueItems', () => {
   it('carries the share link only when there is one', () => {
     expect(queueItems([track('a', 'ready')], null)[0]).not.toHaveProperty('shareToken');
     expect(queueItems([track('a', 'ready')], 'token')[0]?.shareToken).toBe('token');
+  });
+});
+
+describe('listItem', () => {
+  it('plays a list row with no peaks yet, and a missing length as zero', () => {
+    const track = { id: 't', title: 'Song' };
+    expect(listItem(track, { id: 'v', versionNumber: 3, durationMs: 1000 })).toEqual({
+      versionId: 'v',
+      trackId: 't',
+      title: 'Song',
+      versionNumber: 3,
+      durationMs: 1000,
+      peaks: [],
+    });
+    expect(listItem(track, { id: 'v', versionNumber: 3, durationMs: null }).durationMs).toBe(0);
   });
 });

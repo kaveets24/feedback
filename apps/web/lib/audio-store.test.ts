@@ -9,6 +9,7 @@ import {
   type AudioLike,
   type PlayerItem,
   type StreamUrl,
+  type WaveformData,
 } from './audio-store';
 
 /** Stands in for an HTMLAudioElement: tests fire its media events by hand. */
@@ -44,7 +45,13 @@ const item = (n: number): PlayerItem => ({
 const T0 = Date.parse('2026-10-19T12:00:00Z');
 const MINUTES_10 = 10 * 60_000;
 
-function setup({ saved }: { saved?: string | null } = {}) {
+function setup({
+  saved,
+  fetchWaveform,
+}: {
+  saved?: string | null;
+  fetchWaveform?: (item: PlayerItem) => Promise<WaveformData | null>;
+} = {}) {
   const audio = new FakeAudio();
   const memory = {
     value: saved ?? null,
@@ -65,6 +72,7 @@ function setup({ saved }: { saved?: string | null } = {}) {
     fetchStream,
     now: () => clock,
     memory,
+    fetchWaveform,
   });
   return {
     audio,
@@ -677,5 +685,120 @@ describe('audio store queue', () => {
     advance(MINUTES_10);
     audio.fire('timeupdate');
     await vi.waitFor(() => expect(seen()).toBe(2));
+  });
+});
+
+describe('audio store waveforms for list items', () => {
+  /** A row of a list, which comes without its peaks. */
+  const row = (n: number): PlayerItem => ({ ...item(n), peaks: [], durationMs: 0 });
+  const list = [row(1), row(2), row(3)];
+  const waveform = (versionId: string): WaveformData => ({
+    peaks: [Number(versionId.at(-1)) / 10],
+    durationMs: 120_000,
+  });
+
+  /** A waveform fetch that finishes only when the test says. */
+  function deferredWaveforms() {
+    const pending = new Map<string, (w: WaveformData | null) => void>();
+    const fetchWaveform = vi.fn(
+      ({ versionId }: PlayerItem) =>
+        new Promise<WaveformData | null>((resolve) => pending.set(versionId, resolve)),
+    );
+    const finish = async (versionId: string, w: WaveformData | null = waveform(versionId)) => {
+      pending.get(versionId)?.(w);
+      await new Promise((resolve) => setTimeout(resolve));
+    };
+    return { fetchWaveform, finish };
+  }
+
+  it('plays straight away and shows the waveform and length once they arrive', async () => {
+    const { fetchWaveform, finish } = deferredWaveforms();
+    const { store, audio, started } = setup({ fetchWaveform });
+    await store.playQueue('home', list, 1);
+    started();
+    expect(audio.play).toHaveBeenCalled();
+    expect(store.getState().item?.peaks).toEqual([]);
+
+    await finish('version-2');
+    expect(store.getState().item).toMatchObject({ peaks: [0.2], durationMs: 120_000 });
+    expect(store.getState().queue[1]).toMatchObject({ peaks: [0.2], durationMs: 120_000 });
+    expect(fetchWaveform).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not fetch a waveform for an item that has one', async () => {
+    const fetchWaveform = vi.fn(async () => null);
+    const { store } = setup({ fetchWaveform });
+    await store.playQueue('project', [item(1), item(2)], 0);
+    expect(fetchWaveform).not.toHaveBeenCalled();
+  });
+
+  it('a late waveform for a track moved away from goes to its queue entry, not what plays', async () => {
+    const { fetchWaveform, finish } = deferredWaveforms();
+    const { store, started } = setup({ fetchWaveform });
+    await store.playQueue('home', list, 0);
+    started();
+    await store.next();
+    await finish('version-1');
+    expect(store.getState().item?.versionId).toBe('version-2');
+    expect(store.getState().item?.peaks).toEqual([]);
+    expect(store.getState().queue[0]?.peaks).toEqual([0.1]);
+  });
+
+  it('keeps fetched waveforms, so going back to a track does not fetch it again', async () => {
+    const { fetchWaveform, finish } = deferredWaveforms();
+    const { store, started } = setup({ fetchWaveform });
+    await store.playQueue('home', list, 0);
+    started();
+    await finish('version-1');
+    await store.next();
+    await store.previous();
+    expect(store.getState().item?.peaks).toEqual([0.1]);
+    expect(fetchWaveform.mock.calls.filter(([i]) => i.versionId === 'version-1')).toHaveLength(1);
+  });
+
+  it('keeps known waveforms when the list syncs', async () => {
+    const { fetchWaveform, finish } = deferredWaveforms();
+    const { store, started } = setup({ fetchWaveform });
+    await store.playQueue('home', list, 0);
+    started();
+    await finish('version-1');
+    store.syncQueue('home', [row(1), row(2), row(3)]);
+    expect(store.getState().queue[0]?.peaks).toEqual([0.1]);
+  });
+
+  it('fetches the next track’s waveform near the end, so it has one when it starts', async () => {
+    const fetchWaveform = vi.fn(async ({ versionId }: PlayerItem) => waveform(versionId));
+    const { store, audio, started } = setup({ fetchWaveform });
+    await store.playQueue('home', list, 0);
+    started();
+    await vi.waitFor(() => expect(store.getState().item?.durationMs).toBe(120_000));
+
+    audio.currentTime = (120_000 - PREPARE_NEXT_MS + 1000) / 1000;
+    audio.fire('timeupdate');
+    audio.fire('timeupdate');
+    await vi.waitFor(() => expect(store.getState().queue[1]?.peaks).toEqual([0.2]));
+
+    audio.fire('ended');
+    await vi.waitFor(() => expect(store.getState().item?.versionId).toBe('version-2'));
+    expect(store.getState().item?.peaks).toEqual([0.2]);
+    expect(fetchWaveform.mock.calls.filter(([i]) => i.versionId === 'version-2')).toHaveLength(1);
+  });
+
+  it('a failed waveform leaves playback alone, and the next start tries again', async () => {
+    const fetchWaveform = vi.fn<(item: PlayerItem) => Promise<WaveformData | null>>(async () => {
+      throw new Error('offline');
+    });
+    const { store, started } = setup({ fetchWaveform });
+    await store.playQueue('home', list, 0);
+    started();
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(store.getState().status).toBe('playing');
+    expect(store.getState().error).toBeNull();
+
+    store.pause();
+    await store.resume();
+    await store.next();
+    await store.previous();
+    expect(fetchWaveform.mock.calls.filter(([i]) => i.versionId === 'version-1')).toHaveLength(2);
   });
 });

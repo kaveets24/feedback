@@ -8,7 +8,8 @@ import {
   type TrackSummary,
 } from '@feedback/shared';
 import { formatDuration, formatShortDate } from '../../../lib/format';
-import { ResultRow } from '../../_discover/result-row';
+import { listItem } from '../../../lib/player-item';
+import { ResultQueue, ResultRow } from '../../_discover/result-row';
 import { Avatar } from '../../_shell/avatar';
 import { UnderlineTabs } from '../../_shell/tabs';
 import { ProjectCover } from '../../projects/project-cover';
@@ -72,7 +73,7 @@ export function ProfileView({
       />
       <div id="profile-list" className="mt-3">
         {tab === 'tracks' ? (
-          <TrackList tracks={playable} projectTitles={projectTitles} />
+          <TrackList handle={profile.handle} tracks={playable} projectTitles={projectTitles} />
         ) : (
           <ProjectList projects={projects} />
         )}
@@ -131,61 +132,62 @@ function Tabs({ handle, tab, counts }: { handle: string; tab: Tab; counts: Recor
   );
 }
 
-/** Their public tracks (ready ones), newest first, each playable in place. */
+/** Their public tracks (ready ones), newest first, each playable in place and queued in order. */
 function TrackList({
+  handle,
   tracks,
   projectTitles,
 }: {
+  handle: string;
   tracks: TrackSummary[];
   projectTitles: Map<string, string>;
 }) {
   if (tracks.length === 0) return <Empty>No public tracks yet.</Empty>;
   return (
-    <ul>
-      {tracks.map((track) => {
-        const { id, versionNumber, durationMs, createdAt } = track.latestVersion;
-        const project = track.projectId ? projectTitles.get(track.projectId) : undefined;
-        const length = formatDuration(durationMs ?? 0);
-        const date = createdAt ? formatShortDate(createdAt) : null;
-        const meta = [project, track.genre && GENRE_LABELS[track.genre], `v${versionNumber}`]
-          .filter(Boolean)
-          .join(' · ');
-        return (
-          <ResultRow
-            key={track.id}
-            versionId={id}
-            trackId={track.id}
-            title={track.title}
-            versionNumber={versionNumber}
-          >
-            <div className="min-w-0">
-              <p className="line-clamp-2 font-medium break-words sm:line-clamp-1">
-                <Link
-                  href={`/tracks/${track.id}`}
-                  className="rounded-sm group-data-playing:text-accent hover:text-accent focus-glow"
-                >
-                  {track.title}
-                </Link>
-              </p>
-              <p className="text-sm text-muted">
-                {meta}
-                <span className="whitespace-nowrap sm:hidden">
-                  {' · '}
-                  <span className="font-lcd text-base text-ink tabular-nums">{length}</span>
-                  {date && ` · ${date}`}
-                </span>
-              </p>
-            </div>
-            <span className="hidden text-right font-lcd text-base tabular-nums sm:block">
-              {length}
-            </span>
-            <span className="hidden text-right text-sm whitespace-nowrap text-muted sm:block">
-              {createdAt && date && <time dateTime={createdAt}>{date}</time>}
-            </span>
-          </ResultRow>
-        );
-      })}
-    </ul>
+    <ResultQueue
+      queueId={`profile:${handle}`}
+      items={tracks.map((track) => listItem(track, track.latestVersion))}
+    >
+      <ul>
+        {tracks.map((track, index) => {
+          const { versionNumber, durationMs, createdAt } = track.latestVersion;
+          const project = track.projectId ? projectTitles.get(track.projectId) : undefined;
+          const length = formatDuration(durationMs ?? 0);
+          const date = createdAt ? formatShortDate(createdAt) : null;
+          const meta = [project, track.genre && GENRE_LABELS[track.genre], `v${versionNumber}`]
+            .filter(Boolean)
+            .join(' · ');
+          return (
+            <ResultRow key={track.id} index={index}>
+              <div className="min-w-0">
+                <p className="line-clamp-2 font-medium break-words sm:line-clamp-1">
+                  <Link
+                    href={`/tracks/${track.id}`}
+                    className="rounded-sm group-data-playing:text-accent hover:text-accent focus-glow"
+                  >
+                    {track.title}
+                  </Link>
+                </p>
+                <p className="text-sm text-muted">
+                  {meta}
+                  <span className="whitespace-nowrap sm:hidden">
+                    {' · '}
+                    <span className="font-lcd text-base text-ink tabular-nums">{length}</span>
+                    {date && ` · ${date}`}
+                  </span>
+                </p>
+              </div>
+              <span className="hidden text-right font-lcd text-base tabular-nums sm:block">
+                {length}
+              </span>
+              <span className="hidden text-right text-sm whitespace-nowrap text-muted sm:block">
+                {createdAt && date && <time dateTime={createdAt}>{date}</time>}
+              </span>
+            </ResultRow>
+          );
+        })}
+      </ul>
+    </ResultQueue>
   );
 }
 
