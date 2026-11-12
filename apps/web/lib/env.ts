@@ -7,6 +7,11 @@ const envSchema = z.object({
     .string()
     .regex(/^pk_(test|live)_/, 'must be a Clerk publishable key (pk_...)'),
   CLERK_SECRET_KEY: z.string().regex(/^sk_(test|live)_/, 'must be a Clerk secret key (sk_...)'),
+  /**
+   * Shared with the API, so it believes the visitor's address we pass along and can limit signed-out
+   * visitors one by one. Unset sends no address (the default locally).
+   */
+  WEB_API_SECRET: z.string().min(32).optional(),
   /** Sentry project DSN (also used in the browser); unset turns error reporting off. */
   NEXT_PUBLIC_SENTRY_DSN: z.url().optional(),
   /** Adds /debug/error, which throws, to test error reporting. Off unless testing. */

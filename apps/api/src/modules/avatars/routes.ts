@@ -31,6 +31,7 @@ export function avatarRoutes(deps: AvatarDeps): FastifyPluginAsyncZod {
     app.post(
       '/me/avatars',
       {
+        config: { limit: 'upload' },
         schema: {
           body: createAvatarRequestSchema,
           response: { 201: createAvatarResponseSchema, 401: errorResponseSchema },

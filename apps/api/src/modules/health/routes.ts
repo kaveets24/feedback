@@ -15,7 +15,7 @@ export const healthRoutes =
       '/health',
       {
         schema: { response: { 200: healthResponseSchema } },
-        config: { allowUnapproved: true },
+        config: { allowUnapproved: true, limit: false },
         // Fly and the uptime monitor call these every few seconds; only log when something's wrong.
         logLevel: 'warn',
       },
@@ -29,7 +29,7 @@ export const healthRoutes =
       '/health/queue',
       {
         schema: { response: { 200: queueHealthResponseSchema, 503: errorResponseSchema } },
-        config: { allowUnapproved: true },
+        config: { allowUnapproved: true, limit: false },
         logLevel: 'warn',
       },
       async (request, reply) => {

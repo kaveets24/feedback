@@ -32,6 +32,7 @@ import { trackRoutes } from './modules/tracks/routes.ts';
 import { versionRoutes } from './modules/versions/routes.ts';
 import { noopErrorReporter, type ErrorReporter } from './monitoring/port.ts';
 import type { JobQueue } from './queue.ts';
+import { registerRateLimits, type RateLimitDeps } from './rate-limit.ts';
 
 export interface AppDeps {
   db: Db;
@@ -40,6 +41,8 @@ export interface AppDeps {
   queue: JobQueue;
   /** Where unexpected errors are reported. Defaults to reporting nothing. */
   errorReporter?: ErrorReporter;
+  /** Turns rate limiting on. Tests leave it out unless they're testing it. */
+  rateLimits?: RateLimitDeps;
 }
 
 export async function buildApp(env: Env, deps: AppDeps) {
@@ -52,6 +55,7 @@ export async function buildApp(env: Env, deps: AppDeps) {
   // that request's error is reported, so these are only logged.
   deps.queue.onError((err) => app.log.warn({ err }, 'job queue connection error'));
   registerAuth(app, deps);
+  if (deps.rateLimits) await registerRateLimits(app, env, deps.rateLimits);
   registerShareLinks(app, deps);
   registerAccessGate(app);
   // The API is never meant for search engines, in any environment.
@@ -81,8 +85,10 @@ export async function buildApp(env: Env, deps: AppDeps) {
       await v1.register(notificationRoutes(deps));
       await v1.register(shareLinkRoutes(deps.db));
       if (env.MONITORING_TEST_ERRORS) await v1.register(debugRoutes);
-      v1.get('/openapi.json', { schema: { hide: true }, config: { allowUnapproved: true } }, () =>
-        app.swagger(),
+      v1.get(
+        '/openapi.json',
+        { schema: { hide: true }, config: { allowUnapproved: true, limit: false } },
+        () => app.swagger(),
       );
     },
     { prefix: '/v1' },
