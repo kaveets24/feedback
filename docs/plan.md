@@ -204,10 +204,24 @@ Requested 2026-11-12, and where each one lives:
 | BPM and key detection                                  | Phase 10 (BPM), Phase 13 (key)                  |
 | Crews, with crew-only visibility and a feed of friends | Phase 9                                         |
 | Video uploads, a video player, YouTube links           | Parking lot (it's a scope change; see there)    |
+| Track count on your tracks page                        | Small changes, below                            |
+| Profile URLs without the `@`                           | Small changes, below                            |
+| Space plays and pauses anywhere                        | Player, below                                   |
+| New-version upload beside the versions list            | Small changes, below                            |
+| Getting started page in the app                        | Small changes, below                            |
 
 ### Fixes
 
 - [ ] **The comment's moment should follow a click on the waveform.** Today the comment box's moment follows the playhead only while the box is empty, so after you start typing, clicking the waveform to pick a moment does nothing to it. A click (or a seek with the keyboard) on the waveform always sets the moment; the playhead still moves it only while the box is empty, so playback doesn't drag a half-written comment away from its moment (`apps/web/app/_feedback/composer.tsx`)
+
+### Small changes
+
+Like fixes, these can land any time as their own PR.
+
+- [ ] **Track count on your tracks page:** `/tracks` shows how many tracks you have, in the page's existing style (styled surface, [frontend.md](frontend.md)). The count is all of yours, not just the page of results loaded, so it likely needs a `total` on the list response or a count from the API; decide which at its PR
+- [ ] **Profile URLs without the `@`:** public profiles move from `/@handle` to `/handle`. Old `/@handle` links keep working with a permanent redirect in `next.config.ts`, and the rewrite to `/profiles/[handle]` changes to match. A top-level `/:handle` sits beside the app's own routes, so every top-level route must be in `RESERVED_HANDLES` (`packages/shared/src/schemas/profiles.ts`): `debug` exists and isn't there yet, and planned ones are `crews` (Phase 9) and `embed` (Phase 8). Check staging for handles that already collide before shipping, add a test that every top-level folder in `apps/web/app` is reserved so a new route can't shadow a profile, and update the links (`/@${handle}` in discover, comments, the artist line, settings, and the profile tabs) and the docs that say `/@handle` (domain-model, frontend, getting-started)
+- [ ] **New-version upload beside the versions list:** on the track page (`apps/web/app/tracks/[trackId]/track-view.tsx`), the owner's drop zone for a new version moves next to the version history it adds to, rather than where it sits today. Styled surface, so check the layout with the track page's brief in `apps/web/.impeccable/surfaces/`
+- [ ] **Getting started page:** `/getting-started` in the web app, with what [getting-started.md](getting-started.md) says (getting in, uploading, versions, the three sharing choices with the warning about Anyone, and feedback). To keep one copy, the page becomes the source and the doc shrinks to a link to it; the facts it repeats (formats, the 200 MB and 20 minute limits, link expiries, the 10-minute signed URLs) come from the constants in `packages/shared` where they exist, so a limit changed in Phase 7 can't leave the page wrong. Linked from the header and the "you're on the list" screen, and open to everyone, signed in or not. Not a styled surface, so plain semantic HTML until asked ([frontend.md](frontend.md)). Handles can't contain hyphens, so the route can't collide with profile URLs. Phase 14's `/help` answers can link to it rather than repeat it
 
 ### Player
 
@@ -215,6 +229,7 @@ These build on the audio store's queue (`apps/web/lib/audio-store.ts`).
 
 - [x] **Next and previous on home:** playing a row on home (discovery, Everyone and Following) or a public profile's tracks queues the rows on the page in order, so the mini-player and lock screen get next and previous as they do for a project. Decided 2026-11-12: the queue stops at the end of the page and doesn't carry on into older results (that's for "A better queue"). The waveform peaks a list leaves out are fetched while a row plays ([frontend.md](frontend.md))
 - [ ] **A better queue:** see what's coming up and what played, pick a track from it, and maybe add to it or reorder. Settle the scope at its task breakdown; a queue is a session's listening, not a playlist (playlists are in the parking lot)
+- [ ] **Space plays and pauses anywhere:** today Space works only while the waveform has focus (`apps/web/app/_player/waveform.tsx`). A page-level handler toggles whatever the mini-player has loaded, but never while focus is in a text field, select, button, link, or anything editable, so typing a comment or pressing a focused button still behaves normally; it calls `preventDefault` so the page doesn't also scroll. Nothing happens when nothing is loaded
 - [ ] **Full-screen player:** a focused view of what's playing (large cover or waveform, LCD readout, transport, and the queue), opened from the mini-player and closed back to where you were. It has to fit the fixed shell ([frontend.md](frontend.md): no fixed bars, no scrolling `window`), respect `prefers-reduced-motion`, keep focus inside while open, and close with Escape. Styled, so it needs a brief in `apps/web/.impeccable/surfaces/`
 
 ### Track downloads
