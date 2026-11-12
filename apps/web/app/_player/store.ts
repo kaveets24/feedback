@@ -8,7 +8,7 @@ import {
   type AudioStore,
   type PlayerState,
 } from '../../lib/audio-store';
-import { getStreamAction } from './actions';
+import { getStreamAction, getWaveformAction } from './actions';
 
 /** The one player for the whole app. Its audio element is created on first play. */
 /** Where the volume is remembered: this browser only, and never relied on (it may be blocked). */
@@ -17,6 +17,10 @@ const VOLUME_KEY = 'feedback:volume';
 export const audioStore: AudioStore = createAudioStore({
   createAudio: () => new Audio(),
   fetchStream: getStreamAction,
+  fetchWaveform: async ({ versionId, shareToken }) => {
+    const result = await getWaveformAction(versionId, shareToken);
+    return result.ok ? result.data : null;
+  },
   now: Date.now,
   memory:
     typeof window === 'undefined'

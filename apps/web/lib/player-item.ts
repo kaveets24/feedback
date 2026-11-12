@@ -25,3 +25,21 @@ export function queueItems(tracks: readonly TrackResponse[], token: string | nul
     return current ? [playerItem(track, current, token)] : [];
   });
 }
+
+/**
+ * A row of a list (home, a public profile) as the player queues it. Lists leave out the peaks,
+ * so the player fetches them once the row plays (`fetchWaveform` in the audio store).
+ */
+export function listItem(
+  track: { id: string; title: string },
+  version: { id: string; versionNumber: number; durationMs: number | null },
+): PlayerItem {
+  return {
+    versionId: version.id,
+    trackId: track.id,
+    title: track.title,
+    versionNumber: version.versionNumber,
+    durationMs: version.durationMs ?? 0,
+    peaks: [],
+  };
+}

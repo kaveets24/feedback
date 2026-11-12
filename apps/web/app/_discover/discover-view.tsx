@@ -11,11 +11,12 @@ import {
   type MeResponse,
 } from '@feedback/shared';
 import { formatDuration, formatShortDate } from '../../lib/format';
+import { listItem } from '../../lib/player-item';
 import { Avatar } from '../_shell/avatar';
 import { UnderlineTabs } from '../_shell/tabs';
 import { href, type Filters } from './filters';
 import { GenreSelect } from './genre-select';
-import { ResultRow } from './result-row';
+import { ResultQueue, ResultRow } from './result-row';
 
 /** The search form's id, for the genre select that belongs to it from beside the results. */
 const SEARCH_FORM = 'discover-search';
@@ -158,19 +159,19 @@ export function DiscoverView({
                 )}
               </p>
             ) : (
-              <ul className="border-t border-rule">
-                {page.items.map((item) => (
-                  <ResultRow
-                    key={item.track.id}
-                    versionId={item.version.id}
-                    trackId={item.track.id}
-                    title={item.track.title}
-                    versionNumber={item.version.versionNumber}
-                  >
-                    <ResultColumns item={item} />
-                  </ResultRow>
-                ))}
-              </ul>
+              // Playing a row queues the page's rows, in order; it stops at the page's end.
+              <ResultQueue
+                queueId={`discover:${view}:${q ?? ''}:${genre ?? ''}:${cursor ?? ''}`}
+                items={page.items.map(({ track, version }) => listItem(track, version))}
+              >
+                <ul className="border-t border-rule">
+                  {page.items.map((item, index) => (
+                    <ResultRow key={item.track.id} index={index}>
+                      <ResultColumns item={item} />
+                    </ResultRow>
+                  ))}
+                </ul>
+              </ResultQueue>
             )}
             <nav aria-label="More tracks" className="mt-4 flex gap-4 text-sm">
               {cursor && (

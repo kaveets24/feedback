@@ -23,3 +23,23 @@ export async function getStreamAction(
   if (!token.success) return { ok: false, message: 'This link doesn’t work.' };
   return toResult(() => sharedApi(token.data).getStream(parsed.data));
 }
+
+/**
+ * A ready version's waveform and length, for an item a list built without them. Asked as the
+ * viewer (or as nobody, signed out or not yet approved), or through `shareToken`, so it only
+ * works on what the listener may hear.
+ */
+export async function getWaveformAction(
+  versionId: unknown,
+  shareToken?: unknown,
+): Promise<ActionResult<{ peaks: number[]; durationMs: number }>> {
+  const parsed = z.uuid().safeParse(versionId);
+  if (!parsed.success) return { ok: false, message: 'Unknown version.' };
+  const token = shareToken === undefined ? undefined : shareTokenSchema.safeParse(shareToken);
+  if (token && !token.success) return { ok: false, message: 'This link doesn’t work.' };
+  return toResult(async () => {
+    const api = token ? sharedApi(token.data) : await viewerApi();
+    const version = await api.getVersion(parsed.data);
+    return { peaks: version.waveformPeaks ?? [], durationMs: version.durationMs ?? 0 };
+  });
+}

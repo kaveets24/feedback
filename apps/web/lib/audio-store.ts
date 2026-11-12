@@ -40,11 +40,19 @@ export type VolumeMemory = { load: () => string | null; save: (value: string) =>
 
 export type StreamUrl = { url: string; expiresAt: string };
 
+/** What the mini-player draws for a version: fetched later for an item a list built without it. */
+export type WaveformData = Pick<PlayerItem, 'peaks' | 'durationMs'>;
+
 export type AudioStoreDeps = {
   createAudio: () => AudioLike;
   fetchStream: (versionId: string, shareToken?: string) => Promise<ActionResult<StreamUrl>>;
   now: () => number;
   memory?: VolumeMemory;
+  /**
+   * A version's waveform, for an item with no peaks (a list leaves them out): fetched while it
+   * plays, never before, so audio never waits on it.
+   */
+  fetchWaveform?: (item: PlayerItem) => Promise<WaveformData | null>;
 };
 
 /** Treat a stream URL as expired this long before it really does, so a resume never races it. */
@@ -105,7 +113,13 @@ function recall(memory: VolumeMemory | undefined): Pick<PlayerState, 'volume' | 
  * between versions (A/B) or prefetching the next one skips a round trip. A queue plays tracks in
  * order, moving on by itself when one ends and stopping after the last.
  */
-export function createAudioStore({ createAudio, fetchStream, now, memory }: AudioStoreDeps) {
+export function createAudioStore({
+  createAudio,
+  fetchStream,
+  now,
+  memory,
+  fetchWaveform,
+}: AudioStoreDeps) {
   let state: PlayerState = { ...initialPlayerState, ...recall(memory) };
   const listeners = new Set<() => void>();
   let audio: AudioLike | null = null;
@@ -120,6 +134,10 @@ export function createAudioStore({ createAudio, fetchStream, now, memory }: Audi
   let retried = false;
   /** When the next track's stream URL was last fetched ahead of time. */
   let preparedAt = 0;
+  /** Waveforms fetched for items that came without one, by version. */
+  const waveforms = new Map<string, WaveformData>();
+  /** Versions whose waveform is being fetched. */
+  const fetchingWaveform = new Set<string>();
 
   /** Pressing play again retries: from `error`, a resume fetches a fresh stream URL. */
   function playbackError() {
@@ -214,9 +232,45 @@ export function createAudioStore({ createAudio, fetchStream, now, memory }: Audi
     if (!next || !state.item || state.item.durationMs - state.positionMs > PREPARE_NEXT_MS) return;
     if (now() - preparedAt < PREPARE_RETRY_MS) return;
     const kept = urls.get(next.versionId);
-    if (kept && isFresh(kept)) return;
+    const needsUrl = !kept || !isFresh(kept);
+    if (!needsUrl && !needsWaveform(next)) return;
     preparedAt = now();
-    void streamUrl(next, false);
+    if (needsUrl) void streamUrl(next, false);
+    fillWaveform(next);
+  }
+
+  function needsWaveform(item: PlayerItem) {
+    return fetchWaveform !== undefined && item.peaks.length === 0 && !waveforms.has(item.versionId);
+  }
+
+  /** The item with its waveform, if it came without one and that's been fetched. */
+  function withWaveform(item: PlayerItem): PlayerItem {
+    const known = item.peaks.length === 0 ? waveforms.get(item.versionId) : undefined;
+    return known ? { ...item, ...known } : item;
+  }
+
+  /**
+   * Fetches the waveform of an item that came without one, then shows it wherever that version is
+   * in the player. Never awaited: a failure leaves the waveform flat, and a later start tries again.
+   */
+  function fillWaveform(item: PlayerItem) {
+    if (!fetchWaveform || !needsWaveform(item) || fetchingWaveform.has(item.versionId)) return;
+    const { versionId } = item;
+    fetchingWaveform.add(versionId);
+    void fetchWaveform(item)
+      .catch(() => null)
+      .then((waveform) => {
+        fetchingWaveform.delete(versionId);
+        if (!waveform) return;
+        waveforms.set(versionId, waveform);
+        const loaded = state.item?.versionId === versionId;
+        const queued = state.queue.some((q) => q.versionId === versionId);
+        if (!loaded && !queued) return;
+        set({
+          ...(loaded && state.item && { item: withWaveform(state.item) }),
+          ...(queued && { queue: state.queue.map(withWaveform) }),
+        });
+      });
   }
 
   async function startPlayback(el: AudioLike) {
@@ -262,7 +316,9 @@ export function createAudioStore({ createAudio, fetchStream, now, memory }: Audi
   }
 
   /** Loads and plays `item`, leaving the queue as it is. */
-  async function start(item: PlayerItem, atMs?: number) {
+  async function start(given: PlayerItem, atMs?: number) {
+    const item = withWaveform(given);
+    fillWaveform(item);
     if (state.item?.versionId === item.versionId && state.status !== 'error') {
       if (atMs !== undefined) seek(atMs);
       await resume();
@@ -293,7 +349,7 @@ export function createAudioStore({ createAudio, fetchStream, now, memory }: Audi
     if (!item) return;
     const loaded = state.item?.trackId === item.trackId;
     preparedAt = 0;
-    set({ queue: items, queueId });
+    set({ queue: items.map(withWaveform), queueId });
     if (loaded) await resume();
     else await start(item);
   }
@@ -311,7 +367,7 @@ export function createAudioStore({ createAudio, fetchStream, now, memory }: Audi
       playing && !items.some((q) => q.trackId === playing.trackId)
         ? items.toSpliced(index, 0, playing)
         : items;
-    set({ queue: kept });
+    set({ queue: kept.map(withWaveform) });
   }
 
   /** Moves on to the next track, if there is one, and plays it. */

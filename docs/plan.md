@@ -211,9 +211,9 @@ Requested 2026-11-12, and where each one lives:
 
 ### Player
 
-[frontend.md](frontend.md) says only project pages set a queue so far, so these build on the audio store's queue (`apps/web/lib/audio-store.ts`).
+These build on the audio store's queue (`apps/web/lib/audio-store.ts`).
 
-- [ ] **Next and previous on home:** playing a row on home (discovery, Everyone and Following) queues the rows on the page in order, so the mini-player and lock screen get next and previous as they do for a project. Public profile lists likely do the same. Decide whether the queue carries on into the next page of results
+- [x] **Next and previous on home:** playing a row on home (discovery, Everyone and Following) or a public profile's tracks queues the rows on the page in order, so the mini-player and lock screen get next and previous as they do for a project. Decided 2026-11-12: the queue stops at the end of the page and doesn't carry on into older results (that's for "A better queue"). The waveform peaks a list leaves out are fetched while a row plays ([frontend.md](frontend.md))
 - [ ] **A better queue:** see what's coming up and what played, pick a track from it, and maybe add to it or reorder. Settle the scope at its task breakdown; a queue is a session's listening, not a playlist (playlists are in the parking lot)
 - [ ] **Full-screen player:** a focused view of what's playing (large cover or waveform, LCD readout, transport, and the queue), opened from the mini-player and closed back to where you were. It has to fit the fixed shell ([frontend.md](frontend.md): no fixed bars, no scrolling `window`), respect `prefers-reduced-motion`, keep focus inside while open, and close with Escape. Styled, so it needs a brief in `apps/web/.impeccable/surfaces/`
 
